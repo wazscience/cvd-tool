@@ -1,39 +1,110 @@
-name: Combine JavaScript Files
+name: Combine Files
 
 on:
   workflow_dispatch:  # This allows manual triggering
 
 jobs:
-  combine-js:
+  combine-files:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
         
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-          
+      - name: Create combined directory
+        run: mkdir -p combined
+        
+      - name: List all files
+        run: ls -la
+        
       - name: Combine JavaScript files
         run: |
-          # Create directory for combined files
-          mkdir -p combined
+          # Create combined JS file
+          echo "// Combined JS file" > combined/combined.js
           
-          # Combine JavaScript files in the correct order
-          cat validation.js.txt calculations.js.txt medication.js*.txt ui.js.txt > combined/combined.js
+          # Try to find and append each file with various naming patterns
+          for file in validation.js.txt validation.js "validation.js (Part 1).txt" "validation.js (Part 1).txt"; do
+            if [ -f "$file" ]; then
+              echo "Adding $file to combined JS"
+              cat "$file" >> combined/combined.js
+              echo -e "\n\n" >> combined/combined.js
+            fi
+          done
           
-          # Copy styles.css.txt to combined directory
-          cp styles.css.txt combined/styles.css
+          for file in calculations.js.txt calculations.js "calculations.js (Part 1).txt" "calculations.js (Part 1).txt"; do
+            if [ -f "$file" ]; then
+              echo "Adding $file to combined JS"
+              cat "$file" >> combined/combined.js
+              echo -e "\n\n" >> combined/combined.js
+            fi
+          done
           
-          # Create index.html with corrected structure in combined directory
-          sed -e '/<!-- NON-EXECUTABLE READ-ONLY/,/-->$/d' index.txt > combined/index.html
+          for file in "medication.js.txt" "medication.js (Part 1).txt" "medication.js (Part 1)" "medication.js"; do
+            if [ -f "$file" ]; then
+              echo "Adding $file to combined JS"
+              cat "$file" >> combined/combined.js
+              echo -e "\n\n" >> combined/combined.js
+            fi
+          done
           
-          # Fix potential issues
-          # Add event handler for toggling manual non-HDL entry
+          for file in ui.js.txt ui.js "ui.js (Part 1).txt" "ui.js (Part 1)"; do
+            if [ -f "$file" ]; then
+              echo "Adding $file to combined JS"
+              cat "$file" >> combined/combined.js
+              echo -e "\n\n" >> combined/combined.js
+            fi
+          done
+          
+      - name: Copy CSS file
+        run: |
+          echo "// CSS styles" > combined/styles.css
+          for file in styles.css.txt styles.css "styles.css (Part 1).txt"; do
+            if [ -f "$file" ]; then
+              echo "Using $file for CSS"
+              cat "$file" > combined/styles.css
+            fi
+          done
+          
+      - name: Create basic index.html
+        run: |
+          # Create basic index.html skeleton
+          echo '<!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <meta name="description" content="CVD Risk Toolkit with Lp(a) Post-Test Modifier">
+              <meta name="author" content="CVD Risk Toolkit Team">
+              <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
+              <link rel="preconnect" href="https://fonts.googleapis.com">
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+              <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+              <link rel="stylesheet" href="styles.css">
+          </head>
+          <body>
+          ' > combined/index.html
+          
+          # Try to extract body content from index.txt
+          for file in index.txt "index.txt"; do
+            if [ -f "$file" ]; then
+              echo "Extracting body content from $file"
+              # Copy everything after the DOCTYPE and before the closing body
+              sed -n '/DOCTYPE html/,/<\/body>/p' "$file" | sed '1,/<body>/d' | sed '$d' >> combined/index.html
+            fi
+          done
+          
+          # Close the HTML
           echo '
-          // Add missing event handler for manual non-HDL toggle
+              <script src="combined.js"></script>
+          </body>
+          </html>' >> combined/index.html
+          
+      - name: Add missing event handlers to JS
+        run: |
+          # Add missing event handlers
+          echo '
+          // Add missing event handlers
           document.addEventListener("DOMContentLoaded", function() {
+            // Toggle manual non-HDL entry
             const toggleManualNonHDL = document.getElementById("toggle-manual-non-hdl");
             if (toggleManualNonHDL) {
               toggleManualNonHDL.addEventListener("click", function() {
@@ -45,7 +116,7 @@ jobs:
               });
             }
             
-            // Add event handler for statin selection
+            // Add statin selection handler
             const statinSelect = document.getElementById("med-statin");
             if (statinSelect) {
               statinSelect.addEventListener("change", function() {
@@ -55,6 +126,7 @@ jobs:
                   doseSelect.innerHTML = "<option value=\"\" selected>Select dose</option>";
                   
                   if (this.value !== "none") {
+                    // Define statin doses
                     const doses = {
                       atorvastatin: [
                         {value: "10", text: "10 mg", intensity: "moderate"},
@@ -110,7 +182,7 @@ jobs:
               });
             }
             
-            // Add event handler for statin intolerance selection
+            // Statin intolerance handler
             const intoleranceSelect = document.getElementById("med-statin-intolerance");
             if (intoleranceSelect) {
               intoleranceSelect.addEventListener("change", function() {
@@ -121,7 +193,7 @@ jobs:
               });
             }
             
-            // Add event handler for PCSK9 inhibitor checkbox
+            // PCSK9 checkbox handler
             const pcsk9Checkbox = document.getElementById("med-pcsk9");
             if (pcsk9Checkbox) {
               pcsk9Checkbox.addEventListener("change", function() {
@@ -132,45 +204,7 @@ jobs:
               });
             }
             
-            // Add event handler for PCSK9 inhibitor type selection
-            const pcsk9TypeSelect = document.getElementById("med-pcsk9-type");
-            if (pcsk9TypeSelect) {
-              pcsk9TypeSelect.addEventListener("change", function() {
-                const doseSelect = document.getElementById("med-pcsk9-dose");
-                if (doseSelect) {
-                  doseSelect.disabled = !this.value;
-                  doseSelect.innerHTML = "<option value=\"\" selected>Select dose</option>";
-                  
-                  if (this.value) {
-                    const doses = {
-                      evolocumab: [
-                        {value: "140", text: "140 mg every 2 weeks"},
-                        {value: "420", text: "420 mg monthly"}
-                      ],
-                      alirocumab: [
-                        {value: "75", text: "75 mg every 2 weeks"},
-                        {value: "150", text: "150 mg every 2 weeks"},
-                        {value: "300", text: "300 mg monthly"}
-                      ],
-                      inclisiran: [
-                        {value: "284", text: "284 mg initially, at 3 months, then every 6 months"}
-                      ]
-                    };
-                    
-                    if (doses[this.value]) {
-                      doses[this.value].forEach(dose => {
-                        const option = document.createElement("option");
-                        option.value = dose.value;
-                        option.textContent = dose.text;
-                        doseSelect.appendChild(option);
-                      });
-                    }
-                  }
-                }
-              });
-            }
-            
-            // Add prevention category change handler
+            // Prevention category handler
             const preventionCategory = document.getElementById("prevention-category");
             if (preventionCategory) {
               preventionCategory.addEventListener("change", function() {
@@ -183,19 +217,11 @@ jobs:
           });
           ' >> combined/combined.js
           
-      - name: Create a Pull Request
-        uses: peter-evans/create-pull-request@v5
+      - name: List combined directory contents
+        run: ls -la combined
+      
+      - name: Upload combined files as artifact
+        uses: actions/upload-artifact@v2
         with:
-          title: "Combine JavaScript files and fix missing event handlers"
-          body: |
-            This PR combines all JavaScript files into a single file and adds the missing event handlers:
-            
-            - Added event handler for toggling manual non-HDL entry
-            - Added event handler for statin selection to populate doses
-            - Added event handler for statin intolerance selection
-            - Added event handler for PCSK9 inhibitor checkbox and type selection
-            - Added event handler for prevention category changes
-            
-            The combined files are in the `combined` directory.
-          branch: combined-files
-          commit-message: "Combine JavaScript files and fix missing event handlers"
+          name: combined-files
+          path: combined/
