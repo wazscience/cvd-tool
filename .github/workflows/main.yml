@@ -13,12 +13,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         
-      - name: Set up workspace
+      - name: Create directory for combined files
         run: |
           mkdir -p combined
-          echo "// Combined JavaScript file for CVD Risk Toolkit" > combined/combined.js
-          echo "/* Combined CSS file for CVD Risk Toolkit */" > combined/styles.css
-        
+          
       - name: List all files
         run: |
           echo "Listing files in repository:"
@@ -188,7 +186,7 @@ jobs:
       
       - name: Create simplified index.html
         run: |
-          echo "Creating index.html skeleton"
+          echo "Creating index.html"
           cat > combined/index.html << 'EOL'
           <!DOCTYPE html>
           <html lang="en">
@@ -224,23 +222,12 @@ jobs:
           echo "Files in combined directory:"
           ls -la combined
       
-      # Push combined files to a new branch with proper permissions
-      - name: Push combined files to a new branch
+      # Add combined files directly to main branch
+      - name: Commit combined files to main branch
         run: |
-          echo "Creating branch with combined files"
+          echo "Committing combined files to repository"
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          git checkout -b combined-files
           git add combined/
           git commit -m "Add combined files" || echo "No changes to commit"
-          git push -f origin combined-files || echo "Failed to push branch"
-          
-      - name: Upload artifacts to repository
-        run: |
-          echo "Creating combined files in main branch"
-          git checkout main
-          mkdir -p final
-          cp combined/* final/
-          git add final/
-          git commit -m "Add final combined files to main branch" || echo "No changes to commit"
           git push origin main || echo "Failed to push to main"
