@@ -1,6 +1,8 @@
 name: Combine Files
 
 on:
+permissions:
+  contents: write
   workflow_dispatch:  # Manual trigger
 
 jobs:
