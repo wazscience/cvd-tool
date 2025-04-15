@@ -1,0 +1,90 @@
+name: Show Combined Files
+
+on:
+  workflow_dispatch:  # Manual trigger
+
+jobs:
+  show-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: List all files
+        run: ls -la
+        
+      - name: Combine JavaScript files
+        run: |
+          # Create temporary combined file
+          echo "// Combined JavaScript file" > combined.js
+          
+          # Try each possible file pattern
+          if [ -f "validation.js.txt" ]; then
+            echo "Found validation.js.txt"
+            cat validation.js.txt >> combined.js
+          fi
+          
+          if [ -f "calculations.js.txt" ]; then
+            echo "Found calculations.js.txt"
+            cat calculations.js.txt >> combined.js
+          fi
+          
+          if [ -f "medication.js.txt" ]; then
+            echo "Found medication.js.txt"
+            cat medication.js.txt >> combined.js
+          fi
+          
+          if [ -f "ui.js.txt" ]; then
+            echo "Found ui.js.txt"
+            cat ui.js.txt >> combined.js
+          fi
+          
+          # Add event handlers
+          echo "
+          // Added event handlers
+          document.addEventListener('DOMContentLoaded', function() {
+            // Toggle non-HDL handler
+            const toggleManualNonHDL = document.getElementById('toggle-manual-non-hdl');
+            if (toggleManualNonHDL) {
+              toggleManualNonHDL.addEventListener('click', function() {
+                const nonHDLInput = document.getElementById('med-non-hdl');
+                if (nonHDLInput) {
+                  nonHDLInput.disabled = !nonHDLInput.disabled;
+                  this.textContent = nonHDLInput.disabled ? 'Enter manually' : 'Use auto-calculation';
+                }
+              });
+            }
+            
+            // Basic statin handler
+            const statinSelect = document.getElementById('med-statin');
+            if (statinSelect) {
+              statinSelect.addEventListener('change', function() {
+                const doseSelect = document.getElementById('med-statin-dose');
+                if (doseSelect) {
+                  doseSelect.disabled = this.value === 'none';
+                }
+              });
+            }
+          });" >> combined.js
+          
+      - name: Output content sizes for manual copying
+        run: |
+          # Show file sizes
+          echo "===== FILE SIZES ====="
+          ls -lh combined.js
+          
+          if [ -f "styles.css.txt" ]; then
+            echo "CSS file is available:"
+            ls -lh styles.css.txt
+          fi
+          
+          echo "===== COMBINED JS FILE (FIRST 50 LINES) ====="
+          head -n 50 combined.js
+          
+          echo "===== END OF PREVIEW ====="
+          echo "The combined JavaScript file has been created. You can see the first 50 lines above."
+          echo "To get the full file, it's recommended to manually combine the files in your local environment."
+          echo "===== INSTRUCTIONS ====="
+          echo "1. Copy your validation.js.txt, calculations.js.txt, medication.js.txt, and ui.js.txt files"
+          echo "2. Paste them in order into a new combined.js file"
+          echo "3. Add the event handlers code at the end"
