@@ -1,9 +1,10 @@
 name: Combine Files
 
 on:
-permissions:
-  contents: write
   workflow_dispatch:  # Manual trigger
+
+permissions:
+  contents: write  # Explicitly grant write permissions
 
 jobs:
   combine-files:
@@ -39,7 +40,7 @@ jobs:
             echo -e "\n\n" >> combined/combined.js
           fi
           
-          # Medication.js
+          # Medication.js (try different possible filenames)
           if [ -f "medication.js.txt" ]; then
             echo "Adding medication.js.txt to combined JS"
             cat medication.js.txt >> combined/combined.js
@@ -203,33 +204,16 @@ jobs:
               <link rel="stylesheet" href="styles.css">
           </head>
           <body>
-              <div class="page-container">
-                  <header class="main-header">
-                      <div class="container">
-                          <div class="header-content">
-                              <div class="logo-container">
-                                  <h1>CVD Risk Toolkit</h1>
-                                  <span class="tagline">with Lp(a) Post-Test Modifier</span>
-                              </div>
-                              <div class="header-actions">
-                                  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
-                                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"></path></svg>
-                                  </button>
-                              </div>
-                          </div>
-                          <p class="header-description">Calculate 10-year cardiovascular disease risk using established risk calculators with lipoprotein(a) adjustment</p>
-                      </div>
-                  </header>
           EOL
+          
+          # Try to extract body content from index.txt
+          if [ -f "index.txt" ]; then
+            echo "Extracting body content from index.txt"
+            sed -n '/<body>/,/<\/body>/p' index.txt | sed '1d;$d' >> combined/index.html
+          fi
           
           # Close the HTML
           cat >> combined/index.html << 'EOL'
-                  <footer class="main-footer">
-                      <div class="container">
-                          <p>&copy; 2025 CVD Risk Toolkit Team. For healthcare professional use only.</p>
-                      </div>
-                  </footer>
-              </div>
               <script src="combined.js"></script>
           </body>
           </html>
@@ -240,14 +224,23 @@ jobs:
           echo "Files in combined directory:"
           ls -la combined
       
-      # Create a new branch with the combined files using basic Git commands
+      # Push combined files to a new branch with proper permissions
       - name: Push combined files to a new branch
         run: |
           echo "Creating branch with combined files"
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
+          git checkout -b combined-files
           git add combined/
           git commit -m "Add combined files" || echo "No changes to commit"
-          git branch combined-files
-          git checkout combined-files
           git push -f origin combined-files || echo "Failed to push branch"
+          
+      - name: Upload artifacts to repository
+        run: |
+          echo "Creating combined files in main branch"
+          git checkout main
+          mkdir -p final
+          cp combined/* final/
+          git add final/
+          git commit -m "Add final combined files to main branch" || echo "No changes to commit"
+          git push origin main || echo "Failed to push to main"
