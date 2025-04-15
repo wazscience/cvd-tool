@@ -1,7 +1,7 @@
 name: Combine Files
 
 on:
-  workflow_dispatch:  # This allows manual triggering
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   combine-files:
@@ -10,98 +10,57 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         
-      - name: Create combined directory
-        run: mkdir -p combined
+      - name: Set up workspace
+        run: |
+          mkdir -p combined
+          echo "// Combined JavaScript file for CVD Risk Toolkit" > combined/combined.js
+          echo "/* Combined CSS file for CVD Risk Toolkit */" > combined/styles.css
         
       - name: List all files
-        run: ls -la
+        run: |
+          echo "Listing files in repository:"
+          ls -la
         
       - name: Combine JavaScript files
         run: |
-          # Create combined JS file
-          echo "// Combined JS file" > combined/combined.js
+          # Validation.js
+          if [ -f "validation.js.txt" ]; then
+            echo "Adding validation.js.txt to combined JS"
+            cat validation.js.txt >> combined/combined.js
+            echo -e "\n\n" >> combined/combined.js
+          fi
           
-          # Try to find and append each file with various naming patterns
-          for file in validation.js.txt validation.js "validation.js (Part 1).txt" "validation.js (Part 1).txt"; do
-            if [ -f "$file" ]; then
-              echo "Adding $file to combined JS"
-              cat "$file" >> combined/combined.js
-              echo -e "\n\n" >> combined/combined.js
-            fi
-          done
+          # Calculations.js
+          if [ -f "calculations.js.txt" ]; then
+            echo "Adding calculations.js.txt to combined JS"
+            cat calculations.js.txt >> combined/combined.js
+            echo -e "\n\n" >> combined/combined.js
+          fi
           
-          for file in calculations.js.txt calculations.js "calculations.js (Part 1).txt" "calculations.js (Part 1).txt"; do
-            if [ -f "$file" ]; then
-              echo "Adding $file to combined JS"
-              cat "$file" >> combined/combined.js
-              echo -e "\n\n" >> combined/combined.js
-            fi
-          done
+          # Medication.js
+          if [ -f "medication.js.txt" ]; then
+            echo "Adding medication.js.txt to combined JS"
+            cat medication.js.txt >> combined/combined.js
+            echo -e "\n\n" >> combined/combined.js
+          fi
           
-          for file in "medication.js.txt" "medication.js (Part 1).txt" "medication.js (Part 1)" "medication.js"; do
-            if [ -f "$file" ]; then
-              echo "Adding $file to combined JS"
-              cat "$file" >> combined/combined.js
-              echo -e "\n\n" >> combined/combined.js
-            fi
-          done
+          if [ -f "medication.js (Part 1).txt" ]; then
+            echo "Adding medication.js (Part 1).txt to combined JS"
+            cat "medication.js (Part 1).txt" >> combined/combined.js
+            echo -e "\n\n" >> combined/combined.js
+          fi
           
-          for file in ui.js.txt ui.js "ui.js (Part 1).txt" "ui.js (Part 1)"; do
-            if [ -f "$file" ]; then
-              echo "Adding $file to combined JS"
-              cat "$file" >> combined/combined.js
-              echo -e "\n\n" >> combined/combined.js
-            fi
-          done
-          
-      - name: Copy CSS file
+          # UI.js
+          if [ -f "ui.js.txt" ]; then
+            echo "Adding ui.js.txt to combined JS"
+            cat ui.js.txt >> combined/combined.js
+            echo -e "\n\n" >> combined/combined.js
+          fi
+      
+      - name: Add missing event handlers
         run: |
-          echo "// CSS styles" > combined/styles.css
-          for file in styles.css.txt styles.css "styles.css (Part 1).txt"; do
-            if [ -f "$file" ]; then
-              echo "Using $file for CSS"
-              cat "$file" > combined/styles.css
-            fi
-          done
-          
-      - name: Create basic index.html
-        run: |
-          # Create basic index.html skeleton
-          echo '<!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <meta name="description" content="CVD Risk Toolkit with Lp(a) Post-Test Modifier">
-              <meta name="author" content="CVD Risk Toolkit Team">
-              <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
-              <link rel="preconnect" href="https://fonts.googleapis.com">
-              <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-              <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-              <link rel="stylesheet" href="styles.css">
-          </head>
-          <body>
-          ' > combined/index.html
-          
-          # Try to extract body content from index.txt
-          for file in index.txt "index.txt"; do
-            if [ -f "$file" ]; then
-              echo "Extracting body content from $file"
-              # Copy everything after the DOCTYPE and before the closing body
-              sed -n '/DOCTYPE html/,/<\/body>/p' "$file" | sed '1,/<body>/d' | sed '$d' >> combined/index.html
-            fi
-          done
-          
-          # Close the HTML
-          echo '
-              <script src="combined.js"></script>
-          </body>
-          </html>' >> combined/index.html
-          
-      - name: Add missing event handlers to JS
-        run: |
-          # Add missing event handlers
-          echo '
+          echo "Adding missing event handlers to combined JS"
+          cat >> combined/combined.js << 'EOL'
           // Add missing event handlers
           document.addEventListener("DOMContentLoaded", function() {
             // Toggle manual non-HDL entry
@@ -215,13 +174,78 @@ jobs:
               });
             }
           });
-          ' >> combined/combined.js
-          
-      - name: List combined directory contents
-        run: ls -la combined
+          EOL
       
-      - name: Upload combined files as artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: combined-files
-          path: combined/
+      - name: Copy CSS file
+        run: |
+          if [ -f "styles.css.txt" ]; then
+            echo "Copying styles.css.txt to combined/styles.css"
+            cat styles.css.txt > combined/styles.css
+          fi
+      
+      - name: Create simplified index.html
+        run: |
+          echo "Creating index.html skeleton"
+          cat > combined/index.html << 'EOL'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <meta name="description" content="CVD Risk Toolkit with Lp(a) Post-Test Modifier">
+              <meta name="author" content="CVD Risk Toolkit Team">
+              <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
+              <link rel="preconnect" href="https://fonts.googleapis.com">
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+              <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+              <link rel="stylesheet" href="styles.css">
+          </head>
+          <body>
+              <div class="page-container">
+                  <header class="main-header">
+                      <div class="container">
+                          <div class="header-content">
+                              <div class="logo-container">
+                                  <h1>CVD Risk Toolkit</h1>
+                                  <span class="tagline">with Lp(a) Post-Test Modifier</span>
+                              </div>
+                              <div class="header-actions">
+                                  <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"></path></svg>
+                                  </button>
+                              </div>
+                          </div>
+                          <p class="header-description">Calculate 10-year cardiovascular disease risk using established risk calculators with lipoprotein(a) adjustment</p>
+                      </div>
+                  </header>
+          EOL
+          
+          # Close the HTML
+          cat >> combined/index.html << 'EOL'
+                  <footer class="main-footer">
+                      <div class="container">
+                          <p>&copy; 2025 CVD Risk Toolkit Team. For healthcare professional use only.</p>
+                      </div>
+                  </footer>
+              </div>
+              <script src="combined.js"></script>
+          </body>
+          </html>
+          EOL
+      
+      - name: List files in combined directory
+        run: |
+          echo "Files in combined directory:"
+          ls -la combined
+      
+      # Create a new branch with the combined files using basic Git commands
+      - name: Push combined files to a new branch
+        run: |
+          echo "Creating branch with combined files"
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add combined/
+          git commit -m "Add combined files" || echo "No changes to commit"
+          git branch combined-files
+          git checkout combined-files
+          git push -f origin combined-files || echo "Failed to push branch"
