@@ -88,6 +88,49 @@ jobs:
         echo "Converted files:"
         ls -la converted_files/
     
+    # Add legal and attribution headers to JavaScript files
+    - name: Add legal and attribution headers
+      run: |
+        # Create legal header file
+        cat > legal_header.txt << 'EOL'
+/**
+ * CVD Risk Toolkit with Lp(a) Post-Test Modifier
+ * 
+ * LEGAL DISCLAIMER:
+ * This software is provided for educational and informational purposes only. 
+ * It is not intended to be a substitute for professional medical advice, diagnosis, or treatment.
+ * Always seek the advice of a qualified healthcare provider with any questions regarding medical conditions.
+ * Never disregard professional medical advice or delay seeking it because of something you have read in this software.
+ * 
+ * The creators and contributors of this software make no representations or warranties of any kind, 
+ * express or implied, about the completeness, accuracy, reliability, suitability, or availability
+ * of the software or the information it contains. Any reliance you place on such information is 
+ * strictly at your own risk.
+ * 
+ * REFERENCES AND ATTRIBUTIONS:
+ * - QRISK3 algorithm: Hippisley-Cox J, et al. BMJ 2017;357:j2099
+ *   https://qrisk.org/three/
+ * - Framingham Risk Score: D'Agostino RB Sr, et al. Circulation 2008;117:743-53
+ * - Lp(a) adjustments based on:
+ *   - Willeit P, et al. Lancet 2018;392:1311-1320
+ *   - Tsimikas S. J Am Coll Cardiol 2017;69:692-711
+ *   - Grundy SM, et al. J Am Coll Cardiol 2019;73:e285-e350
+ * 
+ * Last updated: April 2025
+ */
+
+EOL
+        
+        # Add legal header to each converted JavaScript file
+        for file in converted_files/*.js; do
+          if [ -f "$file" ]; then
+            filename=$(basename "$file")
+            cat legal_header.txt "$file" > temp_file.js
+            mv temp_file.js "$file"
+            echo "Added legal header to $filename"
+          fi
+        done
+    
     # Validate JavaScript syntax for the converted files
     - name: Validate JavaScript syntax
       run: |
@@ -111,7 +154,116 @@ jobs:
           fi
         done
     
-    # Update HTML file
+    # Update HTML file with legal disclaimer if not already present
+    - name: Add Legal Disclaimer to HTML
+      run: |
+        # Find the main HTML file
+        HTML_FILE="index.html"
+        if [ ! -f "$HTML_FILE" ]; then
+          # Try to find any HTML file if index.html doesn't exist
+          HTML_FILE=$(find . -maxdepth 1 -name "*.html" | head -n 1)
+          if [ -z "$HTML_FILE" ]; then
+            echo "No HTML file found to update"
+            exit 0
+          fi
+        fi
+        
+        echo "Adding legal disclaimer to $HTML_FILE if not present..."
+        
+        # Check if legal disclaimer exists
+        if ! grep -q "This tool is not a substitute for professional medical advice" "$HTML_FILE"; then
+          # Create temp file for legal disclaimer
+          cat > temp_legal.txt << 'EOL'
+<div class="legal-disclaimer-banner" style="background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 1rem; margin-bottom: 2rem; border-radius: 0.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.12);">
+    <p><strong>Healthcare Professional Use Only:</strong> This tool is designed to support clinical decision-making, not replace it. Always use clinical judgment.</p>
+    <p style="font-size: 0.875rem; margin-top: 0.5rem;">This tool is not a substitute for professional medical advice, diagnosis, or treatment. The calculations are based on established risk algorithms but have inherent limitations.</p>
+</div>
+EOL
+          
+          # Find where to insert the disclaimer (after header or at top of main content)
+          if grep -q "<main" "$HTML_FILE"; then
+            MAIN_LINE=$(grep -n "<main" "$HTML_FILE" | head -n 1 | cut -d ':' -f 1)
+            # Find the line after the opening main tag where content starts
+            CONTENT_START=$((MAIN_LINE + 2))
+            sed -i "${CONTENT_START}r temp_legal.txt" "$HTML_FILE"
+            echo "Added legal disclaimer at the beginning of main content"
+          elif grep -q "<body" "$HTML_FILE"; then
+            BODY_LINE=$(grep -n "<body" "$HTML_FILE" | head -n 1 | cut -d ':' -f 1)
+            # Find position after body tag
+            AFTER_BODY=$((BODY_LINE + 1))
+            sed -i "${AFTER_BODY}r temp_legal.txt" "$HTML_FILE"
+            echo "Added legal disclaimer at the beginning of body"
+          else
+            echo "Could not find appropriate location for legal disclaimer"
+          fi
+        else
+          echo "Legal disclaimer already exists in HTML file"
+        fi
+    
+    # Update HTML file with references section
+    - name: Add References Section to HTML
+      run: |
+        # Find the main HTML file
+        HTML_FILE="index.html"
+        if [ ! -f "$HTML_FILE" ]; then
+          HTML_FILE=$(find . -maxdepth 1 -name "*.html" | head -n 1)
+          if [ -z "$HTML_FILE" ]; then
+            echo "No HTML file found to update"
+            exit 0
+          fi
+        fi
+        
+        echo "Adding references section to $HTML_FILE if not present..."
+        
+        # Check if references section exists
+        if ! grep -q "References and Attributions" "$HTML_FILE"; then
+          # Create temp file for references
+          cat > temp_refs.txt << 'EOL'
+<div class="references-section" style="margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid #ddd;">
+    <h3>References and Attributions</h3>
+    <div class="references-content" style="font-size: 0.875rem;">
+        <p><strong>Risk Calculators:</strong></p>
+        <ul>
+            <li>QRISK3: Hippisley-Cox J, et al. Development and validation of QRISK3 risk prediction algorithms to estimate future risk of cardiovascular disease: prospective cohort study. <em>BMJ</em> 2017;357:j2099</li>
+            <li>Framingham Risk Score: D'Agostino RB Sr, et al. General cardiovascular risk profile for use in primary care: the Framingham Heart Study. <em>Circulation</em> 2008;117:743-53</li>
+        </ul>
+        <p><strong>Lp(a) Risk Modification:</strong></p>
+        <ul>
+            <li>Willeit P, et al. Cardiovascular risk prediction using lipoprotein(a): a story half-told? <em>Lancet</em> 2018;392:1311-1320</li>
+            <li>Tsimikas S. A test in context: lipoprotein(a): diagnosis, prognosis, controversies, and emerging therapies. <em>J Am Coll Cardiol</em> 2017;69:692-711</li>
+            <li>Grundy SM, et al. 2018 AHA/ACC/AACVPR/AAPA/ABC/ACPM/ADA/AGS/APhA/ASPC/NLA/PCNA Guideline on the Management of Blood Cholesterol. <em>J Am Coll Cardiol</em> 2019;73:e285-e350</li>
+        </ul>
+        <p><strong>Treatment Guidelines:</strong></p>
+        <ul>
+            <li>Pearson GJ, et al. 2021 Canadian Cardiovascular Society Guidelines for the Management of Dyslipidemia for the Prevention of Cardiovascular Disease in Adults. <em>Can J Cardiol</em> 2021;37(8):1129-1150</li>
+            <li>Mach F, et al. 2019 ESC/EAS Guidelines for the management of dyslipidaemias. <em>Eur Heart J</em> 2020;41(1):111-188</li>
+        </ul>
+        <p><small>Last updated: April 2025. For educational and informational purposes only.</small></p>
+    </div>
+</div>
+EOL
+          
+          # Find where to insert the references (before closing body tag or at end of content)
+          if grep -q "</body>" "$HTML_FILE"; then
+            BODY_END=$(grep -n "</body>" "$HTML_FILE" | head -n 1 | cut -d ':' -f 1)
+            BEFORE_BODY_END=$((BODY_END - 1))
+            sed -i "${BEFORE_BODY_END}r temp_refs.txt" "$HTML_FILE"
+            echo "Added references section before closing body tag"
+          elif grep -q "</main>" "$HTML_FILE"; then
+            MAIN_END=$(grep -n "</main>" "$HTML_FILE" | head -n 1 | cut -d ':' -f 1)
+            BEFORE_MAIN_END=$((MAIN_END - 1))
+            sed -i "${BEFORE_MAIN_END}r temp_refs.txt" "$HTML_FILE"
+            echo "Added references section before closing main tag"
+          else
+            # Append to end of file
+            cat temp_refs.txt >> "$HTML_FILE"
+            echo "Added references section at the end of the file"
+          fi
+        else
+          echo "References section already exists in HTML file"
+        fi
+    
+    # Update HTML file with script tags and form fields
     - name: Update HTML file
       run: |
         # Find the main HTML file
@@ -146,8 +298,8 @@ jobs:
         # 2. Update QRISK3 form with new fields
         # Find the Medical Conditions section
         if grep -q "Medical Conditions" "$HTML_FILE"; then
-          # Create a temporary file for the new fields
-          cat > temp_fields.txt << 'EOL'
+          # Create a temporary file for the new medical condition fields
+          cat > temp_fields.txt << EOF
 <div class="checkbox-item">
     <input type="checkbox" id="qrisk-migraine">
     <label for="qrisk-migraine">Migraine</label>
@@ -167,7 +319,7 @@ jobs:
     <input type="checkbox" id="qrisk-ed">
     <label for="qrisk-ed">Erectile Dysfunction/Impotence</label>
 </div>
-EOL
+EOF
 
           # Check if these fields already exist
           if ! grep -q "qrisk-migraine" "$HTML_FILE"; then
@@ -186,7 +338,7 @@ EOL
           # Create the Medications section if it doesn't exist
           if ! grep -q "qrisk-atypical-antipsychotics" "$HTML_FILE"; then
             # Create a temporary file for the medications section
-            cat > temp_medications.txt << 'EOL'
+            cat > temp_medications.txt << EOF
 <div class="card">
     <div class="card-header active">
         <h3>Medications</h3>
@@ -206,7 +358,7 @@ EOL
         </div>
     </div>
 </div>
-EOL
+EOF
             
             # Find the closing div after the Medical Conditions card
             MEDICAL_LINE=$(grep -n "Medical Conditions" "$HTML_FILE" | head -n 1 | cut -d ':' -f 1)
@@ -230,11 +382,11 @@ EOL
               LIPID_END=$((LIPID_LINE + LIPID_END))
               
               # Create temp file for hidden fields
-              cat > temp_hidden.txt << 'EOL'
+              cat > temp_hidden.txt << EOF
 <!-- Hidden fields for calculations -->
 <input type="hidden" id="qrisk-bmi">
 <input type="hidden" id="qrisk-chol-ratio">
-EOL
+EOF
               
               sed -i "${LIPID_END}r temp_hidden.txt" "$HTML_FILE"
               echo "Added hidden fields for calculations"
@@ -252,7 +404,7 @@ EOL
         # First check if there's a script section at the end
         if grep -q "</script>" "$HTML_FILE"; then
           # Create temp file for event handlers
-          cat > temp_handlers.txt << 'EOL'
+          cat > temp_handlers.txt << 'EOF'
 // QRISK3 Enhancement Event Handlers
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle erectile dysfunction field based on sex
@@ -360,7 +512,7 @@ function calculateQRISK() {
         updateComparisonTabStatus('qrisk', true);
     }
 }
-EOL
+EOF
           
           # Find the last script tag in the file
           LAST_SCRIPT=$(grep -n "</script>" "$HTML_FILE" | tail -n 1 | cut -d ':' -f 1)
@@ -370,7 +522,7 @@ EOL
           echo "Added event handlers and function overrides"
         else
           # Create a new script section at the end of the file
-          cat > temp_script.txt << 'EOL'
+          cat > temp_script.txt << 'EOF'
 <script>
 // QRISK3 Enhancement Event Handlers
 document.addEventListener('DOMContentLoaded', function() {
@@ -480,7 +632,7 @@ function calculateQRISK() {
     }
 }
 </script>
-EOL
+EOF
           
           # Add script section to the end of the file
           echo -e "\n$(cat temp_script.txt)" >> "$HTML_FILE"
@@ -500,7 +652,7 @@ EOL
         
         # Add and commit all changes
         git add *.js *.html
-        git commit -m "Implement CVD Risk Toolkit enhancements" || echo "No changes to commit"
+        git commit -m "Implement CVD Risk Toolkit enhancements with legal disclaimers and references" || echo "No changes to commit"
     
     # Push the changes
     - name: Push changes
