@@ -1,0 +1,84 @@
+name: CVD Risk Toolkit Enhancement
+
+on:
+  # Triggers when text files are pushed to the repository
+  push:
+    branches: [ main ]
+    paths:
+      - '**.txt'
+  
+  # Allows manual triggering from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  convert-files:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Create directory for converted files
+      run: mkdir -p converted_files
+    
+    # Convert the text files to JavaScript files
+    - name: Convert text files to JavaScript
+      run: |
+        # Check if QRISK3 Implementation file exists
+        if [ -f "QRISK3 Implementation Module.txt" ]; then
+          cp "QRISK3 Implementation Module.txt" converted_files/qrisk3-implementation.js
+          echo "Converted QRISK3 Implementation Module.txt to qrisk3-implementation.js"
+        else 
+          echo "Warning: QRISK3 Implementation Module.txt not found"
+        fi
+        
+        # Check if Juno EMR Integration file exists
+        if [ -f "Juno EMR Integration Module.txt" ]; then
+          cp "Juno EMR Integration Module.txt" converted_files/juno-integration.js
+          echo "Converted Juno EMR Integration Module.txt to juno-integration.js"
+        else
+          echo "Warning: Juno EMR Integration Module.txt not found"
+        fi
+        
+        # Check if Enhanced Results Display file exists (with either spelling)
+        if [ -f "Enhanced Results Display Module.txt" ]; then
+          cp "Enhanced Results Display Module.txt" converted_files/enhanced-display.js
+          echo "Converted Enhanced Results Display Module.txt to enhanced-display.js"
+        elif [ -f "Enhanced Results Display Moduel.txt" ]; then
+          # Handle alternative spelling
+          cp "Enhanced Results Display Moduel.txt" converted_files/enhanced-display.js
+          echo "Converted Enhanced Results Display Moduel.txt to enhanced-display.js"
+        else
+          echo "Warning: Enhanced Results Display file not found with either spelling"
+        fi
+        
+        # List converted files
+        echo "Converted files:"
+        ls -la converted_files/
+    
+    # Replace existing files with converted ones
+    - name: Replace existing JavaScript files
+      run: |
+        # Move converted JS files to main directory
+        for file in converted_files/*.js; do
+          if [ -f "$file" ]; then
+            filename=$(basename "$file")
+            mv "$file" "./$filename"
+            echo "Added/replaced $filename"
+          fi
+        done
+    
+    # Commit the changes
+    - name: Commit converted files
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add *.js
+        git commit -m "Convert text files to JavaScript files" || echo "No changes to commit"
+    
+    # Push the changes
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
