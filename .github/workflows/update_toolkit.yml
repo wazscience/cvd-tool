@@ -1,0 +1,40 @@
+name: CVD Risk Toolkit Enhancement
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  enhance:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Make script executable
+      run: chmod +x enhance-toolkit.sh
+    
+    - name: Run enhancement script
+      run: ./enhance-toolkit.sh
+    
+    - name: Commit changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Add JS files
+        git add *.js || echo "No JS files to add"
+        
+        # Add HTML file if created
+        git add *.html || echo "No HTML files to add"
+        
+        # Commit if there are changes
+        git diff --staged --quiet || git commit -m "Enhance CVD Risk Toolkit with QRISK3 improvements"
+    
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.ref }}
