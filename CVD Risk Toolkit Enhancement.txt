@@ -1,0 +1,85 @@
+name: CVD Risk Toolkit Enhancement
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to production'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Verify file structure
+      run: |
+        echo "Verifying file structure..."
+        ls -la
+    
+    - name: Lint JavaScript
+      run: |
+        npx eslint --fix "*.js"
+    
+    - name: Run code validation
+      run: |
+        echo "Validating HTML and JavaScript..."
+        npx html-validate "*.html"
+    
+    - name: Build project
+      run: |
+        echo "Building project..."
+        # If you have a build script, uncomment:
+        # npm run build
+    
+    - name: Run tests
+      run: |
+        echo "Running tests..."
+        # If you have test scripts, uncomment:
+        # npm test
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: cvd-toolkit
+        path: |
+          *.html
+          *.js
+          *.css
+          assets/
+          !node_modules/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
+    
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: cvd-toolkit
+        path: ./dist
+    
+    - name: Deploy to GitHub Pages
+      uses: JamesIves/github-pages-deploy-action@4.1.8
+      with:
+        branch: gh-pages
+        folder: ./dist
