@@ -676,7 +676,7 @@ EOL
             
             log_message "Treatment recommendation updates completed"
           fi
-
+          
           # 6. ADD CLINICAL VALIDATION DOCUMENTATION
 
           if [ -f "combined.js" ]; then
