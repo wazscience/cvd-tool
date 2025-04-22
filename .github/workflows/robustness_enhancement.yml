@@ -28,23 +28,21 @@ jobs:
       - name: Install dependencies
         run: |
           npm install eslint prettier jshint
-
+      
       - name: Create enhancer script
         run: |
           cat > enhance-toolkit.sh << 'EOF'
           #!/bin/bash
           set -e
-
           echo "Starting CVD Risk Toolkit enhancement..."
-
+          
           # Create backup directory
           mkdir -p backups
           cp *.js backups/ 2>/dev/null || true
           cp *.html backups/ 2>/dev/null || true
           cp *.css backups/ 2>/dev/null || true
-
           echo "Created backups of existing files"
-
+          
           # Fix QRISK3 algorithm coefficients and survival constants based on official research
           if [ -f "combined.js" ]; then
             echo "Updating QRISK3 implementation with validated coefficients from 2018 publication..."
@@ -79,7 +77,7 @@ jobs:
                   return 1.8 + Math.min((lpaValue - 180) * 0.001, 0.2);\
               }\
           }' combined.js
-
+            
             # Update risk category thresholds based on 2021 CCS Guidelines
             sed -i '/function getRiskCategory/,/}/c\
           /**\
@@ -132,7 +130,7 @@ jobs:
               return ethnicityMap[ethnicity] || 1; // Default to White if not specified\
           }' combined.js
           fi
-
+          
           # Fix defensive programming issues in combined.js
           if [ -f "combined.js" ]; then
             echo "Enhancing defensive programming in combined.js..."
@@ -183,10 +181,10 @@ jobs:
                   console.warn("Framingham Risk Score is only validated for ages 30-74. Results may be less reliable.");\
               }' combined.js
           fi
-
-          # Improve form validation in index.html and ensure consistent checkbox usage for yes/no fields
+          
+          # Improve form validation in index.html
           if [ -f "index.html" ]; then
-            echo "Enhancing form validation and checkbox usage in index.html..."
+            echo "Enhancing form validation in index.html..."
             
             # Add proper validation attributes to all inputs
             sed -i 's/<input type="number" id="frs-age" min="30" max="74"/<input type="number" id="frs-age" min="30" max="74" oninput="this.value = Math.min(Math.max(parseInt(this.value) || 30, 30), 74)"/g' index.html
@@ -207,140 +205,6 @@ jobs:
             # Ensure all required fields have proper validation indicators
             sed -i 's/<label for="frs-age">Age<\/label>/<label for="frs-age" class="required">Age<\/label>/g' index.html
             sed -i 's/<label for="qrisk-age">Age<\/label>/<label for="qrisk-age" class="required">Age<\/label>/g' index.html
-            
-            # Convert blood pressure treatment to checkbox in FRS form
-            sed -i '/<label class="required">Blood Pressure Treatment<\/label>/,/<\/div>/c\
-                                        <div class="form-group">\
-                                            <label class="required">On Blood Pressure Treatment</label>\
-                                            <div class="checkbox-item">\
-                                                <input type="checkbox" id="frs-bp-treatment">\
-                                                <label for="frs-bp-treatment">Currently on BP medication</label>\
-                                            </div>\
-                                        </div>' index.html
-            
-            # Convert FRS smoker to checkbox 
-            sed -i '/<label class="required">Smoker<\/label>/,/<\/div>/c\
-                                        <div class="form-group">\
-                                            <label class="required">Smoking Status</label>\
-                                            <div class="checkbox-item">\
-                                                <input type="checkbox" id="frs-smoker">\
-                                                <label for="frs-smoker">Current smoker</label>\
-                                            </div>\
-                                        </div>' index.html
-            
-            # Convert FRS diabetes to checkbox
-            sed -i '/<label>Diabetes<\/label>/,/<\/div>/c\
-                                        <div class="form-group">\
-                                            <label>Diabetes</label>\
-                                            <div class="checkbox-item">\
-                                                <input type="checkbox" id="frs-diabetes">\
-                                                <label for="frs-diabetes">Has diabetes</label>\
-                                            </div>\
-                                        </div>' index.html
-            
-            # Convert QRISK3 family history to checkbox
-            sed -i '/<label class="required">Family History of CVD<\/label>/,/<\/div>/c\
-                                        <div class="form-group">\
-                                            <label class="required">Family History</label>\
-                                            <div class="checkbox-item">\
-                                                <input type="checkbox" id="qrisk-family-history">\
-                                                <label for="qrisk-family-history">Family history of cardiovascular disease</label>\
-                                            </div>\
-                                        </div>' index.html
-            
-            # Convert QRISK3 BP treatment to checkbox
-            sed -i '/<label>On Blood Pressure Treatment<\/label>/,/<\/div>/c\
-                                        <div class="form-group">\
-                                            <label>Blood Pressure Treatment</label>\
-                                            <div class="checkbox-item">\
-                                                <input type="checkbox" id="qrisk-bp-treatment">\
-                                                <label for="qrisk-bp-treatment">Currently on BP medication</label>\
-                                            </div>\
-                                        </div>' index.html
-          fi
-
-          # Enhance checkbox styling in style.css
-          if [ -f "style.css" ]; then
-            echo "Enhancing checkbox styling in style.css..."
-            
-            # Add improved checkbox styling
-            cat >> style.css << 'EOL'
-
-/* Enhanced Checkbox Styling */
-.checkbox-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-xs);
-}
-
-.checkbox-item input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-color);
-  border-radius: 4px;
-  background-color: var(--card-color);
-  cursor: pointer;
-  position: relative;
-  vertical-align: middle;
-  transition: background 0.3s, border-color 0.3s, box-shadow 0.2s;
-}
-
-.checkbox-item input[type="checkbox"]:after {
-  content: '';
-  display: block;
-  position: absolute;
-  top: 2px;
-  left: 6px;
-  width: 6px;
-  height: 12px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.checkbox-item input[type="checkbox"]:hover {
-  border-color: var(--secondary-color);
-}
-
-.checkbox-item input[type="checkbox"]:checked {
-  background-color: var(--secondary-color);
-  border-color: var(--secondary-color);
-}
-
-.checkbox-item input[type="checkbox"]:checked:after {
-  opacity: 1;
-}
-
-.dark-theme .checkbox-item input[type="checkbox"] {
-  background-color: var(--primary-light);
-  border-color: var(--border-color);
-}
-
-.dark-theme .checkbox-item input[type="checkbox"]:checked {
-  background-color: var(--secondary-color);
-  border-color: var(--secondary-color);
-}
-EOL
-          fi
-          
-          # Update the JavaScript validation functions to correctly handle checkboxes
-          if [ -f "combined.js" ]; then
-            echo "Updating JavaScript functions to handle checkboxes correctly..."
-            
-            # Update FRS validation for checkboxes
-            sed -i 's/data.bpTreatment = bpTreatmentResult.value === .yes.;/data.bpTreatment = document.getElementById('\''frs-bp-treatment'\'').checked;/g' combined.js
-            sed -i 's/data.smoker = smokerResult.value === .yes.;/data.smoker = document.getElementById('\''frs-smoker'\'').checked;/g' combined.js
-            sed -i 's/data.diabetes = document.getElementById(.frs-diabetes.).value === .yes.;/data.diabetes = document.getElementById('\''frs-diabetes'\'').checked;/g' combined.js
-            
-            # Update QRISK validation for checkboxes
-            sed -i 's/data.familyHistory = familyHistoryResult.value === .yes.;/data.familyHistory = document.getElementById('\''qrisk-family-history'\'').checked;/g' combined.js
-            sed -i 's/data.bpTreatment = document.getElementById(.qrisk-bp-treatment.).value === .yes.;/data.bpTreatment = document.getElementById('\''qrisk-bp-treatment'\'').checked;/g' combined.js
           fi
           
           # Update recommendations based on latest guidelines in combined.js
@@ -370,7 +234,7 @@ EOL
           for jsfile in *.js; do
             if [ -f "$jsfile" ]; then
               VERSION_DATE=$(date +"%Y-%m-%d")
-              sed -i "1i\\/\\* Enhanced version - $VERSION_DATE - Fixed validation, checkbox styling, and clinical accuracy issues \\*\\/" "$jsfile"
+              sed -i "1i\\/\\* Enhanced version - $VERSION_DATE - Fixed validation and clinical accuracy issues \\*\\/" "$jsfile"
               echo "Added version tracking to $jsfile"
             fi
           done
@@ -389,7 +253,7 @@ EOL
           npx eslint --fix --no-eslintrc --parser-options=ecmaVersion:2020 *.js || true
           npx prettier --write *.js *.html *.css || true
           echo "Code quality checks completed"
-
+      
       - name: Create version bump
         id: version_bump
         run: |
@@ -420,7 +284,7 @@ EOL
           # Update version in files
           sed -i "s/Version: [0-9]\+\.[0-9]\+\.[0-9]\+/Version: $NEW_VERSION/" index.html
           echo "Updated version to $NEW_VERSION"
-
+      
       - name: Create changelog entry
         run: |
           mkdir -p .github
@@ -441,11 +305,6 @@ EOL
           echo "- Added proper age range validation for both FRS and QRISK3" >> "$CHANGELOG_FILE"
           echo "- Updated ethnicity coding to match official QRISK3-2018 documentation" >> "$CHANGELOG_FILE"
           echo "" >> "$CHANGELOG_FILE"
-          echo "### UI and Usability Improvements" >> "$CHANGELOG_FILE"
-          echo "- Converted yes/no fields to consistent checkbox format" >> "$CHANGELOG_FILE"
-          echo "- Enhanced checkbox styling with clear visual feedback" >> "$CHANGELOG_FILE"
-          echo "- Improved form validation with real-time input correction" >> "$CHANGELOG_FILE"
-          echo "" >> "$CHANGELOG_FILE"
           echo "### Technical Improvements" >> "$CHANGELOG_FILE"
           echo "- Added defensive programming throughout the application" >> "$CHANGELOG_FILE"
           echo "- Fixed potential division by zero errors in calculations" >> "$CHANGELOG_FILE"
@@ -455,14 +314,14 @@ EOL
           echo "" >> "$CHANGELOG_FILE"
           
           echo "Created changelog entry for v${{ steps.version_bump.outputs.new_version }}"
-
+      
       - name: Commit changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "UI & Clinical Validation: Updated to v${{ steps.version_bump.outputs.new_version }} with improved checkbox styling and clinical accuracy"
-
+          git commit -m "Clinical Validation: Updated to v${{ steps.version_bump.outputs.new_version }} with improved algorithm accuracy and defensive programming"
+      
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
