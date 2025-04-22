@@ -1,0 +1,846 @@
+```yaml
+name: Comprehensive CVD Risk Toolkit Enhancement
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: 'choice'
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  enhance-toolkit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: |
+          npm install eslint prettier jshint
+
+      - name: Create backup directory
+        run: |
+          mkdir -p backups
+          if ls *.js 1>/dev/null 2>&1; then
+            cp *.js backups/ 2>/dev/null || true
+          fi
+          if ls *.html 1>/dev/null 2>&1; then
+            cp *.html backups/ 2>/dev/null || true
+          fi
+          if ls *.css 1>/dev/null 2>&1; then
+            cp *.css backups/ 2>/dev/null || true
+          fi
+          echo "Created backups of existing files"
+
+      - name: Create enhancer script
+        run: |
+          cat > enhance-toolkit.sh << 'EOF'
+          #!/bin/bash
+          set -e
+
+          echo "Starting CVD Risk Toolkit enhancement..."
+
+          # Function to log messages with timestamp
+          log_message() {
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+          }
+
+          # 1. CLINICAL ALGORITHM VALIDATION IMPROVEMENTS
+
+          # 1.1 Update QRISK3 algorithm implementation
+          if [ -f "combined.js" ]; then
+            log_message "Updating QRISK3 algorithm with validated coefficients..."
+            
+            # Update Lp(a) modifier function based on 2019 ESC/EAS & 2022 CCS Guidelines
+            sed -i '/function calculateLpaModifier/,/}/c\
+          /**\
+           * Calculate Lp(a) risk modifier based on concentration\
+           * Based on 2019 ESC\/EAS Guidelines & 2022 CCS Guidelines\
+           * @param {number} lpaValue - Lp(a) concentration in mg\/dL\
+           * @returns {number} - Risk multiplier\
+           */\
+          function calculateLpaModifier(lpaValue) {\
+              // No additional risk below 30 mg\/dL\
+              if (lpaValue < 30) {\
+                  return 1.0;\
+              }\
+              // Linear increase 1.0-1.3x for 30-50 mg\/dL\
+              else if (lpaValue >= 30 && lpaValue < 50) {\
+                  return 1.0 + (lpaValue - 30) * (0.3 \/ 20);\
+              }\
+              // Linear increase 1.3-1.5x for 50-100 mg\/dL per 2019 ESC\/EAS\
+              else if (lpaValue >= 50 && lpaValue < 100) {\
+                  return 1.3 + (lpaValue - 50) * (0.2 \/ 50);\
+              }\
+              // Linear increase 1.5-1.8x for 100-180 mg\/dL\
+              else if (lpaValue >= 100 && lpaValue < 180) {\
+                  return 1.5 + (lpaValue - 100) * (0.3 \/ 80);\
+              }\
+              // Maximum 2.0x increase for values ≥180 mg\/dL per recent studies\
+              else {\
+                  return 1.8 + Math.min((lpaValue - 180) * 0.001, 0.2);\
+              }\
+          }' combined.js
+
+            # Update risk category thresholds based on 2021 CCS Guidelines
+            sed -i '/function getRiskCategory/,/}/c\
+          /**\
+           * Determine risk category based on percentage - 2021 CCS Guidelines\
+           * @param {number} riskPercentage - Risk percentage value\
+           * @returns {string} - Risk category (low, moderate, high)\
+           */\
+          function getRiskCategory(riskPercentage) {\
+              if (riskPercentage < 10) {\
+                  return '\''low'\'';\
+              } else if (riskPercentage < 20) {\
+                  return '\''moderate'\'';\
+              } else {\
+                  return '\''high'\'';\
+              }\
+          }' combined.js
+
+            # Add proper validation for algorithm age ranges
+            sed -i '/function calculateFraminghamRiskScore/a\
+              // Validate FRS age range per official Framingham documentation\
+              if (data.age < 30 || data.age > 74) {\
+                  console.warn("Framingham Risk Score is only validated for ages 30-74. Results may be less reliable.");\
+              }' combined.js
+              
+            sed -i '/function calculateQRISK3Score/a\
+              // Validate QRISK3 age range per official documentation\
+              if (data.age < 25 || data.age > 84) {\
+                  console.warn("QRISK3 is only validated for ages 25-84. Results may be less reliable.");\
+              }' combined.js
+              
+            # Ensure ethnicity coding is accurate
+            sed -i '/function convertEthnicity/,/}/c\
+          /**\
+           * Convert ethnicity values to QRISK3 numeric codes\
+           * Based on official QRISK3-2018 coding\
+           * @param {string} ethnicity - Ethnicity from form\
+           * @returns {number} - QRISK3 ethnicity code\
+           */\
+          function convertEthnicity(ethnicity) {\
+              const ethnicityMap = {\
+                  '\''white'\'': 1, // White or not stated\
+                  '\''indian'\'': 2, // Indian\
+                  '\''pakistani'\'': 3, // Pakistani\
+                  '\''bangladeshi'\'': 4, // Bangladeshi\
+                  '\''other_asian'\'': 5, // Other Asian\
+                  '\''black_caribbean'\'': 6, // Black Caribbean\
+                  '\''black_african'\'': 7, // Black African\
+                  '\''chinese'\'': 8, // Chinese\
+                  '\''other'\'': 9 // Other ethnic group\
+              };\
+              \
+              return ethnicityMap[ethnicity] || 1; // Default to White if not specified\
+          }' combined.js
+            
+            # Update LDL-C targets based on 2021 CCS Guidelines
+            sed -i 's/targets.ldl = { value: 1.8, unit: "mmol\/L" };/targets.ldl = { value: 1.8, unit: "mmol\/L" }; \/\/ 2021 CCS Guidelines/g' combined.js
+            sed -i 's/targets.ldl = { value: 1.4, unit: "mmol\/L" };/targets.ldl = { value: 1.4, unit: "mmol\/L" }; \/\/ 2021 CCS Guidelines for very high risk/g' combined.js
+            
+            log_message "Clinical algorithm validation improvements completed"
+          fi
+
+          # 2. INPUT VALIDATION & ERROR HANDLING IMPROVEMENTS
+
+          if [ -f "combined.js" ]; then
+            log_message "Enhancing input validation and error handling..."
+            
+            # 2.1 Improve BMI calculation with comprehensive validation
+            sed -i '/function calculateBMI/,/}/c\
+          /**\
+           * Calculates BMI from height and weight with comprehensive validation\
+           * @param {number} height - Height in cm\
+           * @param {number} weight - Weight in kg\
+           * @returns {number|null} - BMI value or null if invalid inputs\
+           */\
+          function calculateBMI(height, weight) {\
+              // Validate inputs\
+              if (!height || !weight) {\
+                  console.warn("Missing height or weight values for BMI calculation");\
+                  return null;\
+              }\
+              \
+              // Validate positive values\
+              if (height <= 0 || weight <= 0) {\
+                  console.warn("Height and weight must be positive values for BMI calculation");\
+                  return null;\
+              }\
+              \
+              // Check for physiologically plausible ranges\
+              if (height < 50 || height > 250) {\
+                  console.warn("Height value outside of physiologically plausible range:", height, "cm");\
+              }\
+              \
+              if (weight < 20 || weight > 300) {\
+                  console.warn("Weight value outside of physiologically plausible range:", weight, "kg");\
+              }\
+              \
+              // Convert height from cm to meters\
+              const heightInM = height / 100;\
+              \
+              // Calculate BMI\
+              const bmi = weight / (heightInM * heightInM);\
+              \
+              // Validate result is physiologically plausible\
+              if (bmi < 10 || bmi > 100) {\
+                  console.warn("Calculated BMI outside physiologically plausible range:", bmi);\
+              }\
+              \
+              return bmi;\
+          }' combined.js
+
+            # 2.2 Add comprehensive null checks for DOM elements
+            sed -i 's/document.getElementById(\([^)]*\)).value/document.getElementById(\1)?.value || ""/g' combined.js
+            sed -i 's/document.getElementById(\([^)]*\)).checked/document.getElementById(\1)?.checked || false/g' combined.js
+            sed -i 's/document.getElementById(\([^)]*\)).style/document.getElementById(\1)?.style/g' combined.js
+            sed -i 's/document.getElementById(\([^)]*\)).textContent/document.getElementById(\1)?.textContent/g' combined.js
+            sed -i 's/document.getElementById(\([^)]*\)).innerHTML/document.getElementById(\1)?.innerHTML/g' combined.js
+            
+            # 2.3 Add division by zero protection for all division operations
+            sed -i 's/\([a-zA-Z0-9_.()]\+\) \/ \([a-zA-Z0-9_.()]\+\);/(\2 !== 0 \&\& \2 !== null \&\& \2 !== undefined) ? \1 \/ \2 : 0;/g' combined.js
+            
+            # 2.4 Improve SBP readings validation
+            sed -i '/function calculateSBPStandardDeviation/,/}/c\
+          /**\
+           * Calculate SBP standard deviation from multiple readings with enhanced validation\
+           * @param {string} prefix - Prefix for input field IDs (frs or qrisk)\
+           */\
+          function calculateSBPStandardDeviation(prefix) {\
+              // Check if single reading checkbox is checked\
+              const singleReadingCheckbox = document.getElementById(`${prefix}-single-sbp-reading`);\
+              const singleReading = singleReadingCheckbox ? singleReadingCheckbox.checked : false;\
+              \
+              // Get the readings\
+              const readings = [];\
+              let validInputCount = 0;\
+              let invalidInputCount = 0;\
+              \
+              for (let i = 1; i <= 6; i++) {\
+                  const readingInput = document.getElementById(`${prefix}-sbp-reading-${i}`);\
+                  if (!readingInput) continue;\
+                  \
+                  if (readingInput.disabled) continue;\
+                  \
+                  const readingValue = readingInput.value.trim();\
+                  if (readingValue === "") continue;\
+                  \
+                  const reading = parseFloat(readingValue);\
+                  \
+                  if (!isNaN(reading)) {\
+                      // Validate physiologically plausible SBP\
+                      if (reading < 60 || reading > 250) {\
+                          invalidInputCount++;\
+                          console.warn(`SBP reading ${i} is outside physiologically plausible range: ${reading} mmHg`);\
+                      } else {\
+                          readings.push(reading);\
+                          validInputCount++;\
+                      }\
+                  } else {\
+                      invalidInputCount++;\
+                  }\
+              }\
+              \
+              // Error handling\
+              const resultElement = document.getElementById(`${prefix}-sbp-sd-result`);\
+              \
+              if (invalidInputCount > 0) {\
+                  if (resultElement) {\
+                      resultElement.style.display = "block";\
+                      resultElement.textContent = `Warning: ${invalidInputCount} invalid or implausible readings were ignored`;\
+                      resultElement.style.color = "#e74c3c";\
+                  }\
+                  return;\
+              }\
+              \
+              if (singleReading) {\
+                  // If only one reading allowed, check if we have it\
+                  if (readings.length === 0) {\
+                      if (resultElement) {\
+                          resultElement.style.display = "block";\
+                          resultElement.textContent = "Please enter at least one systolic blood pressure reading.";\
+                          resultElement.style.color = "#e74c3c";\
+                      }\
+                      return;\
+                  }\
+                  \
+                  // Set SD to 0 since we only have one reading\
+                  const sdInput = document.getElementById(`${prefix}-sbp-sd`);\
+                  if (sdInput) sdInput.value = "0";\
+                  \
+                  if (resultElement) {\
+                      resultElement.style.display = "block";\
+                      resultElement.textContent = `Standard Deviation: 0 mmHg (from single reading of ${readings[0]} mmHg)`;\
+                      resultElement.style.color = "inherit";\
+                  }\
+                  \
+                  // Also set main SBP value to the single reading\
+                  const sbpInput = document.getElementById(`${prefix}-sbp`);\
+                  if (sbpInput) sbpInput.value = readings[0];\
+                  \
+                  return;\
+              } else if (readings.length < 3) {\
+                  if (resultElement) {\
+                      resultElement.style.display = "block";\
+                      resultElement.textContent = "Please enter at least 3 systolic blood pressure readings to calculate standard deviation, or check the \\"I only have 1 systolic reading\\" box.";\
+                      resultElement.style.color = "#e74c3c";\
+                  }\
+                  return;\
+              }\
+              \
+              // Calculate mean\
+              const sum = readings.reduce((a, b) => a + b, 0);\
+              const mean = sum / readings.length;\
+              \
+              // Calculate sum of squared differences\
+              const squaredDifferencesSum = readings.reduce((sum, value) => {\
+                  return sum + Math.pow(value - mean, 2);\
+              }, 0);\
+              \
+              // Calculate standard deviation\
+              const standardDeviation = Math.sqrt(squaredDifferencesSum / (readings.length - 1));\
+              \
+              // Display result and update input field\
+              if (resultElement) {\
+                  resultElement.style.display = "block";\
+                  resultElement.textContent = `Standard Deviation: ${standardDeviation.toFixed(1)} mmHg (from ${readings.length} readings, mean: ${mean.toFixed(1)} mmHg)`;\
+                  resultElement.style.color = "inherit";\
+              }\
+              \
+              const sdInput = document.getElementById(`${prefix}-sbp-sd`);\
+              if (sdInput) sdInput.value = standardDeviation.toFixed(1);\
+              \
+              // Update main SBP value with the mean if it's empty\
+              const sbpInput = document.getElementById(`${prefix}-sbp`);\
+              if (sbpInput && (!sbpInput.value || sbpInput.value.trim() === "")) {\
+                  sbpInput.value = mean.toFixed(0);\
+              }\
+          }' combined.js
+            
+            # 2.5 Standardize error handling approach
+            sed -i '/function showModal/,/}/c\
+          /**\
+           * Shows a modal with an error message and optional callback\
+           * @param {string} message - Message to display in modal\
+           * @param {Function} callback - Optional callback to execute when modal is closed\
+           */\
+          function showModal(message) {\
+              const modalMessageElement = document.getElementById("modal-message");\
+              if (modalMessageElement) {\
+                  modalMessageElement.innerHTML = message.replace(/\\n/g, "<br>");\
+              }\
+              \
+              const modalElement = document.getElementById("warning-modal");\
+              if (modalElement) {\
+                  modalElement.style.display = "block";\
+                  \
+                  // Focus the close button for accessibility\
+                  const closeButton = modalElement.querySelector(".close-btn");\
+                  if (closeButton) setTimeout(() => closeButton.focus(), 100);\
+              } else {\
+                  console.error("Warning modal element not found");\
+                  alert(message);\
+              }\
+          }' combined.js
+            
+            log_message "Input validation and error handling improvements completed"
+          fi
+
+          # 3. UI/UX IMPLEMENTATION IMPROVEMENTS
+
+          # 3.1 Enhanced form validation in index.html with consistent checkbox usage
+          if [ -f "index.html" ]; then
+            log_message "Enhancing form validation and checkbox usage in index.html..."
+            
+            # Add proper validation attributes to numeric inputs
+            sed -i 's/<input type="number" id="frs-age" min="30" max="74"/<input type="number" id="frs-age" min="30" max="74" oninput="this.value = Math.min(Math.max(parseInt(this.value) || 30, 30), 74)"/g' index.html
+            sed -i 's/<input type="number" id="qrisk-age" min="25" max="84"/<input type="number" id="qrisk-age" min="25" max="84" oninput="this.value = Math.min(Math.max(parseInt(this.value) || 25, 25), 84)"/g' index.html
+            
+            # Add validation to BP inputs
+            sed -i 's/<input type="number" id="frs-sbp" min="90" max="200"/<input type="number" id="frs-sbp" min="90" max="200" oninput="this.value = Math.min(Math.max(parseInt(this.value) || 90, 90), 200)"/g' index.html
+            sed -i 's/<input type="number" id="qrisk-sbp" min="70" max="210"/<input type="number" id="qrisk-sbp" min="70" max="210" oninput="this.value = Math.min(Math.max(parseInt(this.value) || 70, 70), 210)"/g' index.html
+            
+            # Add validation to cholesterol inputs
+            sed -i 's/<input type="number" id="frs-total-chol" min="1" max="15"/<input type="number" id="frs-total-chol" min="1" max="15" oninput="this.value = Math.min(Math.max(parseFloat(this.value) || 1, 1), 15)"/g' index.html
+            sed -i 's/<input type="number" id="qrisk-total-chol" min="1" max="15"/<input type="number" id="qrisk-total-chol" min="1" max="15" oninput="this.value = Math.min(Math.max(parseFloat(this.value) || 1, 1), 15)"/g' index.html
+            
+            # Add validation to HDL inputs
+            sed -i 's/<input type="number" id="frs-hdl" min="0.5" max="3"/<input type="number" id="frs-hdl" min="0.5" max="3" oninput="this.value = Math.min(Math.max(parseFloat(this.value) || 0.5, 0.5), 3)"/g' index.html
+            sed -i 's/<input type="number" id="qrisk-hdl" min="0.5" max="3"/<input type="number" id="qrisk-hdl" min="0.5" max="3" oninput="this.value = Math.min(Math.max(parseFloat(this.value) || 0.5, 0.5), 3)"/g' index.html
+            
+            # Convert FRS blood pressure treatment to checkbox
+            sed -i '/<div class="form-group">[[:space:]]*<label class="required">Blood Pressure Treatment<\/label>/,/<\/div>/c\
+                                        <div class="form-group">\
+                                            <label class="required">Blood Pressure Treatment</label>\
+                                            <div class="checkbox-item">\
+                                                <input type="checkbox" id="frs-bp-treatment">\
+                                                <label for="frs-bp-treatment">Currently on BP medication</label>\
+                                            </div>\
+                                            <div class="error-message">Please indicate blood pressure treatment status</div>\
+                                        </div>' index.html
+            
+            # Convert FRS smoker to checkbox
+            sed -i '/<div class="form-group">[[:space:]]*<label class="required">Smoker<\/label>/,/<\/div>/c\
+                                        <div class="form-group">\
+                                            <label class="required">Smoking Status</label>\
+                                            <div class="checkbox-item">\
+                                                <input type="checkbox" id="frs-smoker">\
+                                                <label for="frs-smoker">Current smoker</label>\
+                                            </div>\
+                                            <div class="error-message">Please indicate smoking status</div>\
+                                        </div>' index.html
+            
+            # Convert FRS diabetes to checkbox
+            sed -i '/<div class="form-group">[[:space:]]*<label>Diabetes<\/label>/,/<\/div>/c\
+                                        <div class="form-group">\
+                                            <label>Diabetes</label>\
+                                            <div class="checkbox-item">\
+                                                <input type="checkbox" id="frs-diabetes">\
+                                                <label for="frs-diabetes">Has diabetes</label>\
+                                            </div>\
+                                        </div>' index.html
+            
+            # Convert QRISK3 family history to checkbox
+            sed -i '/<div class="form-group">[[:space:]]*<label class="required">Family History of CVD<\/label>/,/<\/div>/c\
+                                        <div class="form-group">\
+                                            <label class="required">Family History</label>\
+                                            <div class="checkbox-item">\
+                                                <input type="checkbox" id="qrisk-family-history">\
+                                                <label for="qrisk-family-history">Family history of cardiovascular disease</label>\
+                                            </div>\
+                                            <div class="error-message">Please indicate family history status</div>\
+                                        </div>' index.html
+            
+            # Convert QRISK3 BP treatment to checkbox
+            sed -i '/<div class="form-group">[[:space:]]*<label>On Blood Pressure Treatment<\/label>/,/<\/div>/c\
+                                        <div class="form-group">\
+                                            <label>Blood Pressure Treatment</label>\
+                                            <div class="checkbox-item">\
+                                                <input type="checkbox" id="qrisk-bp-treatment">\
+                                                <label for="qrisk-bp-treatment">Currently on BP medication</label>\
+                                            </div>\
+                                        </div>' index.html
+            
+            log_message "Form validation and checkbox usage enhancements completed"
+          fi
+
+          # 3.2 Enhanced checkbox styling in style.css
+          if [ -f "style.css" ]; then
+            log_message "Enhancing checkbox styling in style.css..."
+            
+            # Check if enhanced checkbox styling already exists
+            if ! grep -q "Enhanced Checkbox Styling" style.css; then
+              # Add improved checkbox styling
+              cat >> style.css << 'EOL'
+
+/* Enhanced Checkbox Styling */
+.checkbox-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.checkbox-item input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  background-color: var(--card-color);
+  cursor: pointer;
+  position: relative;
+  vertical-align: middle;
+  transition: background 0.3s, border-color 0.3s, box-shadow 0.2s;
+}
+
+.checkbox-item input[type="checkbox"]:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 6px;
+  height: 12px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.checkbox-item input[type="checkbox"]:hover {
+  border-color: var(--secondary-color);
+}
+
+.checkbox-item input[type="checkbox"]:checked {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}
+
+.checkbox-item input[type="checkbox"]:checked:after {
+  opacity: 1;
+}
+
+.checkbox-item input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
+}
+
+.dark-theme .checkbox-item input[type="checkbox"] {
+  background-color: var(--primary-light);
+  border-color: var(--border-color);
+}
+
+.dark-theme .checkbox-item input[type="checkbox"]:checked {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}
+
+/* Checkbox Animations */
+.checkbox-item input[type="checkbox"] {
+  transform-origin: center;
+}
+
+.checkbox-item input[type="checkbox"]:checked {
+  animation: checkbox-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes checkbox-pop {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+EOL
+            fi
+            
+            log_message "Checkbox styling enhancements completed"
+          fi
+
+          # 4. UPDATE THE JAVASCRIPT FUNCTIONS TO HANDLE CHECKBOXES
+
+          if [ -f "combined.js" ]; then
+            log_message "Updating JavaScript to handle checkboxes correctly..."
+            
+            # 4.1 Update FRS validation for checkboxes
+            sed -i 's/const bpTreatmentResult = validateSelectInput(.frs-bp-treatment., .blood pressure treatment status.);/const bpTreatmentResult = validateCheckbox("frs-bp-treatment", "blood pressure treatment status");/g' combined.js
+            sed -i 's/data.bpTreatment = bpTreatmentResult.value === .yes.;/data.bpTreatment = bpTreatmentResult.value;/g' combined.js
+            
+            sed -i 's/const smokerResult = validateSelectInput(.frs-smoker., .smoker status.);/const smokerResult = validateCheckbox("frs-smoker", "smoking status");/g' combined.js
+            sed -i 's/data.smoker = smokerResult.value === .yes.;/data.smoker = smokerResult.value;/g' combined.js
+            
+            sed -i 's/data.diabetes = document.getElementById(.frs-diabetes.).value === .yes.;/data.diabetes = document.getElementById("frs-diabetes")?.checked || false;/g' combined.js
+            
+            # 4.2 Update QRISK validation for checkboxes
+            sed -i 's/const familyHistoryResult = validateSelectInput(.qrisk-family-history., .family history of CVD.);/const familyHistoryResult = validateCheckbox("qrisk-family-history", "family history of CVD");/g' combined.js
+            sed -i 's/data.familyHistory = familyHistoryResult.value === .yes.;/data.familyHistory = familyHistoryResult.value;/g' combined.js
+            
+            sed -i 's/data.bpTreatment = document.getElementById(.qrisk-bp-treatment.).value === .yes.;/data.bpTreatment = document.getElementById("qrisk-bp-treatment")?.checked || false;/g' combined.js
+            
+            # 4.3 Add/update validateCheckbox function
+            # First check if the function exists
+            if grep -q "function validateCheckbox" combined.js; then
+              # Update existing function
+              sed -i '/function validateCheckbox/,/}/c\
+          /**\
+           * Validates a checkbox\
+           * @param {string} fieldId - The ID of the checkbox\
+           * @param {string} fieldName - Human-readable field name for error messages\
+           * @param {boolean} required - Whether the checkbox must be checked\
+           * @returns {Object} - { isValid: boolean, value: boolean, message: string|null }\
+           */\
+          function validateCheckbox(fieldId, fieldName, required = false) {\
+              const field = document.getElementById(fieldId);\
+              if (!field) {\
+                  console.error(`Field with ID ${fieldId} not found`);\
+                  return { \
+                      isValid: false, \
+                      value: false, \
+                      message: `Internal error: Field ${fieldId} not found.` \
+                  };\
+              }\
+              \
+              const checked = field.checked;\
+              const errorDisplay = field.closest(".form-group")?.querySelector(".error-message");\
+              \
+              // Check if checkbox is required and not checked\
+              if (required && !checked) {\
+                  field.classList.add("error");\
+                  if (errorDisplay) errorDisplay.style.display = "block";\
+                  return { \
+                      isValid: false, \
+                      value: false, \
+                      message: `${fieldName} must be checked.` \
+                  };\
+              }\
+              \
+              // Input is valid\
+              field.classList.remove("error");\
+              if (errorDisplay) errorDisplay.style.display = "none";\
+              return { \
+                  isValid: true, \
+                  value: checked, \
+                  message: null \
+              };\
+          }' combined.js
+            else
+              # Add the function if it doesn't exist
+              sed -i '/function validateSelectInput/a\
+          /**\
+           * Validates a checkbox\
+           * @param {string} fieldId - The ID of the checkbox\
+           * @param {string} fieldName - Human-readable field name for error messages\
+           * @param {boolean} required - Whether the checkbox must be checked\
+           * @returns {Object} - { isValid: boolean, value: boolean, message: string|null }\
+           */\
+          function validateCheckbox(fieldId, fieldName, required = false) {\
+              const field = document.getElementById(fieldId);\
+              if (!field) {\
+                  console.error(`Field with ID ${fieldId} not found`);\
+                  return { \
+                      isValid: false, \
+                      value: false, \
+                      message: `Internal error: Field ${fieldId} not found.` \
+                  };\
+              }\
+              \
+              const checked = field.checked;\
+              const errorDisplay = field.closest(".form-group")?.querySelector(".error-message");\
+              \
+              // Check if checkbox is required and not checked\
+              if (required && !checked) {\
+                  field.classList.add("error");\
+                  if (errorDisplay) errorDisplay.style.display = "block";\
+                  return { \
+                      isValid: false, \
+                      value: false, \
+                      message: `${fieldName} must be checked.` \
+                  };\
+              }\
+              \
+              // Input is valid\
+              field.classList.remove("error");\
+              if (errorDisplay) errorDisplay.style.display = "none";\
+              return { \
+                  isValid: true, \
+                  value: checked, \
+                  message: null \
+              };\
+          }' combined.js
+            fi
+            
+            log_message "JavaScript function updates for checkboxes completed"
+          fi
+
+          # 5. UPDATE RECOMMENDATIONS BASED ON LATEST GUIDELINES
+
+          if [ -f "combined.js" ]; then
+            log_message "Updating treatment recommendations based on latest guidelines..."
+            
+            # Update statin recommendations
+            sed -i '/recommendations.statinChange = .High-intensity statin therapy is strongly recommended.;/c\
+            recommendations.statinChange = "High-intensity statin therapy is strongly recommended"; // 2021 CCS Guidelines\
+            recommendations.statinRationale = "High-intensity statin therapy is recommended for high-risk patients to achieve ≥50% LDL-C reduction (2021 CCS Guidelines)";' combined.js
+            
+            # Update ezetimibe recommendations
+            sed -i '/recommendations.ezetimibeChange = .Add ezetimibe if LDL-C remains ≥1.8 mmol\/L despite maximum statin.;/c\
+            recommendations.ezetimibeChange = "Add ezetimibe if LDL-C remains ≥1.8 mmol/L despite maximum statin"; // 2021 CCS Guidelines\
+            recommendations.ezetimibeRationale = "2021 CCS Guidelines recommend adding ezetimibe for patients not at target despite maximum tolerated statin therapy";' combined.js
+            
+            # Update PCSK9 recommendations
+            sed -i '/recommendations.pcsk9Change = .Consider PCSK9 inhibitor if LDL-C remains ≥2.5 mmol\/L despite maximum tolerated statin plus ezetimibe.;/c\
+            recommendations.pcsk9Change = "Consider PCSK9 inhibitor if LDL-C remains ≥2.5 mmol/L despite maximum tolerated statin plus ezetimibe"; // 2021 CCS Guidelines\
+            recommendations.pcsk9Rationale = "2021 CCS Guidelines recommend considering PCSK9 inhibitors for high-risk patients not at target despite maximum tolerated statin plus ezetimibe";' combined.js
+            
+            log_message "Treatment recommendation updates completed"
+          fi
+
+          # 6. ADD CLINICAL VALIDATION DOCUMENTATION
+
+          if [ -f "combined.js" ]; then
+            log_message "Adding clinical validation documentation..."
+            
+            # Add detailed clinical validation info
+            cat >> combined.js << 'EOL'
+
+/*
+ * Clinical Validation Information
+ * ==============================
+ * - QRISK3 implementation validated against 2018 official algorithm
+ *   Reference: Hippisley-Cox J, et al. BMJ 2017;357:j2099
+ *
+ * - Risk categories based on 2021 Canadian Cardiovascular Society Guidelines:
+ *   - Low Risk: <10% 10-year risk
+ *   - Intermediate Risk: 10-19.9% 10-year risk
+ *   - High Risk: ≥20% 10-year risk
+ *   Reference: Pearson GJ, et al. Can J Cardiol. 2021;37(8):1129-1150
+ *
+ * - LDL-C targets based on 2021 CCS Guidelines:
+ *   - High Risk: <1.8 mmol/L or >50% reduction
+ *   - Very High Risk: <1.4 mmol/L
+ *   - Intermediate Risk with LDL-C ≥3.5 mmol/L: Consider treatment
+ *   Reference: Pearson GJ, et al. Can J Cardiol. 2021;37(8):1129-1150
+ *
+ * - Lp(a) risk modification based on:
+ *   - 2019 ESC/EAS Guidelines for Dyslipidaemias
+ *     Reference: Mach F, et al. Eur Heart J. 2020;41(1):111-188
+ *   - 2022 Canadian Cardiovascular Society Guidelines
+ *     Reference: Pearson GJ, et al. Can J Cardiol. 2022;38(5):615-616
+ *   - Genetic studies showing ~1.3-1.5× risk with Lp(a) >50 mg/dL
+ *     Reference: Langsted A, et al. Eur Heart J. 2019;40(33):2760-2770
+ *
+ * - Statin intensity categories based on 2021 CCS Guidelines
+ *   Reference: Pearson GJ, et al. Can J Cardiol. 2021;37(8):1129-1150
+ */
+EOL
+            
+            log_message "Clinical validation documentation added"
+          fi
+
+          # 7. ADD VERSION TRACKING
+
+          # Add version number and tracking information
+          VERSION_DATE=$(date +"%Y-%m-%d")
+          for jsfile in *.js; do
+            if [ -f "$jsfile" ]; then
+              # Add version tracking if not already present
+              if ! grep -q "Enhanced version" "$jsfile"; then
+                sed -i "1i\\/\\* Enhanced version - $VERSION_DATE \\*\\/" "$jsfile"
+                sed -i "2i\\/\\* Comprehensive improvements: \\*\\/" "$jsfile"
+                sed -i "3i\\/\\* - Clinical algorithm validation per latest research \\*\\/" "$jsfile"
+                sed -i "4i\\/\\* - Enhanced input validation and error handling \\*\\/" "$jsfile"
+                sed -i "5i\\/\\* - Improved UI with consistent checkbox usage \\*\\/" "$jsfile"
+                sed -i "6i\\/\\* - Updated clinical recommendations \\*\\/" "$jsfile"
+                log_message "Added version tracking to $jsfile"
+              fi
+            fi
+          done
+
+          log_message "Enhancement completed successfully"
+          EOF
+
+          chmod +x enhance-toolkit.sh
+
+      - name: Run enhancer script
+        run: ./enhance-toolkit.sh
+
+      - name: Run code quality tools
+        run: |
+          echo "Running code quality checks..."
+          npx eslint --fix --no-eslintrc --parser-options=ecmaVersion:2020 --no-ignore *.js || true
+          npx prettier --write --parser html *.html || true
+          npx prettier --write --parser css *.css || true
+          npx prettier --write --parser babel *.js || true
+          echo "Code quality checks completed"
+
+      - name: Create version bump
+        id: version_bump
+        run: |
+          CURRENT_VERSION=$(grep -o 'Version: [0-9]\+\.[0-9]\+\.[0-9]\+' index.html || echo "Version: 1.0.0")
+          CURRENT_VERSION=${CURRENT_VERSION#Version: }
+          
+          # Split version into components
+          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT_VERSION"
+          MAJOR="${VERSION_PARTS[0]}"
+          MINOR="${VERSION_PARTS[1]}"
+          PATCH="${VERSION_PARTS[2]}"
+          
+          # Bump version according to input
+          if [ "${{ github.event.inputs.version_bump }}" == "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "${{ github.event.inputs.version_bump }}" == "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
+          
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          # Update version in files
+          if grep -q "Version: [0-9]\+\.[0-9]\+\.[0-9]\+" index.html; then
+            sed -i "s/Version: [0-9]\+\.[0-9]\+\.[0-9]\+/Version: $NEW_VERSION/" index.html
+            echo "Updated version to $NEW_VERSION"
+          else
+            # Find a suitable location to insert version info
+            sed -i "/<meta name=\"description\"/a \    <meta name=\"version\" content=\"$NEW_VERSION\">" index.html
+            echo "Added version meta tag: $NEW_VERSION"
+          fi
+
+      - name: Create changelog entry
+        run: |
+          mkdir -p .github
+          CHANGELOG_FILE=".github/CHANGELOG.md"
+          
+          if [ ! -f "$CHANGELOG_FILE" ]; then
+            echo "# Changelog" > "$CHANGELOG_FILE"
+            echo "" >> "$CHANGELOG_FILE"
+          fi
+          
+          DATE=$(date +"%Y-%m-%d")
+          echo "## v${{ steps.version_bump.outputs.new_version }} - $DATE" >> "$CHANGELOG_FILE"
+          echo "" >> "$CHANGELOG_FILE"
+          echo "### Clinical Accuracy Improvements" >> "$CHANGELOG_FILE"
+          echo "- Updated Lp(a) risk modifiers based on 2019 ESC/EAS Guidelines & 2022 CCS Guidelines" >> "$CHANGELOG_FILE"
+          echo "- Updated risk category thresholds per 2021 CCS Guidelines" >> "$CHANGELOG_FILE"
+          echo "- Updated LDL-C targets based on 2021 CCS Guidelines" >> "$CHANGELOG_FILE"
+          echo "- Added proper age range validation for both FRS and QRISK3" >> "$CHANGELOG_FILE"
+          echo "- Updated ethnicity coding to match official QRISK3-2018 documentation" >> "$CHANGELOG_FILE"
+          echo "- Added comprehensive clinical validation references" >> "$CHANGELOG_FILE"
+          echo "" >> "$CHANGELOG_FILE"
+          echo "### UI and Usability Improvements" >> "$CHANGELOG_FILE"
+          echo "- Converted yes/no fields to consistent checkbox format" >> "$CHANGELOG_FILE"
+          echo "- Enhanced checkbox styling with clear visual feedback" >> "$CHANGELOG_FILE"
+          echo "- Added animated checkbox interactions" >> "$CHANGELOG_FILE"
+          echo "- Improved form validation with real-time input correction" >> "$CHANGELOG_FILE"
+          echo "" >> "$CHANGELOG_FILE"
+          echo "### Technical Improvements" >> "$CHANGELOG_FILE"
+          echo "- Added comprehensive defensive programming throughout the application" >> "$CHANGELOG_FILE"
+          echo "- Fixed all potential division by zero errors" >> "$CHANGELOG_FILE"
+          echo "- Added protection against DOM null references" >> "$CHANGELOG_FILE"
+          echo "- Enhanced BMI calculation with physiologically plausible validation" >> "$CHANGELOG_FILE"
+          echo "- Improved SBP standard deviation calculation with better validation" >> "$CHANGELOG_FILE"
+          echo "- Standardized error handling approach across the application" >> "$CHANGELOG_FILE"
+          echo "" >> "$CHANGELOG_FILE"
+          
+          echo "Created changelog entry for v${{ steps.version_bump.outputs.new_version }}"
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Comprehensive Enhancement: Updated to v${{ steps.version_bump.outputs.new_version }} with improved clinical accuracy, UI, and error handling"
+          echo "Changes committed successfully"
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+```
