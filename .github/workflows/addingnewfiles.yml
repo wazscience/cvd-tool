@@ -1,536 +1,323 @@
-name: Comprehensive Update Workflow with File Preservation
+name: Update CSS and JS Files with Utilities
 
 on:
   workflow_dispatch:
   push:
     branches: [ main ]
     paths:
-      - 'js/utils/**'
-      - 'enhanced-display.js'
-      - 'js/form-handler.js'
-      - '*.html'
-      - '*.css'
-      - '*.js'
+      - '.github/workflows/update-css-js.yml'
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
-
-env:
-  NODE_VERSION: '16'
-  PYTHON_VERSION: '3.9'
+  actions: write
+  checks: write
 
 jobs:
-  integrate-components:
+  update-files:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
       
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          node-version: '16'
       
-      - name: Set up Python (for future ML components)
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-      
-      - name: Install dependencies
-        run: |
-          # Install Node.js dependencies
-          npm init -y || true
-          npm install --save-dev \
-            crypto-js \
-            html2pdf.js \
-            flatpickr \
-            sanitize-html \
-            dompurify \
-            jest \
-            eslint \
-            @tensorflow/tfjs \
-            ml5 \
-            brain.js
-          
-          # Install Python dependencies for future ML
-          pip install --upgrade pip
-          pip install \
-            numpy \
-            pandas \
-            scikit-learn \
-            tensorflow \
-            torch \
-            matplotlib \
-            seaborn \
-            jupyter \
-            notebook
-      
-      - name: Create directory structure
-        run: |
-          mkdir -p js/utils
-          mkdir -p js/ml
-          mkdir -p js/analytics
-          mkdir -p css
-          mkdir -p assets/models
-          mkdir -p docs
-          mkdir -p test
-      
-      - name: Backup existing files
+      - name: Create backups
         run: |
           # Create backup directory
           mkdir -p backups
           
-          # Backup critical files if they exist
-          [ -f index.html ] && cp index.html backups/index.html.bak
-          [ -f styles.css ] && cp styles.css backups/styles.css.bak
-          [ -f combined.js ] && cp combined.js backups/combined.js.bak
+          # Create backups of existing files
+          if [ -f styles.css ]; then
+            cp styles.css backups/styles.css.bak
+            echo "Created backup of styles.css"
+          fi
+          
+          if [ -f combined.js ]; then
+            cp combined.js backups/combined.js.bak
+            echo "Created backup of combined.js"
+          fi
           
           echo "Backup created at $(date)" > backups/backup-timestamp.txt
-      
-      - name: Update index.html
-        run: |
-          cat > update-index.js << 'EOF'
-          const fs = require('fs');
-          
-          function updateIndexHTML() {
-            let html = '';
-            
-            if (fs.existsSync('index.html')) {
-              html = fs.readFileSync('index.html', 'utf8');
-            } else {
-              // Create basic structure if file doesn't exist
-              html = `<!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
-          </head>
-          <body>
-              <!-- Content will be added by the script -->
-          </body>
-          </html>`;
-            }
-          
-            // Fix duplicate doctype declarations
-            html = html.replace(/<!DOCTYPE html>\s*<!DOCTYPE html>/g, '<!DOCTYPE html>');
-            
-            // Add version control comment
-            const versionComment = `<!-- Version: 1.1.0 - Last Updated: ${new Date().toISOString()} -->`;
-            if (!html.includes('<!-- Version:')) {
-              html = html.replace('<!DOCTYPE html>', `<!DOCTYPE html>\n${versionComment}`);
-            }
-            
-            // Update CSP meta tag
-            if (!html.includes('Content-Security-Policy')) {
-              const cspMeta = `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; report-uri /csp-report">`;
-              html = html.replace('<head>', `<head>\n    ${cspMeta}`);
-            }
-            
-            // Update stylesheet link
-            if (!html.includes('styles.css')) {
-              html = html.replace('</head>', `    <link rel="stylesheet" href="styles.css">\n</head>`);
-            }
-            
-            // Clean up old script references
-            html = html.replace(/<script src="js\/utils\/.*?<\/script>\s*/g, '');
-            html = html.replace(/<!-- Security and Utility Scripts -->[\s\S]*?<!-- Initialization Script -->[\s\S]*?<\/script>/g, '');
-            
-            // Add new script section
-            const scriptsSection = `
-    <!-- External Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.3/dist/purify.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    
-    <!-- Security and Utility Scripts -->
-    <script src="js/utils/secure-storage.js"></script>
-    <script src="js/utils/loading-indicator.js"></script>
-    <script src="js/utils/xss-protection.js"></script>
-    <script src="js/utils/input-sanitizer.js"></script>
-    <script src="js/utils/csp-report-handler.js"></script>
-    <script src="js/utils/physiological-validation.js"></script>
-    <script src="js/utils/validator-extension.js"></script>
-    <script src="js/utils/enhanced-disclaimer.js"></script>
-    
-    <!-- Core Functionality Scripts -->
-    <script src="js/validation.js"></script>
-    <script src="js/calculations.js"></script>
-    <script src="js/medication.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/form-handler.js"></script>
-    
-    <!-- Main Implementation Scripts -->
-    <script src="combined.js"></script>
-    <script src="enhanced-display.js"></script>
-    <script src="qrisk3-implementation.js"></script>
-    <script src="juno-integration.js"></script>
-    
-    <!-- Initialization Script -->
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // Initialize security features
-        if (window.xssProtection) {
-          window.xssProtection.initialize({
-            autoProtectForms: true
-          });
-        }
-        
-        if (window.cspReportHandler) {
-          window.cspReportHandler.initialize();
-        }
-        
-        // Initialize enhanced display
-        if (window.enhancedDisplay) {
-          window.alert = function(message) {
-            window.enhancedDisplay.showInfo(message);
-          };
-        }
-        
-        // Initialize disclaimers
-        if (window.enhancedDisclaimer) {
-          window.enhancedDisclaimer.initialize({
-            showOnLoad: true,
-            persistConsent: true
-          });
-        }
-        
-        // Initialize form handlers with enhanced options
-        if (window.formHandler) {
-          const forms = document.querySelectorAll('form');
-          forms.forEach(form => {
-            const formId = form.id;
-            if (formId) {
-              formHandler.initializeForm(formId, {
-                validationRealtime: true,
-                scrollToError: true,
-                saveFormState: true,
-                customValidation: function(field) {
-                  // Add physiological validation
-                  if (window.physiologicalValidation) {
-                    const fieldType = field.dataset.validationType;
-                    if (fieldType) {
-                      const result = physiologicalValidation.validateValue(
-                        fieldType, 
-                        parseFloat(field.value)
-                      );
-                      if (!result.isValid) {
-                        return {
-                          isValid: false,
-                          message: result.message
-                        };
-                      }
-                      if (result.warning) {
-                        enhancedDisplay.showWarning(result.message);
-                      }
-                    }
-                  }
-                  return { isValid: true };
-                }
-              });
-            }
-          });
-        }
-        
-        // Initialize loading indicators
-        if (window.loadingIndicator) {
-          const calculateButtons = document.querySelectorAll('.primary-btn');
-          calculateButtons.forEach(button => {
-            button.addEventListener('click', function() {
-              if (this.textContent.includes('Calculate')) {
-                window.loadingIndicator.show('Processing...');
-                
-                // Hide after a short delay to simulate processing
-                setTimeout(() => {
-                  window.loadingIndicator.hide();
-                }, 1000);
-              }
-            });
-          });
-        }
-        
-        console.info('CVD Risk Toolkit initialized with enhanced security and validation');
-      });
-    </script>`;
-            
-            // Insert new scripts before </body>
-            const bodyEndIndex = html.lastIndexOf('</body>');
-            if (bodyEndIndex > -1) {
-              html = html.substring(0, bodyEndIndex) + scriptsSection + '\n</body>' + html.substring(bodyEndIndex + 7);
-            }
-            
-            fs.writeFileSync('index.html', html, 'utf8');
-            console.log('Updated index.html successfully');
-          }
-          
-          updateIndexHTML();
-          EOF
-          
-          node update-index.js
       
       - name: Update styles.css
         run: |
           cat > update-styles.js << 'EOF'
           const fs = require('fs');
-          
+          const path = require('path');
+
           function updateStyles() {
+            const stylesPath = path.join(process.cwd(), 'styles.css');
             let css = '';
             
-            if (fs.existsSync('styles.css')) {
-              css = fs.readFileSync('styles.css', 'utf8');
+            // Check if file exists
+            if (fs.existsSync(stylesPath)) {
+              css = fs.readFileSync(stylesPath, 'utf8');
+              console.log('Found existing styles.css');
             } else {
-              // Create basic structure if file doesn't exist
+              // Create new file with basic structure
               css = `/* CVD Risk Toolkit Styles */\n\n`;
+              console.log('Creating new styles.css');
             }
             
-            // Add version comment
+            // Add version comment if not present
             if (!css.includes('/* Version:')) {
               css = `/* Version: 1.1.0 - Last Updated: ${new Date().toISOString()} */\n\n` + css;
             }
             
-            // Add new styles if they don't exist
+            // Define new styles to add
             const newStyles = `
-/* Enhanced Display Styles */
-.toast-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 10000;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 400px;
-}
+          /* Enhanced Display Styles */
+          .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+          }
 
-.toast {
-  padding: 12px 20px;
-  border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  position: relative;
-  animation: slideIn 0.3s ease-out;
-}
+          .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+          }
 
-.toast-info {
-  border-left: 4px solid #3498db;
-}
+          .toast-info {
+            border-left: 4px solid #3498db;
+          }
 
-.toast-success {
-  border-left: 4px solid #2ecc71;
-}
+          .toast-success {
+            border-left: 4px solid #2ecc71;
+          }
 
-.toast-warning {
-  border-left: 4px solid #f39c12;
-}
+          .toast-warning {
+            border-left: 4px solid #f39c12;
+          }
 
-.toast-error {
-  border-left: 4px solid #e74c3c;
-}
+          .toast-error {
+            border-left: 4px solid #e74c3c;
+          }
 
-.toast-close {
-  position: absolute;
-  right: 8px;
-  top: 8px;
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  color: #999;
-}
+          .toast-close {
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #999;
+          }
 
-.toast-close:hover {
-  color: #333;
-}
+          .toast-close:hover {
+            color: #333;
+          }
 
-/* Loading Indicator Styles */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
+          /* Loading Indicator Styles */
+          .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+          }
 
-.loading-indicator {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1001;
-}
+          .loading-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1001;
+          }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
+          .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
 
-.loading-message {
-  margin-top: 10px;
-  font-weight: 500;
-}
+          .loading-message {
+            margin-top: 10px;
+            font-weight: 500;
+          }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
 
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
+          @keyframes slideIn {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
 
-.animate-slide-out {
-  animation: slideOut 0.3s ease-in;
-}
+          .animate-slide-out {
+            animation: slideOut 0.3s ease-in;
+          }
 
-@keyframes slideOut {
-  from {
-    transform: translateX(0);
-    opacity: 1;
-  }
-  to {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-}
+          @keyframes slideOut {
+            from {
+              transform: translateX(0);
+              opacity: 1;
+            }
+            to {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+          }
 
-/* Physiological Warning Styles */
-.physiological-warning {
-  padding: 8px 12px;
-  background-color: #fff3cd;
-  border-left: 4px solid #ffc107;
-  color: #856404;
-  font-size: 14px;
-  margin-top: 4px;
-  border-radius: 4px;
-}
+          /* Physiological Warning Styles */
+          .physiological-warning {
+            padding: 8px 12px;
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+            font-size: 14px;
+            margin-top: 4px;
+            border-radius: 4px;
+          }
 
-.physiological-error {
-  padding: 8px 12px;
-  background-color: #f8d7da;
-  border-left: 4px solid #dc3545;
-  color: #721c24;
-  font-size: 14px;
-  margin-top: 4px;
-  border-radius: 4px;
-}
+          .physiological-error {
+            padding: 8px 12px;
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+            font-size: 14px;
+            margin-top: 4px;
+            border-radius: 4px;
+          }
 
-/* Enhanced Disclaimer Styles */
-.disclaimer-modal {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 10000;
-  justify-content: center;
-  align-items: center;
-}
+          /* Enhanced Disclaimer Styles */
+          .disclaimer-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+          }
 
-.disclaimer-content {
-  background-color: white;
-  padding: 30px;
-  border-radius: 8px;
-  max-width: 600px;
-  width: 90%;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
+          .disclaimer-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
 
-.disclaimer-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-}
+          .disclaimer-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+          }
 
-.decline-btn {
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-}
+          .decline-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+          }
 
-.accept-btn {
-  background-color: #2ecc71;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-}
+          .accept-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+          }
 
-/* Form enhancement styles */
-.error-highlight {
-  border-color: #dc3545 !important;
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-}
+          /* Form enhancement styles */
+          .error-highlight {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+          }
 
-.success-highlight {
-  border-color: #28a745 !important;
-  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-}
+          .success-highlight {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+          }
 
-/* Utility classes */
-.d-none {
-  display: none !important;
-}
+          /* Utility classes */
+          .d-none {
+            display: none !important;
+          }
 
-.d-flex {
-  display: flex !important;
-}
+          .d-flex {
+            display: flex !important;
+          }
 
-.justify-content-center {
-  justify-content: center !important;
-}
+          .justify-content-center {
+            justify-content: center !important;
+          }
 
-.align-items-center {
-  align-items: center !important;
-}
-`;
+          .align-items-center {
+            align-items: center !important;
+          }
+          `;
             
-            // Check if these styles already exist
+            // Check if these styles already exist before adding
             if (!css.includes('.toast-container')) {
-              css += newStyles;
+              css += '\n' + newStyles;
+              console.log('Added new styles to styles.css');
+            } else {
+              console.log('Styles already exist in styles.css, skipping addition');
             }
             
-            fs.writeFileSync('styles.css', css, 'utf8');
-            console.log('Updated styles.css successfully');
+            // Write the updated file
+            fs.writeFileSync(stylesPath, css, 'utf8');
+            console.log('Successfully wrote to styles.css');
           }
-          
-          updateStyles();
+
+          // Run the update
+          try {
+            updateStyles();
+          } catch (error) {
+            console.error('Error updating styles.css:', error);
+            process.exit(1);
+          }
           EOF
           
           node update-styles.js
@@ -539,291 +326,236 @@ jobs:
         run: |
           cat > update-combined.js << 'EOF'
           const fs = require('fs');
-          
+          const path = require('path');
+
           function updateCombinedJS() {
+            const combinedPath = path.join(process.cwd(), 'combined.js');
             let js = '';
             
-            if (fs.existsSync('combined.js')) {
-              js = fs.readFileSync('combined.js', 'utf8');
+            // Check if file exists
+            if (fs.existsSync(combinedPath)) {
+              js = fs.readFileSync(combinedPath, 'utf8');
+              console.log('Found existing combined.js');
             } else {
-              // Create basic structure if file doesn't exist
+              // Create new file with basic structure
               js = `// CVD Risk Toolkit Combined JavaScript\n\n`;
+              console.log('Creating new combined.js');
             }
             
-            // Add version comment
+            // Add version comment if not present
             if (!js.includes('// Version:')) {
               js = `// Version: 1.1.0 - Last Updated: ${new Date().toISOString()}\n\n` + js;
             }
             
-            // Add utility function integration if not already present
+            // Define utility integration code
             const utilityIntegration = `
-/**
- * Enhanced Form functionality
- */
-document.addEventListener("DOMContentLoaded", function() {
-  // Toggle manual non-HDL entry
-  const toggleManualNonHDL = document.getElementById("toggle-manual-non-hdl");
-  if (toggleManualNonHDL) {
-    toggleManualNonHDL.addEventListener("click", function() {
-      const nonHDLInput = document.getElementById("med-non-hdl");
-      if (nonHDLInput) {
-        nonHDLInput.disabled = !nonHDLInput.disabled;
-        this.textContent = nonHDLInput.disabled ? "Enter manually" : "Use auto-calculation";
-      }
-    });
-  }
-  
-  // Add statin selection handler
-  const statinSelect = document.getElementById("med-statin");
-  if (statinSelect) {
-    statinSelect.addEventListener("change", function() {
-      const doseSelect = document.getElementById("med-statin-dose");
-      if (doseSelect) {
-        doseSelect.disabled = this.value === "none";
-        doseSelect.innerHTML = "<option value=\"\" selected>Select dose</option>";
-        
-        if (this.value !== "none") {
-          // Define statin doses
-          const doses = {
-            atorvastatin: [
-              {value: "10", text: "10 mg", intensity: "moderate"},
-              {value: "20", text: "20 mg", intensity: "moderate"},
-              {value: "40", text: "40 mg", intensity: "high"},
-              {value: "80", text: "80 mg", intensity: "high"}
-            ],
-            rosuvastatin: [
-              {value: "5", text: "5 mg", intensity: "moderate"},
-              {value: "10", text: "10 mg", intensity: "moderate"},
-              {value: "20", text: "20 mg", intensity: "high"},
-              {value: "40", text: "40 mg", intensity: "high"}
-            ]
-          };
-          
-          if (doses[this.value]) {
-            doses[this.value].forEach(dose => {
-              const option = document.createElement("option");
-              option.value = dose.value;
-              option.textContent = dose.text;
-              option.dataset.intensity = dose.intensity;
-              doseSelect.appendChild(option);
+          /**
+           * Enhanced Integration with New Utilities
+           */
+          document.addEventListener("DOMContentLoaded", function() {
+            // Initialize physiological validation
+            if (window.physiologicalValidation) {
+              const numericInputs = document.querySelectorAll('input[type="number"]');
+              numericInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                  const fieldId = this.id;
+                  const parameterType = this.dataset.parameterType || fieldId.replace(/^(frs|qrisk|med)-/, '');
+                  
+                  if (window.physiologicalValidation.validatePhysiologicalInput) {
+                    window.physiologicalValidation.validatePhysiologicalInput(fieldId, parameterType);
+                  }
+                });
+              });
+            }
+            
+            // Initialize enhanced validation
+            if (window.validatorExtension) {
+              console.info('Enhanced validation ready');
+            }
+            
+            // Initialize input sanitization
+            if (window.inputSanitizer) {
+              console.info('Input sanitization ready');
+            }
+          });
+          `;
+
+            // Define error boundary code
+            const errorBoundary = `
+          // Error boundary wrapper for critical functions
+          function withErrorBoundary(fn, fallback = null) {
+            return function(...args) {
+              try {
+                return fn.apply(this, args);
+              } catch (error) {
+                console.error('Error in function:', fn.name, error);
+                if (window.enhancedDisplay) {
+                  window.enhancedDisplay.showError('An error occurred. Please try again.');
+                }
+                return fallback;
+              }
+            };
+          }
+
+          // Wrap critical functions with error boundary
+          if (typeof calculateFRS === 'function') {
+            calculateFRS = withErrorBoundary(calculateFRS);
+          }
+          if (typeof calculateQRISK === 'function') {
+            calculateQRISK = withErrorBoundary(calculateQRISK);
+          }
+          if (typeof evaluateMedications === 'function') {
+            evaluateMedications = withErrorBoundary(evaluateMedications);
+          }
+          `;
+
+            // Define enhanced form handlers
+            const enhancedFormHandlers = `
+          // Enhanced form submission protection
+          function enhanceFormSubmission() {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+              form.addEventListener('submit', function(e) {
+                // Check if we're already handling this form
+                if (this.dataset.enhanced) return;
+                
+                // Mark as enhanced
+                this.dataset.enhanced = 'true';
+                
+                // Get all input values
+                const formData = new FormData(this);
+                const data = {};
+                
+                for (let [key, value] of formData.entries()) {
+                  // Sanitize input values
+                  if (window.inputSanitizer && typeof value === 'string') {
+                    data[key] = window.inputSanitizer.sanitizeText(value);
+                  } else {
+                    data[key] = value;
+                  }
+                }
+                
+                // Update form values with sanitized data
+                for (let key in data) {
+                  const input = this.elements[key];
+                  if (input && input.value !== data[key]) {
+                    input.value = data[key];
+                  }
+                }
+              });
             });
           }
-        }
-      }
-    });
-  }
-  
-  // Initialize loading indicators if available
-  if (window.loadingIndicator) {
-    const calculateButtons = document.querySelectorAll('.primary-btn');
-    calculateButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        if (this.textContent.includes('Calculate')) {
-          window.loadingIndicator.show('Processing...');
-          
-          // Hide after a short delay to simulate processing
-          setTimeout(() => {
-            window.loadingIndicator.hide();
-          }, 1000);
-        }
-      });
-    });
-  }
-});
 
-/**
- * Utility functions for edge case handling, enhanced compatibility,
- * and performance optimization.
- */
+          // Initialize enhanced form submission
+          document.addEventListener('DOMContentLoaded', enhanceFormSubmission);
+          `;
 
-// Safely access nested properties without errors
-function safeGet(obj, path, defaultValue = null) {
-  try {
-    const keys = path.split('.');
-    let result = obj;
-    
-    for (const key of keys) {
-      if (result === undefined || result === null) {
-        return defaultValue;
-      }
-      result = result[key];
-    }
-    
-    return result === undefined ? defaultValue : result;
-  } catch (e) {
-    return defaultValue;
-  }
-}
-
-// Debounce function for performance optimization
-function debounce(func, wait = 100) {
-  let timeout;
-  return function(...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
-
-// Throttle function for performance optimization
-function throttle(func, limit = 100) {
-  let inThrottle;
-  return function(...args) {
-    if (!inThrottle) {
-      func.apply(this, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
-}
-`;
-            
-            // Add utility functions if they don't exist
-            if (!js.includes('function safeGet')) {
-              js += utilityIntegration;
+            // Add each section if it doesn't exist
+            if (!js.includes('Enhanced Integration with New Utilities')) {
+              js += '\n' + utilityIntegration;
+              console.log('Added utility integration to combined.js');
             }
             
-            // Add error boundary wrapper
-            const errorBoundary = `
-// Error boundary wrapper for critical functions
-function withErrorBoundary(fn, fallback = null) {
-  return function(...args) {
-    try {
-      return fn.apply(this, args);
-    } catch (error) {
-      console.error('Error in function:', fn.name, error);
-      if (window.enhancedDisplay) {
-        window.enhancedDisplay.showError('An error occurred. Please try again.');
-      }
-      return fallback;
-    }
-  };
-}
-
-// Wrap critical functions with error boundary
-if (typeof calculateFRS === 'function') {
-  calculateFRS = withErrorBoundary(calculateFRS);
-}
-if (typeof calculateQRISK === 'function') {
-  calculateQRISK = withErrorBoundary(calculateQRISK);
-}
-if (typeof evaluateMedications === 'function') {
-  evaluateMedications = withErrorBoundary(evaluateMedications);
-}
-`;
-            
-            // Add error boundary if it doesn't exist
             if (!js.includes('withErrorBoundary')) {
-              js += errorBoundary;
+              js += '\n' + errorBoundary;
+              console.log('Added error boundary to combined.js');
             }
             
-            fs.writeFileSync('combined.js', js, 'utf8');
-            console.log('Updated combined.js successfully');
+            if (!js.includes('enhanceFormSubmission')) {
+              js += '\n' + enhancedFormHandlers;
+              console.log('Added enhanced form handlers to combined.js');
+            }
+            
+            // Write the updated file
+            fs.writeFileSync(combinedPath, js, 'utf8');
+            console.log('Successfully wrote to combined.js');
           }
-          
-          updateCombinedJS();
+
+          // Run the update
+          try {
+            updateCombinedJS();
+          } catch (error) {
+            console.error('Error updating combined.js:', error);
+            process.exit(1);
+          }
           EOF
           
           node update-combined.js
       
-      - name: Create new utility files
+      - name: Verify updates
         run: |
-          # Create each utility file with proper content
-          # (See the original workflow for the content of each file)
-          # The content is the same as in the previous workflow
+          echo "Verifying file updates..."
           
-          # Creating files here...
-          # (Detailed file creation code from previous workflow goes here)
-      
-      - name: Validate updates
-        run: |
-          echo "Validating file updates..."
-          
-          # Check if critical files exist and have been updated
-          files_to_check=(
-            "index.html"
-            "styles.css"
-            "combined.js"
-          )
-          
-          for file in "${files_to_check[@]}"; do
-            if [ ! -f "$file" ]; then
-              echo "ERROR: ${file} is missing after update"
-              exit 1
+          # Check if files were updated
+          if [ -f styles.css ]; then
+            echo "✓ styles.css exists"
+            if grep -q "toast-container" styles.css; then
+              echo "✓ New styles were added to styles.css"
             else
-              echo "✓ ${file} exists"
-              
-              # Check if file was updated (contains version comment)
-              if grep -q "Version: 1.1.0" "$file"; then
-                echo "✓ ${file} was updated with new version"
-              else
-                echo "WARNING: ${file} may not have been properly updated"
-              fi
+              echo "⚠️ New styles may not have been added to styles.css"
             fi
-          done
+          else
+            echo "❌ styles.css not found"
+            exit 1
+          fi
           
-          # Check if new utility files exist
-          utility_files=(
-            "enhanced-display.js"
-            "js/form-handler.js"
-            "js/utils/input-sanitizer.js"
-            "js/utils/validator-extension.js"
-            "js/utils/physiological-validation.js"
-            "js/utils/enhanced-disclaimer.js"
-            "js/utils/csp-report-handler.js"
-            "js/utils/xss-protection.js"
-          )
-          
-          for file in "${utility_files[@]}"; do
-            if [ -f "$file" ]; then
-              echo "✓ ${file} created successfully"
+          if [ -f combined.js ]; then
+            echo "✓ combined.js exists"
+            if grep -q "withErrorBoundary" combined.js; then
+              echo "✓ New code was added to combined.js"
             else
-              echo "ERROR: Failed to create ${file}"
-              exit 1
+              echo "⚠️ New code may not have been added to combined.js"
             fi
-          done
+          else
+            echo "❌ combined.js not found"
+            exit 1
+          fi
       
       - name: Create update summary
         run: |
-          echo "# Update Summary Report" > update-summary.md
+          echo "# File Update Summary" > update-summary.md
           echo "" >> update-summary.md
-          echo "## Files Updated" >> update-summary.md
+          echo "## Updates Applied" >> update-summary.md
           echo "" >> update-summary.md
-          echo "### Core Files" >> update-summary.md
-          echo "- **index.html**: Updated with new script references and security features" >> update-summary.md
-          echo "- **styles.css**: Enhanced with new UI components and responsive styles" >> update-summary.md
-          echo "- **combined.js**: Added utility functions and error boundary wrappers" >> update-summary.md
+          echo "- **styles.css**: Added new UI component styles" >> update-summary.md
+          echo "- **combined.js**: Added utility integration and error boundaries" >> update-summary.md
           echo "" >> update-summary.md
-          echo "### New Files Created" >> update-summary.md
+          echo "## Backups Created" >> update-summary.md
           echo "" >> update-summary.md
-          
-          # List all new files
-          find . -type f -name "*.js" -path "./js/utils/*" -o -name "enhanced-display.js" -o -name "form-handler.js" | while read file; do
-            echo "- ${file}" >> update-summary.md
-          done
-          
+          echo "- styles.css.bak" >> update-summary.md
+          echo "- combined.js.bak" >> update-summary.md
           echo "" >> update-summary.md
-          echo "## Changes Summary" >> update-summary.md
-          echo "" >> update-summary.md
-          echo "1. Added comprehensive security features (CSP, XSS protection)" >> update-summary.md
-          echo "2. Enhanced form handling with validation and state management" >> update-summary.md
-          echo "3. Improved UI with toast notifications and loading indicators" >> update-summary.md
-          echo "4. Added physiological validation for medical values" >> update-summary.md
-          echo "5. Implemented error boundaries for better stability" >> update-summary.md
-          echo "6. Prepared infrastructure for future ML integration" >> update-summary.md
-          echo "" >> update-summary.md
-          echo "## Backup Location" >> update-summary.md
-          echo "Original files backed up to: backups/" >> update-summary.md
-          echo "Backup timestamp: $(cat backups/backup-timestamp.txt)" >> update-summary.md
+          echo "## Timestamp" >> update-summary.md
+          echo "Updated at: $(date)" >> update-summary.md
       
-      - name: Commit and push changes
+      - name: Configure Git
         run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git config --global push.default current
+      
+      - name: Commit and push changes
+        run: |
+          # Add all changed files
+          git add styles.css combined.js
+          git add backups/ update-summary.md || true
           
-          git add .
-          git commit -m "Update core files and add comprehensive security features" || echo "No changes to commit"
-          git push origin HEAD:${{ github.ref }} || echo "No changes to push"
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            # Commit changes
+            git commit -m "Update styles.css and combined.js with new features
+          
+          - Added toast notifications
+          - Added loading indicators
+          - Added physiological warnings
+          - Added enhanced disclaimers
+          - Added error boundaries
+          - Integrated new utilities"
+            
+            # Push changes
+            git push origin ${{ github.ref_name }}
+          fi
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
@@ -832,3 +564,5 @@ if (typeof evaluateMedications === 'function') {
           path: |
             update-summary.md
             backups/
+            styles.css
+            combined.js
