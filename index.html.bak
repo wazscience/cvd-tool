@@ -4678,5 +4678,8 @@ function showPdfPreview() {
 
 // Initialize the application when the DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initializeApp);
+<script src="qrisk3-implementation.js"></script>
+<script src="juno-integration.js"></script>
+<script src="enhanced-display.js"></script>
 
 <div class="references-section"><h3>References and Attributions</h3><div class="references-content"><p><strong>Risk Calculators:</strong></p><ul><li>QRISK3: Hippisley-Cox J, et al. BMJ 2017;357:j2099</li><li>Framingham Risk Score: DAgostino RB Sr, et al. Circulation 2008;117:743-53</li></ul></div></div>

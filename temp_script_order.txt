@@ -1,0 +1,21 @@
+<!-- Security and utility scripts -->
+<script src="js/utils/secure-storage.js"></script>
+<script src="js/utils/loading-indicator.js"></script>
+<script src="js/utils/input-sanitizer.js"></script>
+<script src="js/utils/physiological-validation.js"></script>
+<script src="js/utils/validator-extension.js"></script>
+<script src="js/utils/enhanced-disclaimer.js"></script>
+<script src="js/utils/csp-report-handler.js"></script>
+
+<!-- Core functionality scripts -->
+<script src="js/validation.js"></script>
+<script src="js/calculations.js"></script>
+<script src="js/medication.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/form-handler.js"></script>
+
+<!-- Main implementation scripts -->
+<script src="combined.js"></script>
+<script src="qrisk3-implementation.js"></script>
+<script src="juno-integration.js"></script>
+<script src="enhanced-display.js"></script>
