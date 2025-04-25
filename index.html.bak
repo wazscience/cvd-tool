@@ -1,115 +1,14 @@
-
-
-
-<!-- 
-NON-EXECUTABLE READ-ONLY TEXT SECTION FOR CONTINUITY
-=================================================
-
-Core Functionality Requirements:
-1. **Risk Calculators**
-   * Framingham Risk Score (FRS) calculator
-   * QRISK3 calculator
-   * Combined risk assessment option
-   * Medication management with treatment recommendations
-2. **Lp(a) Modification**
-   * Post-test risk modification based on Lp(a) levels
-   * Displays pre-modifier and post-modifier risk
-   * Auto-conversion between mg/dL and nmol/L units
-3. **User Interface**
-   * Tab-based navigation between calculators
-   * Form validation with error messages
-   * Modal-based warnings and alerts
-   * Tooltips for clinical guidance
-   * Cross-tab data sharing
-4. **Treatment Recommendations**
-   * CCS guideline-based treatment suggestions
-   * Evidence quality indicators
-   * Guidelines quoted with rationales
-   * Legal disclaimer banner and full disclaimer
-5. **Medication Management**
-   * Current lipid profile assessment
-   * Primary/secondary prevention determination
-   * Statin, ezetimibe, and other therapy management
-   * BC PharmaCare PCSK9 inhibitor coverage criteria
-6. **Unit Conversions**
-   * Cholesterol: mg/dL ↔ mmol/L
-   * Lp(a): mg/dL ↔ nmol/L
-   * Height: cm ↔ ft/in
-   * Weight: kg ↔ lb
-7. **Clinical Validation**
-   * Warnings for abnormal values
-   * Validation for appropriate ranges
-   * Comprehensive error handling
-   
-Files to Migrate:
-1. index.html - Main HTML document
-2. styles.css - CSS styling
-3. validation.js - Input validation functions
-4. calculations.js - Risk algorithms
-5. medication.js - Medication management
-6. ui.js - UI functionality
-
-Security & Usability Requirements:
-1. Error handling for inputs (string vs. numbers)
-2. Clear guidance for valid ranges
-3. Clinical warnings for extreme values
-4. Print-friendly output formatting
-5. Legal disclaimers
-6. Documentation on methodology
-
-Special Implementation Notes:
-1. The QRISK3 form needs particular attention as it was abbreviated in the package
-2. The medication tab requires complete implementation of the BC PharmaCare PCSK9 coverage criteria
-3. Cross-tab data sharing allows risk scores to impact medication recommendations
-4. All calculation functions must maintain clinical accuracy
-5. The HTML structure must properly handle the "Calculate Both" tab functionality
-
-UI Design Principles:
-1. **Color Psychology & Visual Hierarchy**
-   * Professional color scheme with blue tones (trust, professionalism)
-   * 60-30-10 rule: 60% primary color, 30% secondary color, 10% accent color
-   * Visual hierarchy with size, color, and positioning
-   * Generous white space for readability and reduced cognitive load
-2. **Typography & Readability**
-   * Sans-serif fonts (Inter) for better screen readability
-   * Font hierarchy: 16px minimum body text, 1.5x for subheadings, 2x for headings
-   * Line height 1.5-1.6 for optimal readability
-   * Maximum line length 50-75 characters
-   * WCAG AA contrast ratio of 4.5:1
-3. **Layout & Structure**
-   * Card-based design for grouping related information
-   * 12-column grid system for flexibility and consistency
-   * Responsive breakpoints at 480px, 768px, 992px, 1200px
-4. **Interaction Design**
-   * Progressive disclosure with collapsible sections
-   * Accessible touch targets (minimum 44×44px for mobile)
-   * Visual feedback for user actions
-   * Consistent navigation
-5. **Medical UI-Specific Considerations**
-   * Clear data visualization for risk scores
-   * Trust signals with professional tone and citations
-   * Error prevention for medical data entry
-   * Contextual help for medical terms
-   * Clear visual representation of risk categories
-
-This migration ensures all components are preserved while enhancing the UI based on best practices in medical interface design.
--->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="CVD Risk Toolkit with Lp(a) Post-Test Modifier for cardiovascular risk assessment with lipoprotein(a) adjustment">
-    <meta name="author" content="CVD Risk Toolkit Team">
-    <!-- Version control comment to track updates -->
-    <!-- Version: 1.0.0 - Initial Release -->
-    <!-- Last Updated: April 14, 2025 -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; report-uri /csp-report">
     <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'">
 </head>
 <body>
     <div class="page-container">
@@ -4681,5 +4580,61 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 <script src="qrisk3-implementation.js"></script>
 <script src="juno-integration.js"></script>
 <script src="enhanced-display.js"></script>
-
-<div class="references-section"><h3>References and Attributions</h3><div class="references-content"><p><strong>Risk Calculators:</strong></p><ul><li>QRISK3: Hippisley-Cox J, et al. BMJ 2017;357:j2099</li><li>Framingham Risk Score: DAgostino RB Sr, et al. Circulation 2008;117:743-53</li></ul></div></div>
+    <!-- Copy the body content from your existing index.html -->
+    <!-- This part would be replaced with your actual HTML content -->
+    
+    <!-- Updated Scripts Section in correct order -->
+    <!-- Security and utility scripts -->
+    <script src="js/utils/secure-storage.js"></script>
+    <script src="js/utils/loading-indicator.js"></script>
+    <script src="js/utils/input-sanitizer.js"></script>
+    <script src="js/utils/physiological-validation.js"></script>
+    <script src="js/utils/validator-extension.js"></script>
+    <script src="js/utils/enhanced-disclaimer.js"></script>
+    <script src="js/utils/csp-report-handler.js"></script>
+    
+    <!-- Core functionality scripts -->
+    <script src="js/validation.js"></script>
+    <script src="js/calculations.js"></script>
+    <script src="js/medication.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/form-handler.js"></script>
+    
+    <!-- Main implementation scripts -->
+    <script src="combined.js"></script>
+    <script src="qrisk3-implementation.js"></script>
+    <script src="juno-integration.js"></script>
+    <script src="enhanced-display.js"></script>
+    
+    <!-- Initialization script -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize form handlers
+        if (window.formHandler) {
+          // Setup all form event handlers
+          const forms = document.querySelectorAll('form');
+          forms.forEach(form => {
+            const formId = form.id;
+            if (formId) {
+              formHandler.handleFormSubmit(formId, {}, function(data) {
+                console.log('Form submitted:', formId, data);
+              });
+            }
+          });
+        }
+        
+        // Initialize enhanced display
+        if (window.enhancedDisplay) {
+          window.alert = function(message) {
+            window.enhancedDisplay.showError(message, 'info');
+          };
+        }
+        
+        // Initialize disclaimers
+        if (window.enhancedDisclaimer) {
+          window.enhancedDisclaimer.showInitialDisclaimers();
+        }
+      });
+    </script>
+</body>
+</html>
