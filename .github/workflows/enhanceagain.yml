@@ -1,0 +1,260 @@
+name: Force Update CVD Risk Toolkit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  force-update-toolkit:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Create directories
+        run: |
+          mkdir -p js/utils
+          mkdir -p js/components
+          mkdir -p scripts
+
+      - name: Force Update index.html
+        run: |
+          # Backup original
+          cp index.html index.html.bak
+          
+          # Create a completely new index.html with all updates
+          cat > index_new.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; report-uri /csp-report">
+              <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
+              <link rel="preconnect" href="https://fonts.googleapis.com">
+              <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+              <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+              <link rel="stylesheet" href="styles.css">
+          </head>
+          <body>
+              <!-- Copy the body content from your existing index.html -->
+              <!-- This part would be replaced with your actual HTML content -->
+              
+              <!-- Updated Scripts Section in correct order -->
+              <!-- Security and utility scripts -->
+              <script src="js/utils/secure-storage.js"></script>
+              <script src="js/utils/loading-indicator.js"></script>
+              <script src="js/utils/input-sanitizer.js"></script>
+              <script src="js/utils/physiological-validation.js"></script>
+              <script src="js/utils/validator-extension.js"></script>
+              <script src="js/utils/enhanced-disclaimer.js"></script>
+              <script src="js/utils/csp-report-handler.js"></script>
+              
+              <!-- Core functionality scripts -->
+              <script src="js/validation.js"></script>
+              <script src="js/calculations.js"></script>
+              <script src="js/medication.js"></script>
+              <script src="js/ui.js"></script>
+              <script src="js/form-handler.js"></script>
+              
+              <!-- Main implementation scripts -->
+              <script src="combined.js"></script>
+              <script src="qrisk3-implementation.js"></script>
+              <script src="juno-integration.js"></script>
+              <script src="enhanced-display.js"></script>
+              
+              <!-- Initialization script -->
+              <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                  // Initialize form handlers
+                  if (window.formHandler) {
+                    // Setup all form event handlers
+                    const forms = document.querySelectorAll('form');
+                    forms.forEach(form => {
+                      const formId = form.id;
+                      if (formId) {
+                        formHandler.handleFormSubmit(formId, {}, function(data) {
+                          console.log('Form submitted:', formId, data);
+                        });
+                      }
+                    });
+                  }
+                  
+                  // Initialize enhanced display
+                  if (window.enhancedDisplay) {
+                    window.alert = function(message) {
+                      window.enhancedDisplay.showError(message, 'info');
+                    };
+                  }
+                  
+                  // Initialize disclaimers
+                  if (window.enhancedDisclaimer) {
+                    window.enhancedDisclaimer.showInitialDisclaimers();
+                  }
+                });
+              </script>
+          </body>
+          </html>
+          EOF
+          
+          # Preserve the body content from original
+          body_content=$(sed -n '/<body>/,/<\/body>/p' index.html | sed '1d;$d')
+          
+          # Insert the body content
+          sed -i "/<body>/r /dev/stdin" index_new.html <<< "$body_content"
+          
+          # Replace original
+          mv index_new.html index.html
+          
+          echo "Force updated index.html with all script references"
+
+      - name: Rename ui.txt to ui.js
+        run: |
+          if [ -f "js/ui.txt" ]; then
+            mv js/ui.txt js/ui.js
+            echo "Renamed ui.txt to ui.js"
+          elif [ ! -f "js/ui.js" ]; then
+            echo "Creating placeholder ui.js"
+            echo "// UI functionality will be implemented here" > js/ui.js
+          fi
+
+      - name: Create all missing files
+        run: |
+          # Create enhanced-display.js
+          if [ ! -f "enhanced-display.js" ]; then
+            cat > enhanced-display.js << 'EOF'
+          // Enhanced Display Module
+          const enhancedDisplay = (function() {
+            function showError(message, type = 'error') {
+              const errorDiv = document.createElement('div');
+              errorDiv.className = `enhanced-error ${type}`;
+              errorDiv.textContent = message;
+              document.body.appendChild(errorDiv);
+              setTimeout(() => errorDiv.remove(), 5000);
+            }
+            
+            function showLoadingOverlay(message = 'Loading...') {
+              const overlay = document.createElement('div');
+              overlay.className = 'enhanced-loading-overlay';
+              overlay.innerHTML = `<div class="loading-content"><div class="spinner"></div><p>${message}</p></div>`;
+              document.body.appendChild(overlay);
+              return overlay;
+            }
+            
+            function hideLoadingOverlay(overlay) {
+              if (overlay) overlay.remove();
+            }
+            
+            return { showError, showLoadingOverlay, hideLoadingOverlay };
+          })();
+          window.enhancedDisplay = enhancedDisplay;
+          EOF
+            echo "Created enhanced-display.js"
+          fi
+          
+          # Create physiological-validation.js
+          if [ ! -f "js/utils/physiological-validation.js" ]; then
+            cat > js/utils/physiological-validation.js << 'EOF'
+          // Physiological Validation Module
+          const physiologicalValidation = (function() {
+            const RANGES = {
+              age: { min: 18, max: 100, unit: 'years' },
+              sbp: { min: 70, max: 240, unit: 'mmHg' },
+              totalChol: { min: 1.0, max: 15.0, unit: 'mmol/L' }
+            };
+            
+            function validateValue(type, value) {
+              const range = RANGES[type];
+              if (!range) return { isValid: true };
+              
+              if (value < range.min || value > range.max) {
+                return {
+                  isValid: false,
+                  message: `${type} value of ${value} ${range.unit} is outside valid range`
+                };
+              }
+              
+              return { isValid: true };
+            }
+            
+            return { validateValue };
+          })();
+          window.physiologicalValidation = physiologicalValidation;
+          EOF
+            echo "Created physiological-validation.js"
+          fi
+          
+          # Create other missing utility files
+          for file in "input-sanitizer.js" "validator-extension.js" "enhanced-disclaimer.js" "csp-report-handler.js"; do
+            if [ ! -f "js/utils/$file" ]; then
+              echo "// $file placeholder" > "js/utils/$file"
+              echo "Created js/utils/$file"
+            fi
+          done
+          
+          # Create form-handler.js if missing
+          if [ ! -f "js/form-handler.js" ]; then
+            cat > js/form-handler.js << 'EOF'
+          // Form Handler Module
+          const formHandler = (function() {
+            function handleFormSubmit(formId, schema, callback) {
+              const form = document.getElementById(formId);
+              if (!form) return;
+              
+              form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData.entries());
+                
+                if (typeof callback === 'function') {
+                  callback(data);
+                }
+              });
+            }
+            
+            return { handleFormSubmit };
+          })();
+          window.formHandler = formHandler;
+          EOF
+            echo "Created form-handler.js"
+          fi
+
+      - name: Force commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Add all changes
+          git add -A
+          
+          # Check status
+          git status
+          
+          # Force commit even if no changes detected
+          git commit -m "Force update CVD Risk Toolkit with all enhancements" --allow-empty
+          
+          # Push changes
+          git push
+
+      - name: Verify changes
+        run: |
+          echo "Listing all files:"
+          find . -type f -name "*.js" -o -name "*.html" -o -name "*.css" | sort
+          
+          echo "Checking index.html script references:"
+          grep -n "<script" index.html || true
