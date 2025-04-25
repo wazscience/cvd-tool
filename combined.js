@@ -118,3 +118,25 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
 });
+
+// Add support for physiological validation
+function validatePhysiologicalValues() {
+  if (window.physiologicalValidation) {
+    const numericInputs = document.querySelectorAll('input[type="number"]');
+    numericInputs.forEach(input => {
+      input.addEventListener('change', function() {
+        const fieldId = this.id;
+        const parameterType = this.dataset.parameterType || fieldId.replace(/^(frs|qrisk|med)-/, '');
+        
+        if (window.physiologicalValidation.validatePhysiologicalInput) {
+          window.physiologicalValidation.validatePhysiologicalInput(fieldId, parameterType);
+        }
+      });
+    });
+  }
+}
+
+// Initialize validation on load
+document.addEventListener('DOMContentLoaded', function() {
+  validatePhysiologicalValues();
+});
