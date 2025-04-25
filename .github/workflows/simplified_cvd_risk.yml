@@ -30,6 +30,15 @@ jobs:
         with:
           node-version: '16'
       
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+      
+      - name: Pull latest changes
+        run: |
+          git pull origin ${{ github.ref_name }}
+      
       - name: Debug - List directory structure
         run: |
           echo "=== Current directory structure ==="
@@ -38,12 +47,16 @@ jobs:
           echo "=== Checking if styles.css exists in root ==="
           if [ -f "styles.css" ]; then
             echo "✓ styles.css found in root directory"
+            echo "Current content preview (first 20 lines):"
+            head -n 20 styles.css
           else
             echo "❌ styles.css not found in root directory"
           fi
           echo "=== Checking if combined.js exists in root ==="
           if [ -f "combined.js" ]; then
             echo "✓ combined.js found in root directory"
+            echo "Current content preview (first 20 lines):"
+            head -n 20 combined.js
           else
             echo "❌ combined.js not found in root directory"
           fi
@@ -248,13 +261,13 @@ jobs:
             if (!css.includes('.toast-container')) {
               css += '\n' + newStyles;
               console.log('Added new styles to styles.css');
+              
+              // Write the updated file
+              fs.writeFileSync(stylesPath, css, 'utf8');
+              console.log('Successfully wrote to styles.css');
             } else {
               console.log('Styles already exist in styles.css, skipping addition');
             }
-            
-            // Write the updated file
-            fs.writeFileSync(stylesPath, css, 'utf8');
-            console.log('Successfully wrote to styles.css');
           }
 
           // Run the update
@@ -329,11 +342,13 @@ jobs:
             if (!js.includes('Enhanced Integration with New Utilities')) {
               js += '\n' + utilityIntegration;
               console.log('Added utility integration to combined.js');
+              
+              // Write the updated file
+              fs.writeFileSync(combinedPath, js, 'utf8');
+              console.log('Successfully wrote to combined.js');
+            } else {
+              console.log('Utility integration already exists in combined.js, skipping addition');
             }
-            
-            // Write the updated file
-            fs.writeFileSync(combinedPath, js, 'utf8');
-            console.log('Successfully wrote to combined.js');
           }
 
           // Run the update
@@ -392,27 +407,20 @@ jobs:
           echo "## Timestamp" >> update-summary.md
           echo "Updated at: $(date)" >> update-summary.md
       
-      - name: Configure Git
+      - name: Check for changes
+        id: check_changes
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-      
-      - name: Pull latest changes
-        run: |
-          git pull origin ${{ github.ref_name }} --rebase
+          git add -A
+          if git diff --staged --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
       
       - name: Commit and push changes
+        if: steps.check_changes.outputs.has_changes == 'true'
         run: |
-          # Add files from root directory
-          git add styles.css combined.js
-          git add backups/ update-summary.md || true
-          
-          # Check if there are changes to commit
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            # Commit changes
-            git commit -m "Update styles.css and combined.js with new features
+          git commit -m "Update styles.css and combined.js with new features
           
           - Added toast notifications
           - Added loading indicators
@@ -420,10 +428,23 @@ jobs:
           - Added enhanced disclaimers
           - Added error boundaries
           - Integrated new utilities"
-            
-            # Push changes
-            git push origin ${{ github.ref_name }}
-          fi
+          
+          # Push changes with retry mechanism
+          for i in {1..3}; do
+            echo "Attempt $i to push changes..."
+            git pull origin ${{ github.ref_name }} --rebase
+            if git push origin ${{ github.ref_name }}; then
+              echo "Successfully pushed changes"
+              break
+            else
+              if [ $i -eq 3 ]; then
+                echo "Failed to push after 3 attempts"
+                exit 1
+              fi
+              echo "Push failed, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
