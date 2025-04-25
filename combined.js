@@ -1,53 +1,4 @@
-// CVD Risk Toolkit Combined JavaScript
-
-/**
- * Utility functions for edge case handling, enhanced compatibility,
- * and performance optimization.
- */
-
-// Safely access nested properties without errors
-function safeGet(obj, path, defaultValue = null) {
-  try {
-    const keys = path.split('.');
-    let result = obj;
-    
-    for (const key of keys) {
-      if (result === undefined || result === null) {
-        return defaultValue;
-      }
-      result = result[key];
-    }
-    
-    return result === undefined ? defaultValue : result;
-  } catch (e) {
-    return defaultValue;
-  }
-}
-
-// Debounce function for performance optimization
-function debounce(func, wait = 100) {
-  let timeout;
-  return function(...args) {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
-
-// Throttle function for performance optimization
-function throttle(func, limit = 100) {
-  let inThrottle;
-  return function(...args) {
-    if (!inThrottle) {
-      func.apply(this, args);
-      inThrottle = true;
-      setTimeout(() => inThrottle = false, limit);
-    }
-  };
-}
-
-/**
- * Enhanced Form functionality
- */
+// Add missing event handlers
 document.addEventListener("DOMContentLoaded", function() {
   // Toggle manual non-HDL entry
   const toggleManualNonHDL = document.getElementById("toggle-manual-non-hdl");
@@ -84,6 +35,32 @@ document.addEventListener("DOMContentLoaded", function() {
               {value: "10", text: "10 mg", intensity: "moderate"},
               {value: "20", text: "20 mg", intensity: "high"},
               {value: "40", text: "40 mg", intensity: "high"}
+            ],
+            simvastatin: [
+              {value: "10", text: "10 mg", intensity: "low"},
+              {value: "20", text: "20 mg", intensity: "moderate"},
+              {value: "40", text: "40 mg", intensity: "moderate"}
+            ],
+            pravastatin: [
+              {value: "10", text: "10 mg", intensity: "low"},
+              {value: "20", text: "20 mg", intensity: "low"},
+              {value: "40", text: "40 mg", intensity: "moderate"},
+              {value: "80", text: "80 mg", intensity: "moderate"}
+            ],
+            lovastatin: [
+              {value: "10", text: "10 mg", intensity: "low"},
+              {value: "20", text: "20 mg", intensity: "low"},
+              {value: "40", text: "40 mg", intensity: "moderate"}
+            ],
+            fluvastatin: [
+              {value: "20", text: "20 mg", intensity: "low"},
+              {value: "40", text: "40 mg", intensity: "low"},
+              {value: "80", text: "80 mg", intensity: "moderate"}
+            ],
+            pitavastatin: [
+              {value: "1", text: "1 mg", intensity: "low"},
+              {value: "2", text: "2 mg", intensity: "moderate"},
+              {value: "4", text: "4 mg", intensity: "moderate"}
             ]
           };
           
@@ -101,42 +78,36 @@ document.addEventListener("DOMContentLoaded", function() {
     });
   }
   
-  // Initialize loading indicators if available
-  if (window.loadingIndicator) {
-    const calculateButtons = document.querySelectorAll('.primary-btn');
-    calculateButtons.forEach(button => {
-      button.addEventListener('click', function() {
-        if (this.textContent.includes('Calculate')) {
-          window.loadingIndicator.show('Processing...');
-          
-          // Hide after a short delay to simulate processing
-          setTimeout(() => {
-            window.loadingIndicator.hide();
-          }, 1000);
-        }
-      });
+  // Statin intolerance handler
+  const intoleranceSelect = document.getElementById("med-statin-intolerance");
+  if (intoleranceSelect) {
+    intoleranceSelect.addEventListener("change", function() {
+      const typeSelect = document.getElementById("med-intolerance-type");
+      if (typeSelect) {
+        typeSelect.disabled = this.value === "no";
+      }
     });
   }
-});
-
-// Add support for physiological validation
-function validatePhysiologicalValues() {
-  if (window.physiologicalValidation) {
-    const numericInputs = document.querySelectorAll('input[type="number"]');
-    numericInputs.forEach(input => {
-      input.addEventListener('change', function() {
-        const fieldId = this.id;
-        const parameterType = this.dataset.parameterType || fieldId.replace(/^(frs|qrisk|med)-/, '');
-        
-        if (window.physiologicalValidation.validatePhysiologicalInput) {
-          window.physiologicalValidation.validatePhysiologicalInput(fieldId, parameterType);
-        }
-      });
+  
+  // PCSK9 checkbox handler
+  const pcsk9Checkbox = document.getElementById("med-pcsk9");
+  if (pcsk9Checkbox) {
+    pcsk9Checkbox.addEventListener("change", function() {
+      const pcsk9Details = document.getElementById("pcsk9-details");
+      if (pcsk9Details) {
+        pcsk9Details.style.display = this.checked ? "block" : "none";
+      }
     });
   }
-}
-
-// Initialize validation on load
-document.addEventListener('DOMContentLoaded', function() {
-  validatePhysiologicalValues();
+  
+  // Prevention category handler
+  const preventionCategory = document.getElementById("prevention-category");
+  if (preventionCategory) {
+    preventionCategory.addEventListener("change", function() {
+      const secondaryDetails = document.getElementById("secondary-details");
+      if (secondaryDetails) {
+        secondaryDetails.disabled = this.value !== "secondary";
+      }
+    });
+  }
 });
