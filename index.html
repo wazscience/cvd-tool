@@ -4692,5 +4692,61 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         }
       });
     </script>
+    <!-- Copy the body content from your existing index.html -->
+    <!-- This part would be replaced with your actual HTML content -->
+    
+    <!-- Updated Scripts Section in correct order -->
+    <!-- Security and utility scripts -->
+    <script src="js/utils/secure-storage.js"></script>
+    <script src="js/utils/loading-indicator.js"></script>
+    <script src="js/utils/input-sanitizer.js"></script>
+    <script src="js/utils/physiological-validation.js"></script>
+    <script src="js/utils/validator-extension.js"></script>
+    <script src="js/utils/enhanced-disclaimer.js"></script>
+    <script src="js/utils/csp-report-handler.js"></script>
+    
+    <!-- Core functionality scripts -->
+    <script src="js/validation.js"></script>
+    <script src="js/calculations.js"></script>
+    <script src="js/medication.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/form-handler.js"></script>
+    
+    <!-- Main implementation scripts -->
+    <script src="combined.js"></script>
+    <script src="qrisk3-implementation.js"></script>
+    <script src="juno-integration.js"></script>
+    <script src="enhanced-display.js"></script>
+    
+    <!-- Initialization script -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize form handlers
+        if (window.formHandler) {
+          // Setup all form event handlers
+          const forms = document.querySelectorAll('form');
+          forms.forEach(form => {
+            const formId = form.id;
+            if (formId) {
+              formHandler.handleFormSubmit(formId, {}, function(data) {
+                console.log('Form submitted:', formId, data);
+              });
+            }
+          });
+        }
+        
+        // Initialize enhanced display
+        if (window.enhancedDisplay) {
+          window.alert = function(message) {
+            window.enhancedDisplay.showError(message, 'info');
+          };
+        }
+        
+        // Initialize disclaimers
+        if (window.enhancedDisclaimer) {
+          window.enhancedDisclaimer.showInitialDisclaimers();
+        }
+      });
+    </script>
 </body>
 </html>
