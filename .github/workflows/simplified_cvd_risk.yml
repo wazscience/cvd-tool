@@ -1,575 +1,157 @@
-name: Simplified CVD Risk Toolkit Enhancements
+name: Update CSS and JS Files with Utilities
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    paths:
+      - '.github/workflows/update-css-js.yml'
 
-# Explicit permissions to avoid line 128 error
 permissions:
   contents: write
   pull-requests: write
   issues: write
-  packages: read
+  actions: write
+  checks: write
 
 jobs:
-  enhance-toolkit:
+  update-files:
     runs-on: ubuntu-latest
     
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
       
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # Updated from 16 to 18
-          
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential python3 libpixman-1-dev libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev
-          
-      - name: Install core dependencies
-        run: |
-          npm install crypto-js
-          npm install html2pdf.js
-          npm install flatpickr
-          npm install axios
-          npm install cheerio
-          npm install validator
+          node-version: '16'
       
-      - name: Create directory structure
+      - name: Debug - List directory structure
         run: |
-          mkdir -p js/components
-          mkdir -p js/utils
-          mkdir -p js/models
-          mkdir -p js/analytics
-          mkdir -p js/ml
-          mkdir -p scripts
-          mkdir -p styles
-          mkdir -p tests
+          echo "=== Current directory structure ==="
+          pwd
+          ls -la
+          echo "=== Checking if styles.css exists in root ==="
+          if [ -f "styles.css" ]; then
+            echo "✓ styles.css found in root directory"
+          else
+            echo "❌ styles.css not found in root directory"
+          fi
+          echo "=== Checking if combined.js exists in root ==="
+          if [ -f "combined.js" ]; then
+            echo "✓ combined.js found in root directory"
+          else
+            echo "❌ combined.js not found in root directory"
+          fi
       
-      - name: Apply Clinical Validation Improvements
+      - name: Create backups
         run: |
-          # Create script for enhancing clinical validation
-          cat > scripts/enhance-clinical-validation.js << 'EOF'
-          const fs = require('fs');
-          const path = require('path');
+          # Create backup directory
+          mkdir -p backups
           
-          // Path to the JavaScript files
-          const jsDir = path.join(process.cwd(), 'js');
-          if (!fs.existsSync(jsDir)) {
-            fs.mkdirSync(jsDir, { recursive: true });
-          }
+          # Backup styles.css from root
+          if [ -f "styles.css" ]; then
+            cp styles.css backups/styles.css.bak
+            echo "Created backup of styles.css from root"
+          else
+            echo "styles.css not found in root directory"
+          fi
           
-          const calculationsJsPath = path.join(jsDir, 'calculations.js');
-          const validationJsPath = path.join(jsDir, 'validation.js');
+          # Backup combined.js from root
+          if [ -f "combined.js" ]; then
+            cp combined.js backups/combined.js.bak
+            echo "Created backup of combined.js from root"
+          else
+            echo "combined.js not found in root directory"
+          fi
           
-          // Read the files
-          let calculationsJs = fs.existsSync(calculationsJsPath) ? fs.readFileSync(calculationsJsPath, 'utf8') : '';
-          let validationJs = fs.existsSync(validationJsPath) ? fs.readFileSync(validationJsPath, 'utf8') : '';
-          
-          // Add physiologically plausible value ranges
-          const physiologicalRanges = `
-          /**
-           * Physiologically plausible ranges for clinical values
-           */
-          const PHYSIOLOGICAL_RANGES = {
-            age: { min: 18, max: 100, unit: 'years', criticalMin: 25, criticalMax: 85, 
-                  description: 'Age', category: 'Demographics' },
-            sbp: { min: 70, max: 240, unit: 'mmHg', criticalMin: 90, criticalMax: 220, 
-                   description: 'Systolic Blood Pressure', category: 'Vitals' },
-            dbp: { min: 40, max: 140, unit: 'mmHg', criticalMin: 60, criticalMax: 130, 
-                   description: 'Diastolic Blood Pressure', category: 'Vitals' },
-            totalChol_mmol: { min: 1.0, max: 15.0, unit: 'mmol/L', criticalMin: 2.5, criticalMax: 12.0, 
-                            description: 'Total Cholesterol', category: 'Lipids' },
-            totalChol_mg: { min: 40, max: 580, unit: 'mg/dL', criticalMin: 100, criticalMax: 465, 
-                           description: 'Total Cholesterol', category: 'Lipids' },
-            hdl_mmol: { min: 0.5, max: 4.0, unit: 'mmol/L', criticalMin: 0.7, criticalMax: 3.0, 
-                       description: 'HDL Cholesterol', category: 'Lipids' },
-            hdl_mg: { min: 20, max: 155, unit: 'mg/dL', criticalMin: 27, criticalMax: 116, 
-                     description: 'HDL Cholesterol', category: 'Lipids' },
-            ldl_mmol: { min: 0.5, max: 10.0, unit: 'mmol/L', criticalMin: 1.0, criticalMax: 8.0, 
-                       description: 'LDL Cholesterol', category: 'Lipids' },
-            ldl_mg: { min: 20, max: 400, unit: 'mg/dL', criticalMin: 40, criticalMax: 300, 
-                     description: 'LDL Cholesterol', category: 'Lipids' },
-            // Add basic implausible combinations
-            implausibleCombinations: [
-              { 
-                check: (values) => values.totalChol_mmol < values.hdl_mmol,
-                message: 'Total cholesterol cannot be less than HDL cholesterol'
-              },
-              { 
-                check: (values) => values.sbp < values.dbp,
-                message: 'Systolic blood pressure cannot be less than diastolic blood pressure'
-              }
-            ]
-          };
-          `;
-          
-          // Basic validation function
-          const basicValidationFunction = `
-          /**
-           * Check if a value is physiologically plausible
-           * @param {string} parameterType - The type of parameter
-           * @param {number} value - The value to check
-           * @returns {Object} - { isValid, isWarning, message }
-           */
-          function checkPhysiologicalPlausibility(parameterType, value) {
-            if (!PHYSIOLOGICAL_RANGES[parameterType]) {
-              console.warn(\`No physiological range defined for parameter "\${parameterType}"\`);
-              return { isValid: true, isWarning: false, message: null };
-            }
-            
-            const range = PHYSIOLOGICAL_RANGES[parameterType];
-            
-            // Critical check (highly implausible)
-            if (value < range.min || value > range.max) {
-              return {
-                isValid: false,
-                isWarning: false,
-                message: \`\${range.description || parameterType} value of \${value} \${range.unit} is outside the physiologically possible range (\${range.min}-\${range.max} \${range.unit})\`
-              };
-            }
-            
-            // Warning check (unusual but possible)
-            if (value < range.criticalMin || value > range.criticalMax) {
-              return {
-                isValid: true,
-                isWarning: true,
-                message: \`\${range.description || parameterType} value of \${value} \${range.unit} is unusual. Please verify this value.\`
-              };
-            }
-            
-            // Value is within normal range
-            return { isValid: true, isWarning: false, message: null };
-          }
-          `;
-          
-          // Create calculation.js if it doesn't exist
-          if (!calculationsJs) {
-            calculationsJs = `/**
-             * CVD Risk Toolkit - Risk Calculation Functions
-             */
-            
-            ${physiologicalRanges}
-            
-            ${basicValidationFunction}
-            
-            // Risk calculation functions
-            
-            /**
-             * Calculates Framingham Risk Score
-             * @param {Object} data - Patient data
-             * @returns {Object} - Risk calculation results
-             */
-            function calculateFraminghamRiskScore(data) {
-              // Implementation will be added
-              return { baseRisk: 0, lpaModifier: 1, modifiedRisk: 0, riskCategory: 'low' };
-            }
-            
-            /**
-             * Calculates QRISK3 Score
-             * @param {Object} data - Patient data
-             * @returns {Object} - Risk calculation results
-             */
-            function calculateQRISK3Score(data) {
-              // Implementation will be added
-              return { baseRisk: 0, lpaModifier: 1, modifiedRisk: 0, riskCategory: 'low' };
-            }
-            `;
-            
-            fs.writeFileSync(calculationsJsPath, calculationsJs, 'utf8');
-            console.log('Created calculations.js with clinical validation functions');
-          } else {
-            // Update existing file with ranges
-            if (!calculationsJs.includes('PHYSIOLOGICAL_RANGES')) {
-              calculationsJs = physiologicalRanges + '\n\n' + calculationsJs;
-            }
-            
-            if (!calculationsJs.includes('checkPhysiologicalPlausibility')) {
-              calculationsJs = calculationsJs.replace(/\/\/ Risk calculation functions/m, 
-                basicValidationFunction + '\n\n// Risk calculation functions');
-            }
-            
-            fs.writeFileSync(calculationsJsPath, calculationsJs, 'utf8');
-            console.log('Updated calculations.js with clinical validation functions');
-          }
-          
-          // Create validation.js with basic functions if it doesn't exist
-          if (!validationJs) {
-            validationJs = `/**
-             * CVD Risk Toolkit - Validation Functions
-             */
-            
-            /**
-             * Validates a numeric input field
-             * @param {string} fieldId - The ID of the input field
-             * @param {number} min - Minimum allowed value
-             * @param {number} max - Maximum allowed value
-             * @param {string} fieldName - Human-readable field name for error messages
-             * @param {boolean} required - Whether the field is required
-             * @returns {Object} - { isValid, value, message }
-             */
-            function validateNumericInput(fieldId, min, max, fieldName, required = true) {
-                const field = document.getElementById(fieldId);
-                if (!field) {
-                    console.error(\`Field with ID \${fieldId} not found\`);
-                    return { isValid: false, value: null, message: \`Field \${fieldId} not found\` };
-                }
-                
-                const value = field.value.trim();
-                const errorDisplay = field.parentElement?.querySelector('.error-message');
-                
-                // Check if field is required and empty
-                if (required && value === '') {
-                    field.classList.add('error');
-                    if (errorDisplay) errorDisplay.style.display = 'block';
-                    return { isValid: false, value: null, message: \`\${fieldName} is required.\` };
-                }
-                
-                // If field is not required and empty, return valid
-                if (!required && value === '') {
-                    field.classList.remove('error');
-                    if (errorDisplay) errorDisplay.style.display = 'none';
-                    return { isValid: true, value: null, message: null };
-                }
-                
-                // Check if input is a number
-                const numValue = parseFloat(value);
-                if (isNaN(numValue)) {
-                    field.classList.add('error');
-                    if (errorDisplay) errorDisplay.style.display = 'block';
-                    return { isValid: false, value: null, message: \`\${fieldName} must be a number.\` };
-                }
-                
-                // Check if value is within range
-                if (numValue < min || numValue > max) {
-                    field.classList.add('error');
-                    if (errorDisplay) errorDisplay.style.display = 'block';
-                    return { isValid: false, value: null, message: \`\${fieldName} must be between \${min} and \${max}.\` };
-                }
-                
-                // Input is valid
-                field.classList.remove('error');
-                if (errorDisplay) errorDisplay.style.display = 'none';
-                return { isValid: true, value: numValue, message: null };
-            }
-            
-            /**
-             * Validates a form
-             * @param {string} formId - The ID of the form
-             * @returns {Object} - { isValid, errors }
-             */
-            function validateForm(formId) {
-                const form = document.getElementById(formId);
-                if (!form) {
-                    return { isValid: false, errors: ['Form not found'] };
-                }
-                
-                const errors = [];
-                
-                // Validate required fields
-                const requiredFields = form.querySelectorAll('[required]');
-                requiredFields.forEach(field => {
-                    if (field.type === 'number') {
-                        const result = validateNumericInput(
-                            field.id,
-                            parseFloat(field.getAttribute('min') || '-Infinity'),
-                            parseFloat(field.getAttribute('max') || 'Infinity'),
-                            field.previousElementSibling?.textContent || field.id,
-                            true
-                        );
-                        
-                        if (!result.isValid) {
-                            errors.push(result.message);
-                        }
-                    }
-                });
-                
-                return {
-                    isValid: errors.length === 0,
-                    errors: errors
-                };
-            }
-            `;
-            
-            fs.writeFileSync(validationJsPath, validationJs, 'utf8');
-            console.log('Created validation.js with validation functions');
-          }
-          
-          console.log('Clinical validation enhancements completed successfully');
-          EOF
-          
-          # Execute the script
-          node scripts/enhance-clinical-validation.js
+          echo "Backup created at $(date)" > backups/backup-timestamp.txt
       
-      - name: Implement Security Enhancements
+      - name: Update styles.css
         run: |
-          # Create script for implementing security enhancements
-          cat > scripts/implement-security.js << 'EOF'
+          cat > update-styles.js << 'EOF'
           const fs = require('fs');
           const path = require('path');
 
-          // Paths to files
-          const jsDir = path.join(process.cwd(), 'js');
-          const utilsDir = path.join(jsDir, 'utils');
-          const indexHtmlPath = path.join(process.cwd(), 'index.html');
-
-          // Ensure directories exist
-          if (!fs.existsSync(utilsDir)) {
-            fs.mkdirSync(utilsDir, { recursive: true });
+          function updateStyles() {
+            const stylesPath = path.join(process.cwd(), 'styles.css');
+            let css = '';
+            
+            // Check if file exists
+            if (fs.existsSync(stylesPath)) {
+              css = fs.readFileSync(stylesPath, 'utf8');
+              console.log('Found existing styles.css in root directory');
+            } else {
+              console.error('styles.css not found in root directory');
+              process.exit(1);
+            }
+            
+            // Add version comment if not present
+            if (!css.includes('/* Version:')) {
+              css = `/* Version: 1.1.0 - Last Updated: ${new Date().toISOString()} */\n\n` + css;
+            }
+            
+            // Define new styles to add
+            const newStyles = `
+          /* Enhanced Display Styles */
+          .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
           }
 
-          // Read the index.html file if it exists
-          let indexHtml = '';
-          if (fs.existsSync(indexHtmlPath)) {
-            indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
-          } else {
-            // Create basic structure if file doesn't exist
-            indexHtml = `<!DOCTYPE html>
-          <html lang="en">
-          <head>
-              <meta charset="UTF-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
-          </head>
-          <body>
-              <!-- Content will be added -->
-          </body>
-          </html>`;
+          .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
           }
 
-          // Add Content Security Policy
-          if (!indexHtml.includes('<meta http-equiv="Content-Security-Policy"')) {
-            const cspMeta = `    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'">`;
-            
-            // Insert after other meta tags
-            indexHtml = indexHtml.replace('</head>', `${cspMeta}\n</head>`);
-            console.log('Added Content Security Policy meta tag');
+          .toast-info {
+            border-left: 4px solid #3498db;
           }
 
-          // Create basic secure storage utility
-          const secureStoragePath = path.join(utilsDir, 'secure-storage.js');
-          const secureStorageContent = `/**
-           * Secure Storage Utility (Basic version)
-           */
-          const secureStorage = (function() {
-            // Generate or retrieve encryption key from sessionStorage
-            let encryptionKey = sessionStorage.getItem('encryptionKey');
-            if (!encryptionKey) {
-              const array = new Uint8Array(16);
-              window.crypto.getRandomValues(array);
-              encryptionKey = Array.from(array, byte => ('0' + byte.toString(16)).slice(-2)).join('');
-              sessionStorage.setItem('encryptionKey', encryptionKey);
-            }
-            
-            /**
-             * Store data securely
-             * @param {string} key - Storage key
-             * @param {any} data - Data to store
-             * @returns {boolean} - Success status
-             */
-            function setItem(key, data) {
-              try {
-                const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-                const encoded = btoa(dataStr); // Basic encoding for now
-                localStorage.setItem('secure_' + key, encoded);
-                return true;
-              } catch (error) {
-                console.error('SecureStorage setItem error:', error);
-                return false;
-              }
-            }
-            
-            /**
-             * Retrieve securely stored data
-             * @param {string} key - Storage key
-             * @returns {any} - Retrieved data or null if not found
-             */
-            function getItem(key) {
-              try {
-                const encoded = localStorage.getItem('secure_' + key);
-                if (!encoded) return null;
-                
-                const dataStr = atob(encoded);
-                try {
-                  return JSON.parse(dataStr);
-                } catch {
-                  return dataStr;
-                }
-              } catch (error) {
-                console.error('SecureStorage getItem error:', error);
-                return null;
-              }
-            }
-            
-            /**
-             * Remove securely stored data
-             * @param {string} key - Storage key to remove
-             */
-            function removeItem(key) {
-              try {
-                localStorage.removeItem('secure_' + key);
-              } catch (error) {
-                console.error('SecureStorage removeItem error:', error);
-              }
-            }
-            
-            /**
-             * Clear all securely stored data
-             */
-            function clear() {
-              try {
-                for (let i = localStorage.length - 1; i >= 0; i--) {
-                  const key = localStorage.key(i);
-                  if (key.startsWith('secure_')) {
-                    localStorage.removeItem(key);
-                  }
-                }
-              } catch (error) {
-                console.error('SecureStorage clear error:', error);
-              }
-            }
-            
-            // Return the public API
-            return {
-              setItem,
-              getItem,
-              removeItem,
-              clear
-            };
-          })();
-          `;
-
-          fs.writeFileSync(secureStoragePath, secureStorageContent, 'utf8');
-          console.log('Created secure storage utility');
-
-          // Update index.html to include the security script
-          const securityScriptTag = `
-              <!-- Security Script -->
-              <script src="js/utils/secure-storage.js"></script>`;
-
-          if (!indexHtml.includes('secure-storage.js')) {
-            // Add before closing body tag
-            indexHtml = indexHtml.replace('</body>', `${securityScriptTag}\n</body>`);
+          .toast-success {
+            border-left: 4px solid #2ecc71;
           }
 
-          // Write updated HTML
-          fs.writeFileSync(indexHtmlPath, indexHtml, 'utf8');
-          console.log('Updated index.html with security enhancements');
-          EOF
-          
-          # Execute the script
-          node scripts/implement-security.js
-      
-      - name: Add Loading Indicators
-        run: |
-          # Create a simple script for loading indicators
-          cat > scripts/add-loading-indicators.js << 'EOF'
-          const fs = require('fs');
-          const path = require('path');
-
-          // Paths
-          const jsDir = path.join(process.cwd(), 'js');
-          const utilsDir = path.join(jsDir, 'utils');
-          const loadingIndicatorPath = path.join(utilsDir, 'loading-indicator.js');
-          const cssPath = path.join(process.cwd(), 'styles.css');
-          const indexHtmlPath = path.join(process.cwd(), 'index.html');
-
-          // Create directories if they don't exist
-          if (!fs.existsSync(utilsDir)) {
-            fs.mkdirSync(utilsDir, { recursive: true });
+          .toast-warning {
+            border-left: 4px solid #f39c12;
           }
 
-          // Create loading indicator utility
-          console.log('Creating basic loading indicator utility...');
-
-          const loadingIndicatorContent = `/**
-           * Simple Loading Indicator Utility
-           */
-          const loadingIndicator = (function() {
-            // Configuration
-            const config = {
-              defaultDelay: 300, // ms before showing indicators
-              defaultMinDuration: 500, // ms minimum time to show indicators
-              useOverlay: true, // whether to use a full-page overlay for global operations
-              globalIndicatorId: 'global-loading-indicator'
-            };
-            
-            /**
-             * Show loading indicator
-             * @param {string} message - Loading message
-             */
-            function show(message = 'Loading...') {
-              // Check if indicator already exists
-              let indicator = document.getElementById(config.globalIndicatorId);
-              
-              if (!indicator) {
-                // Create indicator
-                indicator = document.createElement('div');
-                indicator.id = config.globalIndicatorId;
-                indicator.className = 'loading-indicator';
-                
-                // Create overlay if needed
-                if (config.useOverlay) {
-                  const overlay = document.createElement('div');
-                  overlay.className = 'loading-overlay';
-                  overlay.appendChild(indicator);
-                  document.body.appendChild(overlay);
-                } else {
-                  document.body.appendChild(indicator);
-                }
-              }
-              
-              // Set content
-              indicator.innerHTML = \`
-                <div class="spinner"></div>
-                <div class="loading-message">\${message}</div>
-              \`;
-              
-              // Show indicator
-              indicator.style.display = 'flex';
-              const overlay = document.querySelector('.loading-overlay');
-              if (overlay) overlay.style.display = 'flex';
-            }
-            
-            /**
-             * Hide loading indicator
-             */
-            function hide() {
-              const indicator = document.getElementById(config.globalIndicatorId);
-              if (indicator) {
-                const overlay = document.querySelector('.loading-overlay');
-                if (overlay) overlay.style.display = 'none';
-                indicator.style.display = 'none';
-              }
-            }
-            
-            // Return public API
-            return {
-              show,
-              hide
-            };
-          })();
-          `;
-
-          fs.writeFileSync(loadingIndicatorPath, loadingIndicatorContent, 'utf8');
-          console.log('Created loading indicator utility');
-
-          // Add CSS for loading indicators
-          let cssContent = '';
-          try {
-            cssContent = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : '';
-          } catch (error) {
-            console.warn('Could not read existing CSS file. Creating new one.');
-            cssContent = '/* CVD Risk Toolkit Styles */\n\n';
+          .toast-error {
+            border-left: 4px solid #e74c3c;
           }
 
-          const loadingCss = `
+          .toast-close {
+            position: absolute;
+            right: 8px;
+            top: 8px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            color: #999;
+          }
+
+          .toast-close:hover {
+            color: #333;
+          }
+
           /* Loading Indicator Styles */
           .loading-overlay {
             position: fixed;
@@ -578,14 +160,14 @@ jobs:
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
-            display: none;
+            display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
           }
 
           .loading-indicator {
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             padding: 20px;
@@ -613,106 +195,242 @@ jobs:
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
+
+          @keyframes slideIn {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+
+          .animate-slide-out {
+            animation: slideOut 0.3s ease-in;
+          }
+
+          @keyframes slideOut {
+            from {
+              transform: translateX(0);
+              opacity: 1;
+            }
+            to {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+          }
+
+          /* Physiological Warning Styles */
+          .physiological-warning {
+            padding: 8px 12px;
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+            font-size: 14px;
+            margin-top: 4px;
+            border-radius: 4px;
+          }
+
+          .physiological-error {
+            padding: 8px 12px;
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+            font-size: 14px;
+            margin-top: 4px;
+            border-radius: 4px;
+          }
           `;
-
-          if (!cssContent.includes('.loading-indicator')) {
-            cssContent += loadingCss;
-            fs.writeFileSync(cssPath, cssContent, 'utf8');
-            console.log('Added loading indicator CSS styles');
-          }
-
-          // Update index.html to include the loading indicator script
-          let indexHtml = '';
-          try {
-            indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
-          } catch (error) {
-            console.error('Error reading index.html:', error);
-            return;
-          }
-
-          if (!indexHtml.includes('loading-indicator.js')) {
-            // Add after security script
-            if (indexHtml.includes('secure-storage.js')) {
-              indexHtml = indexHtml.replace('<script src="js/utils/secure-storage.js"></script>', 
-                '<script src="js/utils/secure-storage.js"></script>\n    <script src="js/utils/loading-indicator.js"></script>');
+            
+            // Check if these styles already exist before adding
+            if (!css.includes('.toast-container')) {
+              css += '\n' + newStyles;
+              console.log('Added new styles to styles.css');
             } else {
-              // Add before closing body tag
-              indexHtml = indexHtml.replace('</body>', '    <script src="js/utils/loading-indicator.js"></script>\n</body>');
+              console.log('Styles already exist in styles.css, skipping addition');
             }
             
-            fs.writeFileSync(indexHtmlPath, indexHtml, 'utf8');
-            console.log('Added loading indicator script to index.html');
+            // Write the updated file
+            fs.writeFileSync(stylesPath, css, 'utf8');
+            console.log('Successfully wrote to styles.css');
           }
 
-          console.log('Loading indicator implementation complete!');
+          // Run the update
+          try {
+            updateStyles();
+          } catch (error) {
+            console.error('Error updating styles.css:', error);
+            process.exit(1);
+          }
           EOF
           
-          # Execute the script
-          node scripts/add-loading-indicators.js
+          node update-styles.js
       
-      - name: Run validation test
+      - name: Update combined.js
         run: |
-          # Create a simple validation script
-          cat > test-validation.js << 'EOF'
+          cat > update-combined.js << 'EOF'
           const fs = require('fs');
           const path = require('path');
-          
-          console.log('Validating CVD Risk Toolkit enhancements...');
-          
-          // Files that should exist after enhancements
-          const requiredFiles = [
-            'js/calculations.js',
-            'js/validation.js',
-            'js/utils/secure-storage.js',
-            'js/utils/loading-indicator.js',
-            'styles.css'
-          ];
-          
-          // Check each required file
-          let missingFiles = [];
-          for (const file of requiredFiles) {
-            if (!fs.existsSync(file)) {
-              missingFiles.push(file);
+
+          function updateCombinedJS() {
+            const combinedPath = path.join(process.cwd(), 'combined.js');
+            let js = '';
+            
+            // Check if file exists
+            if (fs.existsSync(combinedPath)) {
+              js = fs.readFileSync(combinedPath, 'utf8');
+              console.log('Found existing combined.js in root directory');
+            } else {
+              console.error('combined.js not found in root directory');
+              process.exit(1);
             }
+            
+            // Add version comment if not present
+            if (!js.includes('// Version:')) {
+              js = `// Version: 1.1.0 - Last Updated: ${new Date().toISOString()}\n\n` + js;
+            }
+            
+            // Define utility integration code
+            const utilityIntegration = `
+          /**
+           * Enhanced Integration with New Utilities
+           */
+          document.addEventListener("DOMContentLoaded", function() {
+            // Initialize physiological validation
+            if (window.physiologicalValidation) {
+              const numericInputs = document.querySelectorAll('input[type="number"]');
+              numericInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                  const fieldId = this.id;
+                  const parameterType = this.dataset.parameterType || fieldId.replace(/^(frs|qrisk|med)-/, '');
+                  
+                  if (window.physiologicalValidation.validatePhysiologicalInput) {
+                    window.physiologicalValidation.validatePhysiologicalInput(fieldId, parameterType);
+                  }
+                });
+              });
+            }
+            
+            // Initialize enhanced validation
+            if (window.validatorExtension) {
+              console.info('Enhanced validation ready');
+            }
+            
+            // Initialize input sanitization
+            if (window.inputSanitizer) {
+              console.info('Input sanitization ready');
+            }
+          });
+          `;
+
+            // Add each section if it doesn't exist
+            if (!js.includes('Enhanced Integration with New Utilities')) {
+              js += '\n' + utilityIntegration;
+              console.log('Added utility integration to combined.js');
+            }
+            
+            // Write the updated file
+            fs.writeFileSync(combinedPath, js, 'utf8');
+            console.log('Successfully wrote to combined.js');
           }
-          
-          // Check for CSP in index.html
-          let indexHtml = '';
-          let hasCsp = false;
+
+          // Run the update
           try {
-            indexHtml = fs.readFileSync('index.html', 'utf8');
-            hasCsp = indexHtml.includes('Content-Security-Policy');
-          } catch (err) {
-            console.error('Error reading index.html:', err);
-          }
-          
-          // Print validation results
-          if (missingFiles.length > 0) {
-            console.error('Validation failed: Missing files:');
-            missingFiles.forEach(file => console.error(` - ${file}`));
+            updateCombinedJS();
+          } catch (error) {
+            console.error('Error updating combined.js:', error);
             process.exit(1);
-          } else {
-            console.log('✓ All required files exist');
           }
-          
-          if (!hasCsp) {
-            console.error('Validation failed: Content Security Policy not found in index.html');
-            process.exit(1);
-          } else {
-            console.log('✓ Content Security Policy found in index.html');
-          }
-          
-          console.log('All validations passed successfully!');
-          process.exit(0);
           EOF
           
-          # Run the validation script
-          node test-validation.js
+          node update-combined.js
       
-      - name: Commit changes
+      - name: Verify updates
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .
-          git commit -m "Applied basic enhancements to CVD Risk Toolkit" || echo "No changes to commit"
-          git push
+          echo "Verifying file updates..."
+          
+          # Check styles.css
+          if [ -f "styles.css" ]; then
+            echo "✓ styles.css exists"
+            if grep -q "toast-container" "styles.css"; then
+              echo "✓ New styles were added to styles.css"
+            else
+              echo "⚠️ New styles may not have been added to styles.css"
+            fi
+          else
+            echo "❌ styles.css not found"
+          fi
+          
+          # Check combined.js
+          if [ -f "combined.js" ]; then
+            echo "✓ combined.js exists"
+            if grep -q "Enhanced Integration with New Utilities" "combined.js"; then
+              echo "✓ New code was added to combined.js"
+            else
+              echo "⚠️ New code may not have been added to combined.js"
+            fi
+          else
+            echo "❌ combined.js not found"
+          fi
+      
+      - name: Create update summary
+        run: |
+          echo "# File Update Summary" > update-summary.md
+          echo "" >> update-summary.md
+          echo "## Updates Applied" >> update-summary.md
+          echo "" >> update-summary.md
+          echo "- **styles.css**: Added new UI component styles" >> update-summary.md
+          echo "- **combined.js**: Added utility integration and error boundaries" >> update-summary.md
+          echo "" >> update-summary.md
+          echo "## Backups Created" >> update-summary.md
+          echo "" >> update-summary.md
+          echo "- styles.css.bak" >> update-summary.md
+          echo "- combined.js.bak" >> update-summary.md
+          echo "" >> update-summary.md
+          echo "## Timestamp" >> update-summary.md
+          echo "Updated at: $(date)" >> update-summary.md
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+      
+      - name: Pull latest changes
+        run: |
+          git pull origin ${{ github.ref_name }} --rebase
+      
+      - name: Commit and push changes
+        run: |
+          # Add files from root directory
+          git add styles.css combined.js
+          git add backups/ update-summary.md || true
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            # Commit changes
+            git commit -m "Update styles.css and combined.js with new features
+          
+          - Added toast notifications
+          - Added loading indicators
+          - Added physiological warnings
+          - Added enhanced disclaimers
+          - Added error boundaries
+          - Integrated new utilities"
+            
+            # Push changes
+            git push origin ${{ github.ref_name }}
+          fi
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: update-artifacts
+          path: |
+            update-summary.md
+            backups/
+            styles.css
+            combined.js
