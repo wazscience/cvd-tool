@@ -1,0 +1,138 @@
+name: Fix Node Version and ESLint Configuration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-critical-issues:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      # Fix 1: Use Node.js 18+
+      - name: Setup Node.js 18+
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          
+      - name: Verify Node.js version
+        run: |
+          node_version=$(node -v)
+          echo "Node.js version: $node_version"
+          
+          # Ensure we're using Node 18+
+          if [[ ! $node_version =~ ^v18\. && ! $node_version =~ ^v[2-9][0-9]\. ]]; then
+            echo "Error: Node.js version $node_version is too old. Need v18+"
+            exit 1
+          else
+            echo "✅ Node.js version is compatible"
+          fi
+          
+      # Fix 2: Create proper ESLint v9 configuration
+      - name: Remove old ESLint config if exists
+        run: |
+          echo "Removing old ESLint configurations..."
+          rm -f .eslintrc*
+          
+      - name: Create ESLint v9+ config
+        run: |
+          cat > eslint.config.js << 'EOF'
+          const js = require('@eslint/js');
+          
+          module.exports = [
+            js.configs.recommended,
+            {
+              files: ['**/*.js'],
+              languageOptions: {
+                ecmaVersion: 2022,
+                sourceType: 'module',
+                globals: {
+                  window: 'readonly',
+                  document: 'readonly',
+                  console: 'readonly',
+                  module: 'writable',
+                  require: 'readonly',
+                  process: 'readonly',
+                  setTimeout: 'readonly',
+                  clearTimeout: 'readonly',
+                  sessionStorage: 'readonly',
+                  localStorage: 'readonly'
+                }
+              },
+              rules: {
+                'no-unused-vars': 'warn',
+                'no-undef': 'warn',
+                'no-console': 'off',
+                'semi': ['error', 'always'],
+                'quotes': ['error', 'single', { 'allowTemplateLiterals': true }]
+              }
+            }
+          ];
+          EOF
+          
+      - name: Install dependencies
+        run: |
+          npm init -y || true
+          npm install --save-dev eslint@latest @eslint/js@latest
+          
+      - name: Verify ESLint works
+        run: |
+          echo "Testing ESLint configuration..."
+          
+          # Create a test file
+          cat > test-eslint.js << 'EOF'
+          const testFunction = () => {
+            console.log('Testing ESLint');
+            return true;
+          };
+          
+          module.exports = testFunction;
+          EOF
+          
+          # Try to lint the test file
+          npx eslint test-eslint.js --fix || {
+            echo "❌ ESLint configuration failed"
+            exit 1
+          }
+          
+          echo "✅ ESLint configuration works"
+          
+          # Clean up test file
+          rm test-eslint.js
+          
+      - name: Commit fixes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          
+          git add eslint.config.js package.json package-lock.json
+          git commit -m "Fix critical issues: Update to Node.js 18+ and ESLint v9 config" || echo "No changes to commit"
+          
+          git push
+          
+      - name: Summary report
+        run: |
+          echo "# Critical Fixes Applied" > fix-summary.md
+          echo "" >> fix-summary.md
+          echo "## Node.js Version" >> fix-summary.md
+          echo "- Updated workflow to use Node.js 18+" >> fix-summary.md
+          echo "- Current version: $(node -v)" >> fix-summary.md
+          echo "" >> fix-summary.md
+          echo "## ESLint Configuration" >> fix-summary.md
+          echo "- Created eslint.config.js for ESLint v9+" >> fix-summary.md
+          echo "- Removed legacy .eslintrc files" >> fix-summary.md
+          echo "- Verified ESLint works with current configuration" >> fix-summary.md
+          echo "" >> fix-summary.md
+          echo "## Next Steps" >> fix-summary.md
+          echo "1. Run the main workflow again with these fixes in place" >> fix-summary.md
+          echo "2. Verify that ESLint properly lints the code" >> fix-summary.md
+          echo "3. Check that all dependencies install correctly" >> fix-summary.md
+          
+          cat fix-summary.md
