@@ -1,35 +1,47 @@
-- name: Create ESLint v9 Configuration
-  run: |
-    cat > eslint.config.js << 'EOF'
-    const js = require('@eslint/js');
-    
-    module.exports = [
-      js.configs.recommended,
-      {
-        files: ['**/*.js'],
-        languageOptions: {
-          ecmaVersion: 2022,
-          sourceType: 'module',
-          globals: {
-            window: 'readonly',
-            document: 'readonly',
-            console: 'readonly',
-            module: 'writable',
-            require: 'readonly',
-            process: 'readonly',
-            setTimeout: 'readonly',
-            clearTimeout: 'readonly',
-            sessionStorage: 'readonly',
-            localStorage: 'readonly'
-          }
-        },
-        rules: {
-          'no-unused-vars': 'warn',
-          'no-undef': 'warn',
-          'no-console': 'off',
-          'semi': ['error', 'always'],
-          'quotes': ['error', 'single', { 'allowTemplateLiterals': true }]
-        }
-      }
-    ];
-    EOF
+name: Your Workflow Name
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  your-job-name:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create ESLint v9 Configuration
+        run: |
+          cat > eslint.config.js << 'EOF'
+          const js = require('@eslint/js');
+          
+          module.exports = [
+            js.configs.recommended,
+            {
+              files: ['**/*.js'],
+              languageOptions: {
+                ecmaVersion: 2022,
+                sourceType: 'module',
+                globals: {
+                  window: 'readonly',
+                  document: 'readonly',
+                  console: 'readonly',
+                  module: 'writable',
+                  require: 'readonly',
+                  process: 'readonly',
+                  setTimeout: 'readonly',
+                  clearTimeout: 'readonly',
+                  sessionStorage: 'readonly',
+                  localStorage: 'readonly'
+                }
+              },
+              rules: {
+                'no-unused-vars': 'warn',
+                'no-undef': 'warn',
+                'no-console': 'off',
+                'semi': ['error', 'always'],
+                'quotes': ['error', 'single', { 'allowTemplateLiterals': true }]
+              }
+            }
+          ];
+          EOF
