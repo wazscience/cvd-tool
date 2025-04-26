@@ -1,0 +1,29 @@
+name: Fix Node Version and Verify Files
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fix-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js 18.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.x'
+          
+      - name: Verify Node Version
+        run: node -v
+        
+      - name: List all files
+        run: |
+          echo "Current repository structure:"
+          find . -type f -not -path '*/\.*' | sort
+          
+      - name: Check file sizes
+        run: |
+          echo "File sizes:"
+          ls -la *.js *.html *.css 2>/dev/null || echo "No matching files found"
