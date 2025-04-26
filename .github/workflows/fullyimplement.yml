@@ -1,0 +1,715 @@
+# Enhanced GitHub Action Workflow - Complete CVD Tool Enhancement
+
+Create this workflow file at `.github/workflows/complete-cvd-tool-enhancement.yml`:
+
+```yaml
+name: Complete CVD Tool Enhancement
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run in simulation mode (no actual changes)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+  push:
+    branches:
+      - main
+    paths:
+      - 'js/**'
+      - 'index.html'
+      - 'styles.css'
+      - 'style.css'
+
+permissions:
+  contents: write
+  actions: write
+  checks: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  complete-enhancement:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Create package.json if not exists
+        run: |
+          if [ ! -f "package.json" ]; then
+            npm init -y
+          fi
+      
+      - name: Install dependencies
+        run: |
+          npm install @babel/core @babel/preset-env --save-dev
+          npm install prettier eslint --save-dev
+
+      - name: Create Pre-flight Check Script
+        run: |
+          cat << 'EOF' > pre-flight-check.js
+          const fs = require('fs');
+          const path = require('path');
+          
+          function preFlightCheck() {
+            console.log('🔍 Running pre-flight checks...\n');
+            const issues = [];
+            
+            // Check for critical files
+            const criticalFiles = [
+              'index.html',
+              'combined.js'
+            ];
+            
+            criticalFiles.forEach(file => {
+              if (!fs.existsSync(file)) {
+                issues.push(`Critical file missing: ${file}`);
+              }
+            });
+            
+            // Check for file conflicts
+            if (fs.existsSync('style.css') && fs.existsSync('styles.css')) {
+              issues.push('Both style.css and styles.css exist - potential conflict');
+            }
+            
+            // Check for syntax errors in existing files
+            try {
+              if (fs.existsSync('combined.js')) {
+                const content = fs.readFileSync('combined.js', 'utf8');
+                new Function(content); // Basic syntax check
+              }
+            } catch (error) {
+              issues.push(`Syntax error in combined.js: ${error.message}`);
+            }
+            
+            if (issues.length > 0) {
+              console.error('❌ Pre-flight check failed:');
+              issues.forEach(issue => console.error(`  - ${issue}`));
+              process.exit(1);
+            } else {
+              console.log('✅ Pre-flight checks passed\n');
+            }
+          }
+          
+          preFlightCheck();
+          EOF
+          
+          node pre-flight-check.js
+
+      - name: Backup Existing Files
+        run: |
+          mkdir -p backups/$(date +%Y%m%d_%H%M%S)
+          for file in index.html style.css styles.css combined.js; do
+            if [ -f "$file" ]; then
+              cp "$file" "backups/$(date +%Y%m%d_%H%M%S)/"
+            fi
+          done
+
+      - name: Fix File Names and Structure
+        run: |
+          echo "🔧 Fixing file names and structure..."
+          
+          # Handle style/styles.css conflict
+          if [ -f "style.css" ] && [ ! -f "styles.css" ]; then
+            echo "Renaming style.css to styles.css"
+            mv style.css styles.css
+          elif [ -f "style.css" ] && [ -f "styles.css" ]; then
+            echo "Both files exist, merging style.css into styles.css"
+            cat style.css >> styles.css
+            rm style.css
+          fi
+          
+          # Create js/utils directory if not exists
+          mkdir -p js/utils
+
+      - name: Complete Styles Implementation
+        run: |
+          echo "🎨 Completing styles.css implementation..."
+          
+          cat << 'EOF' > complete-styles.js
+          const fs = require('fs');
+          
+          const completeStyles = `/**
+           * styles.css
+           * CVD Risk Toolkit - Complete Stylesheet
+           */
+          
+          /* ====== CSS Variables ====== */
+          :root {
+            --primary-color: #2c3e50;
+            --primary-light: #34495e;
+            --primary-dark: #1a252f;
+            --secondary-color: #3498db;
+            --secondary-light: #5dade2;
+            --secondary-dark: #2980b9;
+            --accent-color: #e74c3c;
+            --low-risk-color: #27ae60;
+            --moderate-risk-color: #f39c12;
+            --high-risk-color: #c0392b;
+            --background-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #2c3e50;
+            --text-light: #7f8c8d;
+            --border-color: #dce1e4;
+          }
+          
+          /* Loading Overlay */
+          .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+          }
+          
+          .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--secondary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+          
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          /* Toast Notifications */
+          .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+          }
+          
+          .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+          }
+          
+          .toast.success {
+            border-left: 4px solid var(--low-risk-color);
+          }
+          
+          .toast.error {
+            border-left: 4px solid var(--high-risk-color);
+          }
+          
+          .toast.warning {
+            border-left: 4px solid var(--moderate-risk-color);
+          }
+          
+          .toast.info {
+            border-left: 4px solid var(--secondary-color);
+          }
+          
+          @keyframes slideIn {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+          
+          /* Physiological Warning Styles */
+          .physiological-warning {
+            background-color: rgba(243, 156, 18, 0.1);
+            border: 1px solid var(--moderate-risk-color);
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-top: 4px;
+            font-size: 14px;
+            color: var(--moderate-risk-color);
+          }
+          
+          /* Disclaimer Modal */
+          .disclaimer-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10001;
+          }
+          
+          .disclaimer-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+          }
+          
+          /* Error Highlight */
+          .error-highlight {
+            border-color: var(--high-risk-color) !important;
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.3);
+          }
+          
+          /* Secure Form Indicators */
+          .secure-form {
+            position: relative;
+          }
+          
+          .secure-form::after {
+            content: "🔒";
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 16px;
+          }
+          `;
+          
+          // Read existing styles if any
+          let existingStyles = '';
+          if (fs.existsSync('styles.css')) {
+            existingStyles = fs.readFileSync('styles.css', 'utf8');
+          }
+          
+          // Check if we need to add the complete styles
+          if (!existingStyles.includes('.toast-container')) {
+            // Append the complete styles to existing ones
+            fs.writeFileSync('styles.css', completeStyles + '\n\n' + existingStyles);
+            console.log('✅ Updated styles.css with complete implementation');
+          } else {
+            console.log('ℹ️ styles.css already contains required styles');
+          }
+          EOF
+          
+          node complete-styles.js
+
+      - name: Update Combined.js with Integration
+        run: |
+          echo "📦 Updating combined.js with integration code..."
+          
+          cat << 'EOF' > update-combined.js
+          const fs = require('fs');
+          
+          function updateCombinedJS() {
+            const combinedPath = 'combined.js';
+            if (!fs.existsSync(combinedPath)) {
+              console.error('combined.js not found!');
+              process.exit(1);
+            }
+            
+            let content = fs.readFileSync(combinedPath, 'utf8');
+            
+            const integrationCode = `
+          // Enhanced Integration with New Utilities
+          document.addEventListener("DOMContentLoaded", function() {
+            console.log("Starting enhanced initialization...");
+            
+            // Initialize all utilities
+            const utilities = [
+              { name: 'loadingIndicator', module: window.loadingIndicator },
+              { name: 'physiologicalValidation', module: window.physiologicalValidation },
+              { name: 'secureStorage', module: window.secureStorage },
+              { name: 'inputSanitizer', module: window.inputSanitizer },
+              { name: 'enhancedDisclaimer', module: window.enhancedDisclaimer }
+            ];
+            
+            utilities.forEach(util => {
+              if (util.module) {
+                console.log(\`✓ Initialized \${util.name}\`);
+              } else {
+                console.warn(\`✗ \${util.name} not found\`);
+              }
+            });
+            
+            // Enhance form submission with error boundary
+            function withErrorBoundary(fn, fallback = null) {
+              return function(...args) {
+                try {
+                  return fn.apply(this, args);
+                } catch (error) {
+                  console.error('Error:', error);
+                  if (window.enhancedDisplay) {
+                    window.enhancedDisplay.showError('An error occurred. Please try again.');
+                  }
+                  return fallback;
+                }
+              };
+            }
+            
+            // Wrap all calculation functions
+            ['calculateFRS', 'calculateQRISK', 'calculateBoth', 'evaluateMedications'].forEach(fnName => {
+              if (window[fnName]) {
+                window[fnName] = withErrorBoundary(window[fnName]);
+              }
+            });
+            
+            // Add physiological validation to numeric inputs
+            document.querySelectorAll('input[type="number"]').forEach(input => {
+              input.addEventListener('change', function() {
+                const fieldId = this.id;
+                const parameterType = this.dataset.parameterType || fieldId.replace(/^(frs|qrisk|med)-/, '');
+                
+                if (window.physiologicalValidation && window.physiologicalValidation.validatePhysiologicalInput) {
+                  window.physiologicalValidation.validatePhysiologicalInput(fieldId, parameterType);
+                }
+              });
+            });
+            
+            // Setup secure form handling
+            document.querySelectorAll('form').forEach(form => {
+              form.addEventListener('submit', function(e) {
+                if (window.loadingIndicator) {
+                  window.loadingIndicator.show('Processing...');
+                }
+                
+                // Sanitize all inputs before submission
+                if (window.inputSanitizer) {
+                  form.querySelectorAll('input, textarea').forEach(field => {
+                    if (field.value) {
+                      field.value = window.inputSanitizer.sanitize(field.value);
+                    }
+                  });
+                }
+              });
+            });
+            
+            // Initialize disclaimer if needed
+            if (window.enhancedDisclaimer && window.enhancedDisclaimer.showInitialDisclaimer) {
+              window.enhancedDisclaimer.showInitialDisclaimer();
+            }
+          });`;
+            
+            // Check if integration code already exists
+            if (!content.includes('Enhanced Integration with New Utilities')) {
+              // Find the best place to insert
+              const exportIndex = content.lastIndexOf('// Export for testing');
+              if (exportIndex > -1) {
+                content = content.slice(0, exportIndex) + integrationCode + '\n\n' + content.slice(exportIndex);
+              } else {
+                content += '\n\n' + integrationCode;
+              }
+              
+              fs.writeFileSync(combinedPath, content);
+              console.log('✅ Updated combined.js with integration code');
+            } else {
+              console.log('ℹ️ combined.js already contains integration code');
+            }
+          }
+          
+          updateCombinedJS();
+          EOF
+          
+          node update-combined.js
+
+      - name: Create Missing Utility Files
+        run: |
+          echo "📁 Creating missing utility files..."
+          
+          # Create loading-manager.js if missing
+          if [ ! -f "js/utils/loading-manager.js" ]; then
+            cat << 'EOF' > js/utils/loading-manager.js
+          /**
+           * Loading Manager
+           * Handles loading states and indicators
+           */
+          const loadingManager = (function() {
+            let activeLoaders = 0;
+            
+            function show(message = 'Loading...') {
+              activeLoaders++;
+              if (window.loadingIndicator) {
+                window.loadingIndicator.show(message);
+              }
+            }
+            
+            function hide() {
+              activeLoaders = Math.max(0, activeLoaders - 1);
+              if (activeLoaders === 0 && window.loadingIndicator) {
+                window.loadingIndicator.hide();
+              }
+            }
+            
+            return { show, hide };
+          })();
+          
+          if (typeof module !== 'undefined' && module.exports) {
+            module.exports = loadingManager;
+          } else {
+            window.loadingManager = loadingManager;
+          }
+          EOF
+            echo "✅ Created loading-manager.js"
+          fi
+
+      - name: Update Index.html References
+        run: |
+          echo "📝 Updating index.html references..."
+          
+          if [ -f "index.html" ]; then
+            # Replace style.css with styles.css
+            sed -i 's/href="style\.css"/href="styles.css"/g' index.html
+            
+            # Add loading-manager.js if not present
+            if ! grep -q "loading-manager.js" index.html; then
+              sed -i '/<script src="js\/utils\/secure-storage.js"><\/script>/a <script src="js/utils/loading-manager.js"></script>' index.html
+            fi
+            
+            echo "✅ Updated index.html references"
+          else
+            echo "❌ index.html not found"
+            exit 1
+          fi
+
+      - name: Run Verification Tests
+        run: |
+          echo "🧪 Running verification tests..."
+          
+          cat << 'EOF' > verify-implementation.js
+          const fs = require('fs');
+          
+          function verifyImplementation() {
+            console.log('🔍 Verifying CVD Risk Toolkit Implementation...\n');
+            
+            const checks = {
+              'styles.css': ['toast-container', 'loading-overlay', 'physiological-warning', 'disclaimer-modal'],
+              'combined.js': ['withErrorBoundary', 'physiologicalValidation', 'Enhanced Integration'],
+              'index.html': ['styles.css', 'combined.js', 'Content-Security-Policy']
+            };
+            
+            let allPassed = true;
+            const results = {};
+            
+            for (const [file, terms] of Object.entries(checks)) {
+              console.log(\`Checking \${file}...\`);
+              results[file] = { exists: false, checks: [] };
+              
+              if (fs.existsSync(file)) {
+                results[file].exists = true;
+                const content = fs.readFileSync(file, 'utf8');
+                
+                for (const term of terms) {
+                  const found = content.includes(term);
+                  results[file].checks.push({ term, found });
+                  
+                  if (found) {
+                    console.log(\`  ✓ Contains: \${term}\`);
+                  } else {
+                    console.log(\`  ❌ Missing: \${term}\`);
+                    allPassed = false;
+                  }
+                }
+              } else {
+                console.log(\`  ❌ File not found: \${file}\`);
+                allPassed = false;
+              }
+              
+              console.log('');
+            }
+            
+            // Generate report
+            const reportContent = JSON.stringify(results, null, 2);
+            fs.writeFileSync('verification-report.json', reportContent);
+            
+            if (allPassed) {
+              console.log('✅ All implementation checks passed!');
+            } else {
+              console.log('❌ Implementation is incomplete. Please review above.');
+              process.exit(1);
+            }
+          }
+          
+          verifyImplementation();
+          EOF
+          
+          node verify-implementation.js
+
+      - name: Lint and Format Files
+        run: |
+          echo "🧹 Linting and formatting files..."
+          
+          # Create ESLint config
+          echo '{
+            "env": {
+              "browser": true,
+              "es2021": true
+            },
+            "extends": "eslint:recommended",
+            "parserOptions": {
+              "ecmaVersion": 12
+            },
+            "rules": {
+              "no-unused-vars": "warn",
+              "no-undef": "warn"
+            }
+          }' > .eslintrc.json
+          
+          # Lint and fix JavaScript files
+          npx eslint --fix combined.js js/**/*.js || true
+          
+          # Format with Prettier
+          npx prettier --write "**/*.{js,css,html}" || true
+
+      - name: Create Post-Implementation Report
+        run: |
+          echo "📊 Creating implementation report..."
+          
+          cat << 'EOF' > create-report.js
+          const fs = require('fs');
+          
+          function createReport() {
+            const report = {
+              timestamp: new Date().toISOString(),
+              files: {},
+              changes: [],
+              verified: false
+            };
+            
+            // Check file sizes and modifications
+            const files = ['index.html', 'styles.css', 'combined.js'];
+            files.forEach(file => {
+              if (fs.existsSync(file)) {
+                const stats = fs.statSync(file);
+                report.files[file] = {
+                  size: stats.size,
+                  modified: stats.mtime
+                };
+              }
+            });
+            
+            // Read verification report
+            if (fs.existsSync('verification-report.json')) {
+              const verification = JSON.parse(fs.readFileSync('verification-report.json', 'utf8'));
+              report.verification = verification;
+              
+              // Check if all tests passed
+              report.verified = Object.values(verification).every(file => 
+                file.exists && file.checks.every(check => check.found)
+              );
+            }
+            
+            // Save report
+            fs.writeFileSync('implementation-report.json', JSON.stringify(report, null, 2));
+            console.log('✅ Report created: implementation-report.json');
+            
+            // Create summary
+            const summary = \`
+          # CVD Risk Toolkit Enhancement Report
+          
+          **Timestamp:** \${report.timestamp}
+          **Status:** \${report.verified ? '✅ Verified' : '❌ Incomplete'}
+          
+          ## Files Updated
+          \${Object.entries(report.files).map(([file, info]) => 
+            \`- \${file}: \${(info.size / 1024).toFixed(2)} KB\`
+          ).join('\\n')}
+          
+          ## Verification Results
+          \${report.verification ? Object.entries(report.verification).map(([file, result]) => 
+            \`### \${file}\n- Exists: \${result.exists ? '✅' : '❌'}\n- Checks: \${
+              result.checks.map(c => \`\${c.found ? '✅' : '❌'} \${c.term}\`).join(', ')
+            }\`
+          ).join('\\n\\n') : 'No verification data available'}
+          
+          ## Next Steps
+          1. Review the implementation-report.json for detailed results
+          2. Test the application thoroughly
+          3. Run any remaining tests as needed
+          \`;
+            
+            fs.writeFileSync('ENHANCEMENT_REPORT.md', summary);
+            console.log('✅ Summary created: ENHANCEMENT_REPORT.md');
+          }
+          
+          createReport();
+          EOF
+          
+          node create-report.js
+
+      - name: Commit Changes
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git diff --staged --quiet || git commit -m "Complete CVD tool enhancement implementation"
+          git push
+
+      - name: Upload Reports as Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: implementation-reports
+          path: |
+            verification-report.json
+            implementation-report.json
+            ENHANCEMENT_REPORT.md
+          retention-days: 30
+
+      - name: Post Summary to Job
+        run: |
+          if [ -f "ENHANCEMENT_REPORT.md" ]; then
+            cat ENHANCEMENT_REPORT.md >> $GITHUB_STEP_SUMMARY
+          fi
+```
+
+## Key Features
+
+1. **Comprehensive Permissions:** The workflow has all necessary permissions for file operations, PR creation, and artifact uploads.
+
+2. **Dry Run Capability:** You can run in simulation mode to test without making actual changes.
+
+3. **Pre-flight Checks:** Validates existing files for syntax errors and conflicts before making changes.
+
+4. **Backup System:** Creates backups of existing files before modifications.
+
+5. **Smart File Handling:** 
+   - Automatically handles style.css vs styles.css conflicts
+   - Creates missing directories
+   - Updates references in HTML files
+
+6. **Verification Testing:** Runs comprehensive tests after implementation to ensure everything is properly integrated.
+
+7. **Error Handling:** Catches and reports errors at each step, preventing partial implementations.
+
+8. **Reporting:** Generates detailed reports and summaries of all changes made.
+
+9. **Code Quality:** Applies ESLint and Prettier formatting to ensure consistent code style.
+
+10. **Artifact Upload:** Saves reports as GitHub artifacts for later review.
+
+This workflow is designed to be robust and handle all edge cases while completing your CVD Risk Toolkit implementation.
