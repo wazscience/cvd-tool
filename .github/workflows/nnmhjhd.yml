@@ -1,0 +1,150 @@
+name: Update CVD Tool with NVM
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-and-enhance:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Create .nvmrc file
+        run: |
+          echo "18" > .nvmrc
+          
+      - name: Setup Node.js with nvm
+        run: |
+          # Install nvm
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+          
+          # Load nvm
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          
+          # Install and use Node.js version from .nvmrc
+          nvm install
+          nvm use
+          
+          # Verify installation
+          node -v
+          npm -v
+          
+          # Make commands available for subsequent steps
+          echo "export NVM_DIR=\"$HOME/.nvm\"" >> $GITHUB_ENV
+          echo "[ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\"" >> $GITHUB_ENV
+          
+      - name: Install dependencies
+        run: |
+          # Load nvm for this step
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          
+          # Ensure we're using Node 18
+          nvm use
+          
+          npm init -y || true
+          npm install --save-dev eslint@latest @eslint/js@latest
+          npm install --save-dev @babel/core @babel/preset-env
+          
+      - name: Create ESLint v9 config
+        run: |
+          cat > eslint.config.js << 'EOF'
+          const js = require('@eslint/js');
+          
+          module.exports = [
+            js.configs.recommended,
+            {
+              files: ['**/*.js'],
+              languageOptions: {
+                ecmaVersion: 2022,
+                sourceType: 'module',
+                globals: {
+                  window: 'readonly',
+                  document: 'readonly',
+                  console: 'readonly',
+                  module: 'writable',
+                  require: 'readonly',
+                  process: 'readonly'
+                }
+              },
+              rules: {
+                'no-unused-vars': 'warn',
+                'no-undef': 'warn',
+                'semi': ['error', 'always'],
+                'quotes': ['error', 'single']
+              }
+            }
+          ];
+          EOF
+          
+      - name: Create backup directory
+        run: |
+          echo "Creating backup directory..."
+          BACKUP_DATE=$(date +%Y%m%d)
+          BACKUP_TIME=$(date +%H%M%S)
+          BACKUP_DIR="backups/${BACKUP_DATE}"
+          mkdir -p "${BACKUP_DIR}"
+          
+          # Backup existing files
+          for file in *.js *.css *.html; do
+            if [ -f "$file" ]; then
+              cp "$file" "${BACKUP_DIR}/${file}.backup.${BACKUP_TIME}"
+              echo "Backed up: $file"
+            fi
+          done
+          
+      - name: Run ESLint with auto-fix
+        run: |
+          # Load nvm for this step
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          
+          # Ensure we're using Node 18
+          nvm use
+          
+          echo "Running ESLint with auto-fix..."
+          npx eslint . --fix || echo "ESLint completed with some issues"
+          
+      - name: Create combined.js
+        run: |
+          # Load nvm for this step
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          
+          # Ensure we're using Node 18
+          nvm use
+          
+          # Your existing create-combined.js script
+          cat > create-combined.js << 'EOF'
+          // Your create-combined.js script content here
+          EOF
+          
+          node create-combined.js
+          
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          
+          # Add files
+          git add .
+          
+          # Create commit
+          git commit -m "Update CVD Risk Toolkit with Node 18 via nvm" \
+                     -m "- Add .nvmrc file for Node 18" \
+                     -m "- Update ESLint configuration for v9" \
+                     -m "- Create comprehensive combined.js" || echo "No changes to commit"
+          
+          # Pull latest changes and rebase
+          git pull origin main --rebase || echo "No remote changes to merge"
+          
+          # Push changes
+          git push || git push --force-with-lease
