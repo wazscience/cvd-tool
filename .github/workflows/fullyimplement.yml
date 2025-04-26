@@ -2,7 +2,7 @@
 
 Create this workflow file at `.github/workflows/complete-cvd-tool-enhancement.yml`:
 
-```yaml
+  ```yaml
 name: Complete CVD Tool Enhancement
 
 on:

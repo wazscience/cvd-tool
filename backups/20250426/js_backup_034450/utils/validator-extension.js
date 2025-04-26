@@ -1,0 +1,1 @@
+// validator-extension.js placeholder
