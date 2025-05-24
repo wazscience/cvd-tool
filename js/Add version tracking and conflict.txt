@@ -1,0 +1,98 @@
+// Add version tracking and conflict resolution
+async savePatient(patientData) {
+    await this.initialize();
+    
+    return new Promise((resolve, reject) => {
+        const transaction = this.db.transaction(['patients', 'syncQueue'], 'readwrite');
+        
+        transaction.onerror = (event) => {
+            console.error('Transaction error:', event.target.error);
+            reject(event.target.error);
+        };
+        
+        const patientStore = transaction.objectStore('patients');
+        
+        // If updating existing patient, check version
+        if (patientData.id) {
+            const getRequest = patientStore.get(patientData.id);
+            
+            getRequest.onsuccess = (event) => {
+                const existingData = event.target.result;
+                
+                // If exists and version is newer, we have a conflict
+                if (existingData && existingData.version && 
+                    patientData.version && existingData.version > patientData.version) {
+                    
+                    // Handle conflict - could merge or reject
+                    const conflict = {
+                        type: 'version_conflict',
+                        local: patientData,
+                        remote: existingData
+                    };
+                    
+                    // Attempt to auto-merge or prompt user
+                    if (this.conflictResolver) {
+                        const resolved = this.conflictResolver(conflict);
+                        if (resolved) {
+                            // Update with resolved data
+                            patientStore.put(resolved);
+                            resolve(resolved.id);
+                            return;
+                        }
+                    }
+                    
+                    // Cannot auto-resolve
+                    reject(new Error('Version conflict detected'));
+                    return;
+                }
+                
+                // Increment version
+                patientData.version = (existingData?.version || 0) + 1;
+                patientData.lastModified = new Date().getTime();
+                
+                // Put updated data
+                const putRequest = patientStore.put(patientData);
+                
+                putRequest.onsuccess = (event) => {
+                    // Handle success case
+                    const patientId = event.target.result;
+                    
+                    // Add to sync queue if sync is enabled
+                    if (this.isSyncEnabled) {
+                        const syncStore = transaction.objectStore('syncQueue');
+                        syncStore.add({
+                            type: 'patient',
+                            action: 'update',
+                            data: patientData,
+                            timestamp: patientData.lastModified
+                        });
+                    }
+                    
+                    resolve(patientId);
+                };
+            };
+        } else {
+            // New patient, start at version 1
+            patientData.version = 1;
+            patientData.lastModified = new Date().getTime();
+            
+            const addRequest = patientStore.add(patientData);
+            
+            addRequest.onsuccess = (event) => {
+                const patientId = event.target.result;
+                
+                if (this.isSyncEnabled) {
+                    const syncStore = transaction.objectStore('syncQueue');
+                    syncStore.add({
+                        type: 'patient',
+                        action: 'add',
+                        data: patientData,
+                        timestamp: patientData.lastModified
+                    });
+                }
+                
+                resolve(patientId);
+            };
+        }
+    });
+}

@@ -375,7 +375,7 @@ console.log('Form handler with sanitization created successfully!');
 // Update index.html to include the form handler
 if (!indexHtml.includes('form-handler.js')) {
   // Add before closing body tag but after input sanitizer
-  indexHtml = indexHtml.replace('<script src="js/utils/input-sanitizer.js"></script>', 
+  indexHtml = indexHtml.replace('<script src="js/utils/input-sanitizer.js"></script>',
     '<script src="js/utils/input-sanitizer.js"></script>\n    <script src="js/form-handler.js"></script>');
   fs.writeFileSync(indexHtmlPath, indexHtml);
   console.log('Added form handler script to index.html');
@@ -548,7 +548,7 @@ console.log('Validator extension created successfully!');
 // Update index.html to include the validator extension
 if (!indexHtml.includes('validator-extension.js')) {
   // Add before closing body tag but after input sanitizer
-  indexHtml = indexHtml.replace('<script src="js/utils/input-sanitizer.js"></script>', 
+  indexHtml = indexHtml.replace('<script src="js/utils/input-sanitizer.js"></script>',
     '<script src="js/utils/input-sanitizer.js"></script>\n    <script src="js/utils/validator-extension.js"></script>');
   fs.writeFileSync(indexHtmlPath, indexHtml);
   console.log('Added validator extension script to index.html');

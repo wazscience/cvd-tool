@@ -5,25 +5,25 @@ const path = require('path');
 function updateCombinedJS() {
   const combinedPath = path.join(process.cwd(), 'combined.js');
   let js = '';
-  
+
   if (fs.existsSync(combinedPath)) {
     js = fs.readFileSync(combinedPath, 'utf8');
   } else {
     // Create basic structure if file doesn't exist
     js = `// CVD Risk Toolkit Combined JavaScript\n\n`;
   }
-  
+
   // Add version comment if not present
   if (!js.includes('// Version:')) {
     js = `// Version: 1.1.0 - Last Updated: ${new Date().toISOString()}\n\n` + js;
   }
-  
+
   // Add utility function integration if not already present
-  const utilityIntegration = `
+  const utilityIntegration = `;
 /**
  * Enhanced Integration with New Utilities
  */
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener('DOMContentLoaded', function() {
   // Initialize physiological validation
   if (window.physiologicalValidation) {
     const numericInputs = document.querySelectorAll('input[type="number"]');
@@ -52,7 +52,7 @@ document.addEventListener("DOMContentLoaded", function() {
 `;
 
   // Add error boundary wrapper
-  const errorBoundary = `
+  const errorBoundary = `;
 // Error boundary wrapper for critical functions
 function withErrorBoundary(fn, fallback = null) {
   return function(...args) {
@@ -81,7 +81,7 @@ if (typeof evaluateMedications === 'function') {
 `;
 
   // Add enhanced form handlers
-  const enhancedFormHandlers = `
+  const enhancedFormHandlers = `;
 // Enhanced form submission protection
 function enhanceFormSubmission() {
   const forms = document.querySelectorAll('form');
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', enhanceFormSubmission);
 `;
 
   // Add performance optimizations
-  const performanceOptimizations = `
+  const performanceOptimizations = `;
 // Memoization for expensive calculations
 const memoize = (fn) => {
   const cache = new Map();
@@ -147,24 +147,24 @@ if (typeof calculateLpaModifier === 'function') {
   if (!js.includes('Enhanced Integration with New Utilities')) {
     js += utilityIntegration;
   }
-  
+
   if (!js.includes('withErrorBoundary')) {
     js += errorBoundary;
   }
-  
+
   if (!js.includes('enhanceFormSubmission')) {
     js += enhancedFormHandlers;
   }
-  
+
   if (!js.includes('memoize')) {
     js += performanceOptimizations;
   }
-  
+
   // Write the updated file
   fs.writeFileSync(combinedPath, js, 'utf8');
   console.log('Updated combined.js successfully');
   console.log('Created backup at combined.js.bak');
-  
+
   // Create a backup
   fs.writeFileSync(combinedPath + '.bak', js, 'utf8');
 }

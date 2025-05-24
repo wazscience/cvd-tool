@@ -15,7 +15,7 @@ let calculationsJs = fs.existsSync(calculationsJsPath) ? fs.readFileSync(calcula
 let validationJs = fs.existsSync(validationJsPath) ? fs.readFileSync(validationJsPath, 'utf8') : '';
 
 // Add physiologically plausible value ranges
-const physiologicalRanges = `
+const physiologicalRanges = `;
 /**
  * Physiologically plausible ranges for clinical values
  */
@@ -53,7 +53,7 @@ const PHYSIOLOGICAL_RANGES = {
 `;
 
 // Basic validation function
-const basicValidationFunction = `
+const basicValidationFunction = `;
 /**
  * Check if a value is physiologically plausible
  * @param {string} parameterType - The type of parameter
@@ -62,7 +62,7 @@ const basicValidationFunction = `
  */
 function checkPhysiologicalPlausibility(parameterType, value) {
   if (!PHYSIOLOGICAL_RANGES[parameterType]) {
-    console.warn(\`No physiological range defined for parameter "\${parameterType}"\`);
+    console.warn(\`No physiological range defined for parameter '\${parameterType}'\`);
     return { isValid: true, isWarning: false, message: null };
   }
   
@@ -123,7 +123,7 @@ if (!calculationsJs) {
     return { baseRisk: 0, lpaModifier: 1, modifiedRisk: 0, riskCategory: 'low' };
   }
   `;
-  
+
   fs.writeFileSync(calculationsJsPath, calculationsJs, 'utf8');
   console.log('Created calculations.js with clinical validation functions');
 } else {
@@ -131,12 +131,12 @@ if (!calculationsJs) {
   if (!calculationsJs.includes('PHYSIOLOGICAL_RANGES')) {
     calculationsJs = physiologicalRanges + '\n\n' + calculationsJs;
   }
-  
+
   if (!calculationsJs.includes('checkPhysiologicalPlausibility')) {
-    calculationsJs = calculationsJs.replace(/\/\/ Risk calculation functions/m, 
+    calculationsJs = calculationsJs.replace(/\/\/ Risk calculation functions/m,
       basicValidationFunction + '\n\n// Risk calculation functions');
   }
-  
+
   fs.writeFileSync(calculationsJsPath, calculationsJs, 'utf8');
   console.log('Updated calculations.js with clinical validation functions');
 }
@@ -218,7 +218,7 @@ if (!validationJs) {
       const requiredFields = form.querySelectorAll('[required]');
       requiredFields.forEach(field => {
           if (field.type === 'number') {
-              const result = validateNumericInput(
+              const result = validateNumericInput(;
                   field.id,
                   parseFloat(field.getAttribute('min') || '-Infinity'),
                   parseFloat(field.getAttribute('max') || 'Infinity'),
@@ -238,7 +238,7 @@ if (!validationJs) {
       };
   }
   `;
-  
+
   fs.writeFileSync(validationJsPath, validationJs, 'utf8');
   console.log('Created validation.js with validation functions');
 }

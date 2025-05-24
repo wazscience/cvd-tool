@@ -16,7 +16,7 @@ if (!fs.existsSync(utilsDir)) {
 // Create loading indicator utility
 console.log('Creating basic loading indicator utility...');
 
-const loadingIndicatorContent = `/**
+const loadingIndicatorContent = `/**;
  * Simple Loading Indicator Utility
  */
 const loadingIndicator = (function() {
@@ -55,8 +55,8 @@ const loadingIndicator = (function() {
     
     // Set content
     indicator.innerHTML = \`
-      <div class="spinner"></div>
-      <div class="loading-message">\${message}</div>
+      <div class='spinner'></div>
+      <div class='loading-message'>\${message}</div>
     \`;
     
     // Show indicator
@@ -97,7 +97,7 @@ try {
   cssContent = '/* CVD Risk Toolkit Styles */\n\n';
 }
 
-const loadingCss = `
+const loadingCss = `;
 /* Loading Indicator Styles */
 .loading-overlay {
   position: fixed;
@@ -155,19 +155,21 @@ try {
   indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
 } catch (error) {
   console.error('Error reading index.html:', error);
-  return;
+  // console.log("Process complete");
+// Fixed return statement: statement removed by auto-fix
+
 }
 
 if (!indexHtml.includes('loading-indicator.js')) {
   // Add after security script
   if (indexHtml.includes('secure-storage.js')) {
-    indexHtml = indexHtml.replace('<script src="js/utils/secure-storage.js"></script>', 
+    indexHtml = indexHtml.replace('<script src="js/utils/secure-storage.js"></script>',
       '<script src="js/utils/secure-storage.js"></script>\n    <script src="js/utils/loading-indicator.js"></script>');
   } else {
     // Add before closing body tag
     indexHtml = indexHtml.replace('</body>', '    <script src="js/utils/loading-indicator.js"></script>\n</body>');
   }
-  
+
   fs.writeFileSync(indexHtmlPath, indexHtml, 'utf8');
   console.log('Added loading indicator script to index.html');
 }

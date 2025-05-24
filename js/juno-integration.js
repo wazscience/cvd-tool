@@ -1,22 +1,22 @@
 /**
  * CVD Risk Toolkit with Lp(a) Post-Test Modifier
- * 
+ *
  * LEGAL DISCLAIMER:
- * This software is provided for educational and informational purposes only. 
+ * This software is provided for educational and informational purposes only.
  * It is not intended to be a substitute for professional medical advice, diagnosis, or treatment.
  * Always seek the advice of a qualified healthcare provider with any questions regarding medical conditions.
- * 
+ *
  * REFERENCES AND ATTRIBUTIONS:
  * - QRISK3 algorithm: Hippisley-Cox J, et al. BMJ 2017;357:j2099
  * - Framingham Risk Score: D'Agostino RB Sr, et al. Circulation 2008;117:743-53
  * - Lp(a) adjustments based on: Willeit P, et al. Lancet 2018;392:1311-1320
- * 
+ *
  * Last updated: April 2025
  */
 
 /**
  * Juno EMR Integration Module for CVD Risk Toolkit
- * 
+ *
  * This module enables the CVD Risk Toolkit to be embedded in Juno EMR's
  * Clinical Forms section and exchange data with the patient record.
  */
@@ -49,7 +49,7 @@ function initJunoIntegration() {
  */
 function isJunoEnvironment() {
   try {
-    return window.parent.JunoAPI !== undefined || 
+    return window.parent.JunoAPI !== undefined ||
            window.location.href.includes('junoemr.com') ||
            document.referrer.includes('junoemr.com');
   } catch (e) {
@@ -70,7 +70,7 @@ function registerWithJunoAPI() {
       onPatientChange: handlePatientChange,
       onFormSave: handleFormSave
     });
-    
+
     // Request patient data from Juno
     window.parent.JunoAPI.requestPatientData();
   } else {
@@ -87,9 +87,9 @@ function setupJunoEventListeners() {
     if (!event.origin.includes('junoemr.com')) {
       return;
     }
-    
+
     const message = event.data;
-    
+
     // Handle different message types from Juno
     switch (message.type) {
       case 'patient_data':
@@ -118,10 +118,10 @@ function handlePatientChange(patientData) {
  * @param {Object} patientData - Patient data from Juno EMR
  */
 function populateFormWithPatientData(patientData) {
-  if (!patientData) return;
-  
+  if (!patientData) {return;}
+
   // Map Juno patient fields to form fields
-  
+
   // Demographics
   if (patientData.demographics) {
     // Age calculation
@@ -133,91 +133,91 @@ function populateFormWithPatientData(patientData) {
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
         age--;
       }
-      
+
       // Set age in both FRS and QRISK forms
       setFormValue('frs-age', age);
       setFormValue('qrisk-age', age);
     }
-    
+
     // Sex
     if (patientData.demographics.sex) {
       const sex = patientData.demographics.sex.toLowerCase();
       setFormValue('frs-sex', sex);
       setFormValue('qrisk-sex', sex);
-      
+
       // Show/hide erectile dysfunction field based on sex
       const edContainer = document.getElementById('qrisk-ed-container');
       if (edContainer) {
         edContainer.style.display = sex === 'male' ? 'block' : 'none';
       }
     }
-    
+
     // Ethnicity (for QRISK)
     if (patientData.demographics.ethnicity) {
       mapEthnicityToQRISK(patientData.demographics.ethnicity);
     }
-    
+
     // Height and weight
     if (patientData.demographics.height) {
       setFormValue('qrisk-height', patientData.demographics.height);
       // Calculate imperial equivalents if needed
       calculateImperialHeight(patientData.demographics.height);
     }
-    
+
     if (patientData.demographics.weight) {
       setFormValue('qrisk-weight', patientData.demographics.weight);
     }
-    
+
     // Calculate BMI if both height and weight are available
     if (patientData.demographics.height && patientData.demographics.weight) {
       calculateBMIForQRISK();
     }
   }
-  
+
   // Lab values
   if (patientData.labs) {
     // Find most recent labs
     const recentLabs = getLatestLabValues(patientData.labs);
-    
+
     // Map lab values to form
     if (recentLabs.totalCholesterol) {
       setFormValue('frs-total-chol', recentLabs.totalCholesterol);
       setFormValue('qrisk-total-chol', recentLabs.totalCholesterol);
     }
-    
+
     if (recentLabs.hdl) {
       setFormValue('frs-hdl', recentLabs.hdl);
       setFormValue('qrisk-hdl', recentLabs.hdl);
     }
-    
+
     if (recentLabs.ldl) {
       setFormValue('frs-ldl', recentLabs.ldl);
       setFormValue('qrisk-ldl', recentLabs.ldl);
     }
-    
+
     if (recentLabs.lpa) {
       setFormValue('frs-lpa', recentLabs.lpa);
       setFormValue('qrisk-lpa', recentLabs.lpa);
     }
-    
+
     // Calculate cholesterol ratio if both total and HDL are available
     if (recentLabs.totalCholesterol && recentLabs.hdl) {
       calculateCholesterolRatio();
     }
   }
-  
+
   // Medical conditions
   if (patientData.conditions) {
     // Map conditions to form checkboxes
     mapConditionsToForm(patientData.conditions);
   }
-  
+
   // Medications
   if (patientData.medications) {
     // Map medications to form fields
     mapMedicationsToForm(patientData.medications);
   }
-  
+
   // Blood pressure
   if (patientData.vitals && patientData.vitals.bloodPressure) {
     const recentBP = getLatestBloodPressure(patientData.vitals.bloodPressure);
@@ -225,7 +225,7 @@ function populateFormWithPatientData(patientData) {
       setFormValue('frs-sbp', recentBP.systolic);
       setFormValue('qrisk-sbp', recentBP.systolic);
     }
-    
+
     // If multiple BP readings are available, populate the SBP readings fields
     populateSBPReadings(patientData.vitals.bloodPressure);
   }
@@ -256,7 +256,7 @@ function mapEthnicityToQRISK(junoEthnicity) {
     'mixed': 'other',
     'other': 'other'
   };
-  
+
   const qriskEthnicity = ethnicityMap[junoEthnicity.toLowerCase()] || 'other';
   setFormValue('qrisk-ethnicity', qriskEthnicity);
 }
@@ -273,7 +273,7 @@ function getLatestLabValues(labs) {
     ldl: null,
     lpa: null
   };
-  
+
   // Lab code mappings
   const labCodes = {
     totalCholesterol: ['CHOL', '2093-3', 'CHOLESTEROL'],
@@ -281,22 +281,22 @@ function getLatestLabValues(labs) {
     ldl: ['LDL', '2089-1', 'LDL-CHOLESTEROL'],
     lpa: ['LPA', 'LP(A)', 'LIPOPROTEIN A']
   };
-  
+
   // Find the latest result for each lab type
   for (const labType in labCodes) {
-    const relevantResults = labs.filter(lab => 
-      labCodes[labType].some(code => 
+    const relevantResults = labs.filter(lab =>;
+      labCodes[labType].some(code =>
         lab.code && lab.code.toUpperCase().includes(code)
       )
     );
-    
+
     if (relevantResults.length > 0) {
       // Sort by date (newest first) and take the first result
       relevantResults.sort((a, b) => new Date(b.date) - new Date(a.date));
       relevantLabs[labType] = relevantResults[0].value;
     }
   }
-  
+
   return relevantLabs;
 }
 
@@ -328,11 +328,11 @@ function mapConditionsToForm(conditions) {
     'family history of cvd': 'familyHistoryCVD',
     'family history of coronary heart disease': 'familyHistoryCVD'
   };
-  
+
   // Check for each condition
   for (const condition of conditions) {
     const conditionName = condition.name ? condition.name.toLowerCase() : '';
-    
+
     // Check for matches in our mapping
     for (const [key, value] of Object.entries(conditionMappings)) {
       if (conditionName.includes(key)) {
@@ -347,7 +347,7 @@ function mapConditionsToForm(conditions) {
         } else {
           // Standard checkbox
           const checkbox = document.getElementById(value);
-          if (checkbox) checkbox.checked = true;
+          if (checkbox) {checkbox.checked = true;}
         }
       }
     }
@@ -360,32 +360,32 @@ function mapConditionsToForm(conditions) {
  */
 function mapMedicationsToForm(medications) {
   // Check for relevant medication classes
-  const onAntihypertensives = medications.some(med => 
+  const onAntihypertensives = medications.some(med =>;
     isAntihypertensive(med.name)
   );
-  
-  const onCorticosteroids = medications.some(med => 
+
+  const onCorticosteroids = medications.some(med =>;
     isCorticosteroid(med.name)
   );
-  
-  const onAtypicalAntipsychotics = medications.some(med => 
+
+  const onAtypicalAntipsychotics = medications.some(med =>;
     isAtypicalAntipsychotic(med.name)
   );
-  
+
   // Set form values based on medications
   if (onAntihypertensives) {
     setFormValue('frs-bp-treatment', 'yes');
     setFormValue('qrisk-bp-treatment', 'yes');
   }
-  
+
   if (onCorticosteroids) {
     const checkbox = document.getElementById('qrisk-corticosteroids');
-    if (checkbox) checkbox.checked = true;
+    if (checkbox) {checkbox.checked = true;}
   }
-  
+
   if (onAtypicalAntipsychotics) {
     const checkbox = document.getElementById('qrisk-atypical-antipsychotics');
-    if (checkbox) checkbox.checked = true;
+    if (checkbox) {checkbox.checked = true;}
   }
 }
 
@@ -395,8 +395,8 @@ function mapMedicationsToForm(medications) {
  * @returns {boolean} - Whether it's an antihypertensive
  */
 function isAntihypertensive(medicationName) {
-  const antihypertensiveClasses = [
-    'ace inhibitor', 'acei', 'arb', 'angiotensin', 'calcium channel', 
+  const antihypertensiveClasses = [;
+    'ace inhibitor', 'acei', 'arb', 'angiotensin', 'calcium channel',
     'beta blocker', 'thiazide', 'diuretic',
     // Common specific medications
     'lisinopril', 'ramipril', 'enalapril', 'perindopril',
@@ -406,8 +406,8 @@ function isAntihypertensive(medicationName) {
     'hydrochlorothiazide', 'chlorthalidone', 'indapamide',
     'furosemide', 'spironolactone', 'eplerenone'
   ];
-  
-  return antihypertensiveClasses.some(className => 
+
+  return antihypertensiveClasses.some(className =>
     medicationName.toLowerCase().includes(className)
   );
 }
@@ -418,13 +418,13 @@ function isAntihypertensive(medicationName) {
  * @returns {boolean} - Whether it's a corticosteroid
  */
 function isCorticosteroid(medicationName) {
-  const corticosteroids = [
+  const corticosteroids = [;
     'prednisone', 'prednisolone', 'methylprednisolone', 'dexamethasone',
     'hydrocortisone', 'budesonide', 'fluticasone', 'triamcinolone',
     'betametasone', 'cortisone', 'fludrocortisone'
   ];
-  
-  return corticosteroids.some(drug => 
+
+  return corticosteroids.some(drug =>
     medicationName.toLowerCase().includes(drug)
   );
 }
@@ -435,13 +435,13 @@ function isCorticosteroid(medicationName) {
  * @returns {boolean} - Whether it's an atypical antipsychotic
  */
 function isAtypicalAntipsychotic(medicationName) {
-  const atypicalAntipsychotics = [
+  const atypicalAntipsychotics = [;
     'risperidone', 'olanzapine', 'quetiapine', 'aripiprazole',
     'clozapine', 'ziprasidone', 'paliperidone', 'asenapine',
     'lurasidone', 'brexpiprazole', 'cariprazine', 'iloperidone'
   ];
-  
-  return atypicalAntipsychotics.some(drug => 
+
+  return atypicalAntipsychotics.some(drug =>
     medicationName.toLowerCase().includes(drug)
   );
 }
@@ -455,10 +455,10 @@ function getLatestBloodPressure(bpReadings) {
   if (!bpReadings || !bpReadings.length) {
     return { systolic: null, diastolic: null };
   }
-  
+
   // Sort by date (newest first)
   bpReadings.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
+
   return {
     systolic: bpReadings[0].systolic,
     diastolic: bpReadings[0].diastolic
@@ -470,14 +470,14 @@ function getLatestBloodPressure(bpReadings) {
  * @param {Array} bpReadings - Array of BP readings from Juno
  */
 function populateSBPReadings(bpReadings) {
-  if (!bpReadings || bpReadings.length < 2) return;
-  
+  if (!bpReadings || bpReadings.length < 2) {return;}
+
   // Sort by date (newest first)
   bpReadings.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
+
   // Take up to 6 most recent readings
   const recentReadings = bpReadings.slice(0, 6);
-  
+
   // Populate the reading fields
   recentReadings.forEach((reading, index) => {
     const readingField = document.getElementById(`qrisk-sbp-reading-${index + 1}`);
@@ -485,7 +485,7 @@ function populateSBPReadings(bpReadings) {
       readingField.value = reading.systolic;
     }
   });
-  
+
   // Calculate standard deviation if there are enough readings
   if (recentReadings.length >= 3) {
     calculateSBPStandardDeviation('qrisk');
@@ -497,12 +497,12 @@ function populateSBPReadings(bpReadings) {
  * @param {number} heightCm - Height in centimeters
  */
 function calculateImperialHeight(heightCm) {
-  if (!heightCm) return;
-  
+  if (!heightCm) {return;}
+
   const totalInches = heightCm / 2.54;
   const feet = Math.floor(totalInches / 12);
   const inches = Math.round(totalInches % 12);
-  
+
   setFormValue('qrisk-height-feet', feet);
   setFormValue('qrisk-height-inches', inches);
 }
@@ -514,11 +514,11 @@ function calculateImperialHeight(heightCm) {
 function handleFormSave() {
   // Get results for saving
   const resultsContainer = document.getElementById('risk-results');
-  if (!resultsContainer) return null;
-  
+  if (!resultsContainer) {return null;}
+
   // Extract risk results
   const riskResults = extractRiskResults();
-  
+
   // Create structured data for Juno EMR
   const formData = {
     id: JUNO_INTEGRATION.FORM_ID,
@@ -526,12 +526,12 @@ function handleFormSave() {
     results: riskResults,
     recommendations: extractRecommendations()
   };
-  
+
   // Send data back to Juno
   if (window.parent.JunoAPI) {
     window.parent.JunoAPI.saveFormData(formData);
   }
-  
+
   return formData;
 }
 
@@ -541,12 +541,12 @@ function handleFormSave() {
  */
 function extractRiskResults() {
   const results = {};
-  
+
   // Check which calculator was used
   const frsResults = document.querySelector('.results-card .risk-title')?.textContent.includes('Framingham');
   const qriskResults = document.querySelector('.results-card .risk-title')?.textContent.includes('QRISK');
   const comparisonResults = document.querySelector('.results-card .risk-title')?.textContent.includes('Comparison');
-  
+
   // Extract base risk, modifier, and final risk
   if (frsResults || qriskResults) {
     const calculator = frsResults ? 'Framingham' : 'QRISK3';
@@ -570,7 +570,7 @@ function extractRiskResults() {
       category: document.querySelector('#compare-qrisk-category')?.textContent
     };
   }
-  
+
   return results;
 }
 
@@ -581,20 +581,20 @@ function extractRiskResults() {
 function extractRecommendations() {
   const recommendations = [];
   const recommendationsContent = document.getElementById('recommendations-content');
-  
+
   if (recommendationsContent) {
     const items = recommendationsContent.querySelectorAll('.recommendation-item');
     items.forEach(item => {
       const title = item.querySelector('strong')?.textContent || '';
       const content = item.textContent.replace(title, '').trim();
-      
+
       recommendations.push({
         category: title.replace(':', '').trim(),
         description: content
       });
     });
   }
-  
+
   return recommendations;
 }
 
@@ -605,8 +605,8 @@ function extractRecommendations() {
  */
 function setFormValue(id, value) {
   const field = document.getElementById(id);
-  if (!field) return;
-  
+  if (!field) {return;}
+
   if (field.tagName === 'SELECT') {
     // For select elements, find and select the matching option
     const options = field.options;
@@ -634,7 +634,7 @@ function setFormValue(id, value) {
 function resetForm() {
   document.getElementById('frs-form')?.reset();
   document.getElementById('qrisk-form')?.reset();
-  
+
   // Hide any results
   const resultsContainer = document.getElementById('results-container');
   if (resultsContainer) {
@@ -649,63 +649,63 @@ function resetForm() {
  */
 function createJunoFormDefinition() {
   return {
-    name: "CVD Risk Assessment",
-    description: "Cardiovascular disease risk assessment with Lp(a) modifier",
-    version: "1.0",
-    author: "CVD Risk Toolkit Team",
+    name: 'CVD Risk Assessment',
+    description: 'Cardiovascular disease risk assessment with Lp(a) modifier',
+    version: '1.0',
+    author: 'CVD Risk Toolkit Team',
     sections: [
       {
-        title: "Risk Assessment Results",
+        title: 'Risk Assessment Results',
         fields: [
           {
-            name: "calculator",
-            label: "Risk Calculator Used",
-            type: "text"
+            name: 'calculator',
+            label: 'Risk Calculator Used',
+            type: 'text'
           },
           {
-            name: "baseRisk",
-            label: "Base 10-Year Risk",
-            type: "text"
+            name: 'baseRisk',
+            label: 'Base 10-Year Risk',
+            type: 'text'
           },
           {
-            name: "lpaModifier",
-            label: "Lp(a) Risk Modifier",
-            type: "text"
+            name: 'lpaModifier',
+            label: 'Lp(a) Risk Modifier',
+            type: 'text'
           },
           {
-            name: "finalRisk",
-            label: "Final Adjusted Risk",
-            type: "text"
+            name: 'finalRisk',
+            label: 'Final Adjusted Risk',
+            type: 'text'
           },
           {
-            name: "riskCategory",
-            label: "Risk Category",
-            type: "text"
+            name: 'riskCategory',
+            label: 'Risk Category',
+            type: 'text'
           }
         ]
       },
       {
-        title: "Treatment Recommendations",
+        title: 'Treatment Recommendations',
         fields: [
           {
-            name: "statinRecommendation",
-            label: "Statin Therapy",
-            type: "text"
+            name: 'statinRecommendation',
+            label: 'Statin Therapy',
+            type: 'text'
           },
           {
-            name: "ezetimibeRecommendation",
-            label: "Ezetimibe",
-            type: "text"
+            name: 'ezetimibeRecommendation',
+            label: 'Ezetimibe',
+            type: 'text'
           },
           {
-            name: "pcsk9Recommendation",
-            label: "PCSK9 Inhibitor",
-            type: "text"
+            name: 'pcsk9Recommendation',
+            label: 'PCSK9 Inhibitor',
+            type: 'text'
           },
           {
-            name: "additionalRecommendations",
-            label: "Additional Recommendations",
-            type: "textarea"
+            name: 'additionalRecommendations',
+            label: 'Additional Recommendations',
+            type: 'textarea'
           }
         ]
       }

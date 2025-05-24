@@ -5,21 +5,21 @@ const path = require('path');
 function updateStyles() {
   const stylesPath = path.join(process.cwd(), 'styles.css');
   let css = '';
-  
+
   if (fs.existsSync(stylesPath)) {
     css = fs.readFileSync(stylesPath, 'utf8');
   } else {
     // Create basic structure if file doesn't exist
     css = `/* CVD Risk Toolkit Styles */\n\n`;
   }
-  
+
   // Add version comment if not present
   if (!css.includes('/* Version:')) {
     css = `/* Version: 1.1.0 - Last Updated: ${new Date().toISOString()} */\n\n` + css;
   }
-  
+
   // Add new styles if they don't exist
-  const newStyles = `
+  const newStyles = `;
 /* Enhanced Display Styles */
 .toast-container {
   position: fixed;
@@ -242,17 +242,17 @@ function updateStyles() {
   align-items: center !important;
 }
 `;
-  
+
   // Check if these styles already exist
   if (!css.includes('.toast-container')) {
     css += newStyles;
   }
-  
+
   // Write the updated file
   fs.writeFileSync(stylesPath, css, 'utf8');
   console.log('Updated styles.css successfully');
   console.log('Created backup at styles.css.bak');
-  
+
   // Create a backup
   fs.writeFileSync(stylesPath + '.bak', css, 'utf8');
 }

@@ -1,0 +1,192 @@
+# CVD Tool GitHub File Distribution Pathway
+
+## Root Directory (`/`)
+```
+cvd-tool/
+├── index.html
+├── combined.js
+├── styles.css
+├── manifest.json
+├── service-worker.js
+├── .github/
+│   └── workflows/
+│       └── enhance-cvd-tool.yml
+├── scripts/
+│   ├── add-csp.js
+│   ├── add-input-sanitization.js
+│   ├── add-loading-indicators.js
+│   ├── add-physiological-checks.js
+│   ├── auto-fix-errors.js
+│   ├── enhance-clinical-validation.js
+│   ├── fix-pdf-preview.js
+│   ├── implement-security.js
+│   ├── setup-eslint.sh
+│   ├── test-validation.js
+│   ├── update-combined.js
+│   └── update-styles.js
+├── js/
+│   ├── calculations.js
+│   ├── medication.js
+│   ├── ui.js
+│   ├── validation.js
+│   ├── form-handler.js
+│   ├── qrisk3-algorithm.js
+│   ├── qrisk3-implementation.js
+│   └── utils/
+│       ├── csp-report-handler.js
+│       ├── enhanced-disclaimer.js
+│       ├── encryption-wrapper.js
+│       ├── input-sanitizer.js
+│       ├── loading-indicator.js
+│       ├── physiological-validation.js
+│       ├── secure-storage.js
+│       ├── validator-extension.js
+│       └── xss-protection.js
+├── css/
+│   └── styles.css
+├── dist/
+│   ├── bundle.js
+│   └── index.html
+├── src/
+│   ├── js/
+│   │   ├── calculations.js
+│   │   ├── medication.js
+│   │   ├── ui.js
+│   │   ├── utils.js
+│   │   └── validation.js
+│   ├── index.js
+│   └── styles.css
+├── icons/
+│   ├── icon-192x192.svg
+│   └── icon-512x512.svg
+├── fixes/
+│   ├── encryption-wrapper-fix.js
+│   ├── encryption-wrapper-fixed.js
+│   ├── enhanced-disclaimer-fix.js
+│   ├── fixed-encryption-wrapper.js
+│   ├── fixed-enhanced-disclaimer.js
+│   ├── fixed-pdf-content.js
+│   ├── fixed-physiological-validation.js
+│   ├── fixed-qrisk3-patches.js
+│   ├── fix-pdf-preview-fix.js
+│   ├── physiological-validation-fix.js
+│   └── qrisk3-patches-fix.js
+├── husky/
+│   ├── pre-commit
+│   └── .gitignore
+├── vscode/
+│   ├── settings.json
+├── backups/
+│   └── ...
+├── __tests__/
+│   ├── calculations.test.js
+│   ├── validation.test.js
+│   └── integration.test.js
+├── docs/
+│   ├── HIPAA-COMPLIANCE.md
+│   ├── GDPR-COMPLIANCE.md
+│   └── ACCESSIBILITY-COMPLIANCE.md
+├── package.json
+├── jest.config.js
+├── .eslintrc.json
+├── .gitignore
+└── README.md
+```
+
+## Key Component Organization
+
+### Core JavaScript Modules (`/js/`)
+- **calculations.js** - Risk calculation algorithms (5 KB)
+- **medication.js** - Medication management and recommendations (34 KB)
+- **ui.js** - User interface functions and event handlers (19 KB)
+- **validation.js** - Form validation functions (4 KB)
+- **form-handler.js** - Enhanced form submission handling
+- **qrisk3-algorithm.js** - Core QRISK3 algorithm implementation
+- **qrisk3-implementation.js** - QRISK3 wrapper with additional functionality
+
+### Utility Modules (`/js/utils/`)
+- **csp-report-handler.js** - Content Security Policy reporting
+- **enhanced-disclaimer.js** - Legal disclaimers for medical tool
+- **encryption-wrapper.js** - Data encryption for sensitive information
+- **input-sanitizer.js** - Input cleaning to prevent XSS attacks
+- **loading-indicator.js** - UI loading indicators
+- **physiological-validation.js** - Clinical value validation
+- **secure-storage.js** - Secure local storage implementation
+- **validator-extension.js** - Extended validation functions
+- **xss-protection.js** - Cross-site scripting protections
+
+### Enhancement Scripts (`/scripts/`)
+- **add-csp.js** - Adds Content Security Policy headers
+- **add-input-sanitization.js** - Implements input sanitization
+- **add-loading-indicators.js** - Adds loading UI components
+- **add-physiological-checks.js** - Adds medical value validation
+- **auto-fix-errors.js** - Automated error fixing utility
+- **enhance-clinical-validation.js** - Improves clinical validation
+- **fix-pdf-preview.js** - Fixes PDF export functionality
+- **implement-security.js** - Implements security enhancements
+- **update-combined.js** - Updates the combined.js output file
+- **update-styles.js** - Updates stylesheet enhancements
+
+### Distribution Files (`/dist/`)
+- **bundle.js** - Bundled and minified JavaScript (50 KB)
+- **index.html** - Main HTML entry point
+
+### Quality Assurance
+- **/__tests__/** - Test files for Jest
+  - **calculations.test.js** - Tests for risk calculations
+  - **validation.test.js** - Tests for form validation
+  - **integration.test.js** - End-to-end testing
+- **/.github/workflows/** - CI/CD configuration
+  - **enhance-cvd-tool.yml** - GitHub Actions workflow
+
+### Code Quality Tools
+- **/.husky/** - Git hooks configuration
+  - **pre-commit** - Pre-commit hook for linting
+- **package.json** - NPM dependencies and scripts
+- **.eslintrc.json** - ESLint configuration
+- **jest.config.js** - Jest testing configuration
+
+## Technical Implementation Details
+
+### Security Features
+1. **Content Security Policy** - Prevents XSS through strict content policies
+2. **Input Sanitization** - Cleanses all user inputs to prevent injection attacks
+3. **Secure Storage** - Encrypted local storage for sensitive data
+4. **XSS Protection** - Multiple layers of cross-site scripting protection
+5. **Form Validation** - Comprehensive validation with physiological plausibility checks
+
+### Medical Functionality
+1. **Risk Calculations** - QRISK3 and Framingham risk algorithms
+2. **Medication Management** - Lipid-lowering therapy recommendations
+3. **Physiological Validation** - Validates clinical values for plausibility
+4. **Enhanced Disclaimers** - Comprehensive medical disclaimers for healthcare professionals
+
+### User Experience Enhancements
+1. **Loading Indicators** - Visual feedback during calculations
+2. **PDF Export** - Ability to export results as PDF reports
+3. **Responsive Design** - Works across different devices
+4. **Error Handling** - Graceful handling of edge cases and errors
+
+## Build & Deployment Process
+
+1. **Development Workflow**
+   - Code changes pushed to GitHub
+   - Husky pre-commit hooks run linting and tests
+   - GitHub Actions workflow triggered for CI/CD
+
+2. **Build Process**
+   - Linting with ESLint
+   - Testing with Jest
+   - Scripts compile individual modules into combined.js
+   - CSS files processed with PostCSS
+
+3. **Distribution**
+   - Final files available in root directory
+   - PWA capabilities enabled for offline use
+   - Automatic backup generation
+
+4. **Security Implementation**
+   - Content Security Policy added to HTML
+   - Input sanitization applied to all forms
+   - XSS protection embedded in core functionality
+   - Form validation enhanced with clinical checks

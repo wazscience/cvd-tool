@@ -1,10 +1,11 @@
 const fs = require('fs');
+// eslint-disable-next-line no-unused-vars
 const path = require('path');
 
 console.log('Validating CVD Risk Toolkit enhancements...');
 
 // Files that should exist after enhancements
-const requiredFiles = [
+const requiredFiles = [;
   'js/calculations.js',
   'js/validation.js',
   'js/utils/secure-storage.js',
@@ -13,7 +14,7 @@ const requiredFiles = [
 ];
 
 // Check each required file
-let missingFiles = [];
+const missingFiles = [];
 for (const file of requiredFiles) {
   if (!fs.existsSync(file)) {
     missingFiles.push(file);

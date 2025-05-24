@@ -1,0 +1,36 @@
+// Implement result management system with pagination
+class ResultManager {
+    constructor(maxStoredResults = 10) {
+        this.results = [];
+        this.maxStoredResults = maxStoredResults;
+        this.currentPage = 0;
+    }
+    
+    addResult(result) {
+        this.results.unshift(result); // Add to beginning
+        
+        // Trim if exceeding maximum
+        if (this.results.length > this.maxStoredResults) {
+            this.results = this.results.slice(0, this.maxStoredResults);
+        }
+        
+        // Reset to first page
+        this.currentPage = 0;
+        
+        return this.results[0];
+    }
+    
+    getResultsForPage(page = 0, resultsPerPage = 5) {
+        const start = page * resultsPerPage;
+        const end = start + resultsPerPage;
+        return this.results.slice(start, end);
+    }
+    
+    clearOldResults() {
+        // Keep only the most recent result
+        if (this.results.length > 1) {
+            this.results = [this.results[0]];
+            this.currentPage = 0;
+        }
+    }
+}

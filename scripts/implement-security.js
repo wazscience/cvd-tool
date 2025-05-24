@@ -18,10 +18,10 @@ if (fs.existsSync(indexHtmlPath)) {
 } else {
   // Create basic structure if file doesn't exist
   indexHtml = `<!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
 </head>
 <body>
@@ -32,8 +32,8 @@ if (fs.existsSync(indexHtmlPath)) {
 
 // Add Content Security Policy
 if (!indexHtml.includes('<meta http-equiv="Content-Security-Policy"')) {
-  const cspMeta = `    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'">`;
-  
+  const cspMeta = `    <meta http-equiv='Content-Security-Policy' content='default-src \'self\'; script-src \'self\' \'unsafe-inline\' https://cdnjs.cloudflare.com; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src \'self\' https://fonts.gstatic.com; img-src \'self\' data:; connect-src \'none\''>`;
+
   // Insert after other meta tags
   indexHtml = indexHtml.replace('</head>', `${cspMeta}\n</head>`);
   console.log('Added Content Security Policy meta tag');
@@ -41,7 +41,7 @@ if (!indexHtml.includes('<meta http-equiv="Content-Security-Policy"')) {
 
 // Create basic secure storage utility
 const secureStoragePath = path.join(utilsDir, 'secure-storage.js');
-const secureStorageContent = `/**
+const secureStorageContent = `/**;
  * Secure Storage Utility (Basic version)
  */
 const secureStorage = (function() {
@@ -136,9 +136,9 @@ fs.writeFileSync(secureStoragePath, secureStorageContent, 'utf8');
 console.log('Created secure storage utility');
 
 // Update index.html to include the security script
-const securityScriptTag = `
+const securityScriptTag = `;
     <!-- Security Script -->
-    <script src="js/utils/secure-storage.js"></script>`;
+    <script src='js/utils/secure-storage.js'></script>`;
 
 if (!indexHtml.includes('secure-storage.js')) {
   // Add before closing body tag

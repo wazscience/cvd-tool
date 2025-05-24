@@ -5,19 +5,19 @@ const path = require('path');
 function updateCombinedJS() {
   const combinedPath = path.join(process.cwd(), 'combined.js');
   let js = '';
-  
+
   if (fs.existsSync(combinedPath)) {
     js = fs.readFileSync(combinedPath, 'utf8');
   } else {
     // Create basic structure if file doesn't exist
     js = `// CVD Risk Toolkit Combined JavaScript\n\n`;
   }
-  
+
   // Add version comment if not present
   if (!js.includes('// Version:')) {
     js = `// Version: 1.1.0 - Last Updated: ${new Date().toISOString()}\n\n` + js;
   }
-  
+
   // Add utility function integration if not already present
   const utilityIntegration = `
 /**
@@ -147,24 +147,24 @@ if (typeof calculateLpaModifier === 'function') {
   if (!js.includes('Enhanced Integration with New Utilities')) {
     js += utilityIntegration;
   }
-  
+
   if (!js.includes('withErrorBoundary')) {
     js += errorBoundary;
   }
-  
+
   if (!js.includes('enhanceFormSubmission')) {
     js += enhancedFormHandlers;
   }
-  
+
   if (!js.includes('memoize')) {
     js += performanceOptimizations;
   }
-  
+
   // Write the updated file
   fs.writeFileSync(combinedPath, js, 'utf8');
   console.log('Updated combined.js successfully');
   console.log('Created backup at combined.js.bak');
-  
+
   // Create a backup
   fs.writeFileSync(combinedPath + '.bak', js, 'utf8');
 }

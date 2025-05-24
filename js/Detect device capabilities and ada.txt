@@ -1,0 +1,38 @@
+// Detect device capabilities and adapt accordingly
+function setupProgressiveEnhancement() {
+    // Detect device capabilities
+    const deviceCapabilities = {
+        memory: navigator.deviceMemory || 4, // Default to 4GB if not available
+        cores: navigator.hardwareConcurrency || 2,
+        connection: navigator.connection?.effectiveType || '4g',
+        touchEnabled: ('ontouchstart' in window),
+        screenSize: window.innerWidth < 768 ? 'small' : 
+                   window.innerWidth < 1024 ? 'medium' : 'large'
+    };
+    
+    // Apply enhancements based on capabilities
+    if (deviceCapabilities.memory <= 2 || deviceCapabilities.connection === '2g') {
+        // Low-end device optimizations
+        document.body.classList.add('low-end-device');
+        
+        // Disable heavy animations
+        document.documentElement.style.setProperty('--transition-speed', '0ms');
+        
+        // Limit stored results
+        if (window.resultManager) {
+            window.resultManager.maxStoredResults = 3;
+        }
+        
+        // Use simplified visualizations
+        useSimplifiedVisualizations = true;
+        
+        // Lazy load non-critical components
+        enableLazyLoading();
+    }
+    
+    // Store capabilities for component-level optimizations
+    window.deviceCapabilities = deviceCapabilities;
+}
+
+// Call this function early in the initialization process
+window.addEventListener('DOMContentLoaded', setupProgressiveEnhancement);

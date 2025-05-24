@@ -780,7 +780,7 @@ if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
     window.enhancedDisclaimer = enhancedDisclaimer;
 }
 
-                }
+                });
                 
                 .consent-checkbox label {
                     font-weight: 500;

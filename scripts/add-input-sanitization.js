@@ -20,7 +20,7 @@ if (!fs.existsSync(utilsDir)) {
 // Create input sanitizer utility
 console.log('Creating input sanitizer utility...');
 
-const inputSanitizerContent = `/**
+const inputSanitizerContent = `/**;
  * Input Sanitizer Utility
  * Provides functions to sanitize user input and prevent XSS/injection attacks
  */
@@ -38,8 +38,8 @@ const inputSanitizer = (function() {
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/'/g, \'&quot;\')
+      .replace(/\'/g, \'&#39;\');
   }
   
   /**
@@ -48,15 +48,15 @@ const inputSanitizer = (function() {
    * @returns {string} - Sanitized HTML
    */
   function sanitizeHTML(html) {
-    if (!html || typeof html !== 'string') return '';
+    if (!html || typeof html !== \'string\') return \'\';
     
     // Create a DOM parser
     const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
+    const doc = parser.parseFromString(html, \'text/html\');
     
     // List of dangerous elements and attributes
-    const dangerousElements = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'base'];
-    const dangerousAttributes = ['onerror', 'onclick', 'onload', 'onmouseover', 'onsubmit', 'javascript:'];
+    const dangerousElements = [\'script\', \'iframe\', \'object\', \'embed\', \'form\', \'input\', \'base\'];
+    const dangerousAttributes = [\'onerror\', \'onclick\', \'onload\', \'onmouseover\', \'onsubmit\', \'javascript:\'];
     
     // Remove dangerous elements
     dangerousElements.forEach(tag => {
@@ -67,7 +67,7 @@ const inputSanitizer = (function() {
     });
     
     // Remove dangerous attributes from all elements
-    const allElements = doc.querySelectorAll('*');
+    const allElements = doc.querySelectorAll(\'*\');
     allElements.forEach(el => {
       for (const attr of el.attributes) {
         const attrName = attr.name.toLowerCase();
@@ -89,10 +89,10 @@ const inputSanitizer = (function() {
    * @returns {string} - Sanitized URL or empty string if dangerous
    */
   function sanitizeUrl(url) {
-    if (!url || typeof url !== 'string') return '';
+    if (!url || typeof url !== \'string\') return \'\';
     
     // List of allowed protocols
-    const allowedProtocols = ['http:', 'https:', 'mailto:', 'tel:', 'ftp:'];
+    const allowedProtocols = [\'http:\', \'https:\', \'mailto:\', \'tel:\', \'ftp:\'];
     
     try {
       // Parse the URL
@@ -100,23 +100,23 @@ const inputSanitizer = (function() {
       
       // Check if protocol is allowed
       if (!allowedProtocols.includes(urlObj.protocol)) {
-        return '';
+        return \'\';
       }
       
       return urlObj.toString();
     } catch (e) {
       // If URL is invalid, check for javascript: protocol
-      if (url.trim().toLowerCase().startsWith('javascript:')) {
-        return '';
+      if (url.trim().toLowerCase().startsWith(\'javascript:\')) {
+        return \'\';
       }
       
-      // If it's a relative URL, it's probably safe
-      if (url.startsWith('/') || url.startsWith('./') || url.startsWith('../')) {
+      // If it\'s a relative URL, it\'s probably safe
+      if (url.startsWith(\'/\') || url.startsWith(\'./\') || url.startsWith(\'../\')) {
         return url;
       }
       
       // Otherwise, return empty string to be safe
-      return '';
+      return \'\';
     }
   }
   
@@ -127,28 +127,28 @@ const inputSanitizer = (function() {
    * @returns {string} - Sanitized value
    */
   function sanitizeByType(value, type) {
-    if (!value) return '';
+    if (!value) return \'\';
     
     switch (type) {
-      case 'number':
+      case \'number\':
         // Only allow digits, decimal point, and minus sign
-        return value.toString().replace(/[^0-9.-]/g, '');
+        return value.toString().replace(/[^0-9.-]/g, \'\');
       
-      case 'integer':
+      case \'integer\':
         // Only allow digits and minus sign
-        return value.toString().replace(/[^0-9-]/g, '');
+        return value.toString().replace(/[^0-9-]/g, \'\');
       
-      case 'email':
+      case \'email\':
         // Basic email sanitization
-        return value.toString().replace(/[^a-zA-Z0-9.@_-]/g, '');
+        return value.toString().replace(/[^a-zA-Z0-9.@_-]/g, \'\');
       
-      case 'url':
+      case \'url\':
         return sanitizeUrl(value);
       
-      case 'html':
+      case \'html\':
         return sanitizeHTML(value);
       
-      case 'text':
+      case \'text\':
       default:
         return sanitizeText(value);
     }
@@ -163,30 +163,30 @@ const inputSanitizer = (function() {
     if (!form) return;
     
     // Get all input elements
-    const inputs = form.querySelectorAll('input, textarea, select');
+    const inputs = form.querySelectorAll(\'input, textarea, select\');
     
     // Add input event handlers to sanitize values
     inputs.forEach(input => {
       // Skip certain types of inputs
-      if (['checkbox', 'radio', 'submit', 'button', 'reset', 'file'].includes(input.type)) {
+      if ([\'checkbox\', \'radio\', \'submit\', \'button\', \'reset\', \'file\'].includes(input.type)) {
         return;
       }
       
       // Determine input type for sanitization
-      let sanitizeType = 'text';
+      let sanitizeType = \'text\';
       
-      if (input.type === 'number') {
-        sanitizeType = 'number';
-      } else if (input.type === 'email') {
-        sanitizeType = 'email';
-      } else if (input.type === 'url') {
-        sanitizeType = 'url';
-      } else if (input.tagName.toLowerCase() === 'textarea' && input.getAttribute('data-rich-text')) {
-        sanitizeType = 'html';
+      if (input.type === \'number\') {
+        sanitizeType = \'number\';
+      } else if (input.type === \'email\') {
+        sanitizeType = \'email\';
+      } else if (input.type === \'url\') {
+        sanitizeType = \'url\';
+      } else if (input.tagName.toLowerCase() === \'textarea\' && input.getAttribute(\'data-rich-text\')) {
+        sanitizeType = \'html\';
       }
       
       // Add sanitization to input events
-      input.addEventListener('change', function() {
+      input.addEventListener(\'change\', function() {
         const sanitized = sanitizeByType(this.value, sanitizeType);
         if (sanitized !== this.value) {
           this.value = sanitized;
@@ -194,14 +194,14 @@ const inputSanitizer = (function() {
       });
       
       // Also sanitize on form submit
-      form.addEventListener('submit', function(e) {
+      form.addEventListener(\'submit\', function(e) {
         inputs.forEach(input => {
-          if (!['checkbox', 'radio', 'submit', 'button', 'reset', 'file'].includes(input.type)) {
-            const sanitizeType = input.type === 'number' ? 'number' 
-                               : input.type === 'email' ? 'email'
-                               : input.type === 'url' ? 'url'
-                               : input.tagName.toLowerCase() === 'textarea' && input.getAttribute('data-rich-text') ? 'html'
-                               : 'text';
+          if (![\'checkbox\', \'radio\', \'submit\', \'button\', \'reset\', \'file\'].includes(input.type)) {
+            const sanitizeType = input.type === \'number\' ? \'number\' ;
+                               : input.type === \'email\' ? \'email\'
+                               : input.type === \'url\' ? \'url\'
+                               : input.tagName.toLowerCase() === \'textarea\' && input.getAttribute(\'data-rich-text\') ? \'html\'
+                               : \'text\';
             
             input.value = sanitizeByType(input.value, sanitizeType);
           }
@@ -216,12 +216,12 @@ const inputSanitizer = (function() {
    * Setup sanitization for all forms on page
    */
   function setupAllForms() {
-    document.querySelectorAll('form').forEach(form => {
+    document.querySelectorAll(\'form\').forEach(form => {
       if (form.id) {
         setupFormSanitization(form.id);
       } else {
         // Generate an ID if not present
-        form.id = 'form-' + Math.random().toString(36).substring(2, 11);
+        form.id = \'form-\' + Math.random().toString(36).substring(2, 11);
         setupFormSanitization(form.id);
       }
     });
@@ -236,7 +236,7 @@ const inputSanitizer = (function() {
     const sanitizedData = new FormData();
     
     for (const [key, value] of formData.entries()) {
-      if (typeof value === 'string') {
+      if (typeof value === \'string\') {
         sanitizedData.append(key, sanitizeText(value));
       } else {
         // Keep non-string values (like files) as is
@@ -248,9 +248,9 @@ const inputSanitizer = (function() {
   }
   
   // Auto-initialize on DOM content loaded
-  document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener(\'DOMContentLoaded\', function() {
     setupAllForms();
-    console.log('Input sanitization initialized for all forms');
+    console.log(\'Input sanitization initialized for all forms\');
   });
   
   // Public API
@@ -270,46 +270,46 @@ window.inputSanitizer = inputSanitizer;
 `;
 
 fs.writeFileSync(inputSanitizerPath, inputSanitizerContent);
-console.log('Input sanitizer utility created successfully!');
+console.log(\'Input sanitizer utility created successfully!\');
 
 // Update index.html to include the input sanitizer script
-console.log('Updating index.html to include input sanitizer...');
-let indexHtml = '';
+console.log(\'Updating index.html to include input sanitizer...\');
+let indexHtml = \'\';
 try {
-  indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
+  indexHtml = fs.readFileSync(indexHtmlPath, \'utf8\');
 } catch (error) {
-  console.error('Error reading index.html:', error);
+  console.error(\'Error reading index.html:\', error);
   process.exit(1);
 }
 
 // Check if input sanitizer is already included
-if (!indexHtml.includes('input-sanitizer.js')) {
+if (!indexHtml.includes(\'input-sanitizer.js\')) {
   // Add before closing body tag
-  indexHtml = indexHtml.replace('</body>', '    <script src="js/utils/input-sanitizer.js"></script>\n</body>');
+  indexHtml = indexHtml.replace(\'</body>\', \'    <script src='js/utils/input-sanitizer.js'></script>\n</body>\');
   fs.writeFileSync(indexHtmlPath, indexHtml);
-  console.log('Added input sanitizer script to index.html');
+  console.log(\'Added input sanitizer script to index.html\');
 }
 
 // Create a script to modify form initialization to use input sanitization
-const formHandlerPath = path.join(jsDir, 'form-handler.js');
-console.log('Creating form handler with sanitization...');
+const formHandlerPath = path.join(jsDir, \'form-handler.js\');
+console.log(\'Creating form handler with sanitization...\');
 
-const formHandlerContent = `/**
+const formHandlerContent = `/**;
  * Form Handler with Input Sanitization
  * Enhances form handling with input sanitization and validation
  */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener(\'DOMContentLoaded\', function() {
   // Find all forms in the document
-  const forms = document.querySelectorAll('form');
+  const forms = document.querySelectorAll(\'form\');
   
   forms.forEach(form => {
     // Setup input sanitization for this form
     if (window.inputSanitizer) {
-      window.inputSanitizer.setupFormSanitization(form.id || form.name || 'anonymous-form');
+      window.inputSanitizer.setupFormSanitization(form.id || form.name || \'anonymous-form\');
     }
     
     // Add submit event handling
-    form.addEventListener('submit', function(event) {
+    form.addEventListener(\'submit\', function(event) {
       // Prevent default submission
       event.preventDefault();
       
@@ -319,48 +319,48 @@ document.addEventListener('DOMContentLoaded', function() {
         const sanitizedData = window.inputSanitizer.sanitizeFormData(formData);
         
         // Now use sanitizedData for your form processing
-        console.log('Form submitted with sanitized data');
+        console.log(\'Form submitted with sanitized data\');
         
         // Process form data based on form ID
-        if (form.id === 'frs-form') {
+        if (form.id === \'frs-form\') {
           calculateFRS();
-        } else if (form.id === 'qrisk-form') {
+        } else if (form.id === \'qrisk-form\') {
           calculateQRISK();
-        } else if (form.id === 'medication-form') {
+        } else if (form.id === \'medication-form\') {
           evaluateMedications();
         }
       } else {
         // Fall back to normal processing if sanitizer not available
-        if (form.id === 'frs-form') {
+        if (form.id === \'frs-form\') {
           calculateFRS();
-        } else if (form.id === 'qrisk-form') {
+        } else if (form.id === \'qrisk-form\') {
           calculateQRISK();
-        } else if (form.id === 'medication-form') {
+        } else if (form.id === \'medication-form\') {
           evaluateMedications();
         }
       }
     });
     
     // Add keyboard submission handling
-    form.addEventListener('keydown', function(event) {
+    form.addEventListener(\'keydown\', function(event) {
       // Check if Enter key is pressed
-      if (event.key === 'Enter' || event.keyCode === 13) {
+      if (event.key === \'Enter\' || event.keyCode === 13) {
         const activeElement = document.activeElement;
         
         // If active element is not a textarea or a button, handle the Enter key
-        if (activeElement.tagName !== 'TEXTAREA' && activeElement.tagName !== 'BUTTON') {
+        if (activeElement.tagName !== \'TEXTAREA\' && activeElement.tagName !== \'BUTTON\') {
           // Prevent default behavior
           event.preventDefault();
           
           // If active element is an input field, perform validation on it first
-          if (activeElement.tagName === 'INPUT') {
+          if (activeElement.tagName === \'INPUT\') {
             // Trigger input validation
-            const event = new Event('change');
+            const event = new Event(\'change\');
             activeElement.dispatchEvent(event);
           }
           
           // Submit the form with proper validation and sanitization
-          const submitEvent = new Event('submit', { cancelable: true });
+          const submitEvent = new Event(\'submit\', { cancelable: true });
           form.dispatchEvent(submitEvent);
         }
       }
@@ -370,22 +370,22 @@ document.addEventListener('DOMContentLoaded', function() {
 `;
 
 fs.writeFileSync(formHandlerPath, formHandlerContent);
-console.log('Form handler with sanitization created successfully!');
+console.log(\'Form handler with sanitization created successfully!\');
 
 // Update index.html to include the form handler
-if (!indexHtml.includes('form-handler.js')) {
+if (!indexHtml.includes(\'form-handler.js\')) {
   // Add before closing body tag but after input sanitizer
-  indexHtml = indexHtml.replace('<script src="js/utils/input-sanitizer.js"></script>', 
-    '<script src="js/utils/input-sanitizer.js"></script>\n    <script src="js/form-handler.js"></script>');
+  indexHtml = indexHtml.replace(\'<script src='js/utils/input-sanitizer.js'></script>\',
+    \'<script src='js/utils/input-sanitizer.js'></script>\n    <script src='js/form-handler.js'></script>\');
   fs.writeFileSync(indexHtmlPath, indexHtml);
-  console.log('Added form handler script to index.html');
+  console.log(\'Added form handler script to index.html\');
 }
 
 // Create a validator extension that uses both standard and physiological validation
-const validatorExtensionPath = path.join(jsDir, 'utils', 'validator-extension.js');
-console.log('Creating validator extension...');
+const validatorExtensionPath = path.join(jsDir, \'utils\', \'validator-extension.js\');
+console.log(\'Creating validator extension...\');
 
-const validatorExtensionContent = `/**
+const validatorExtensionContent = `/**;
  * Validator Extension
  * Extends validation with additional checks and integration with input sanitization
  */
@@ -396,7 +396,7 @@ const validatorExtension = (function() {
    * @param {string} inputType - Type of input for sanitization
    * @returns {Function} - Enhanced validation function
    */
-  function withSanitization(validationFn, inputType = 'text') {
+  function withSanitization(validationFn, inputType = \'text\') {
     return function(fieldId, min, max, fieldName, required = true) {
       // Get the field
       const field = document.getElementById(fieldId);
@@ -423,7 +423,7 @@ const validatorExtension = (function() {
   function validateFormSecurely(formId) {
     // Get the form element
     const form = document.getElementById(formId);
-    if (!form) return { isValid: false, errors: ['Form not found'] };
+    if (!form) return { isValid: false, errors: [\'Form not found\'] };
     
     // Sanitize all inputs
     if (window.inputSanitizer) {
@@ -431,14 +431,14 @@ const validatorExtension = (function() {
     }
     
     // Perform standard validation
-    const validationResult = typeof validateForm === 'function' 
+    const validationResult = typeof validateForm === \'function\' ;
       ? validateForm(formId) 
       : { isValid: true, errors: [] };
     
     // Perform additional checks if validation passed
     if (validationResult.isValid) {
       // Check for suspicious patterns in inputs
-      const suspiciousPatterns = [
+      const suspiciousPatterns = [;
         /[<>]/, // Potential HTML tags
         /javascript:/i, // JavaScript protocol
         /\\\\x[0-9a-f]{2}/i, // Hex escape sequences
@@ -446,7 +446,7 @@ const validatorExtension = (function() {
         /\\\\u[0-9a-f]{4}/i // Unicode escape sequences
       ];
       
-      const inputs = form.querySelectorAll('input[type="text"], textarea');
+      const inputs = form.querySelectorAll(\'input[type='text'], textarea\');
       inputs.forEach(input => {
         const value = input.value;
         
@@ -454,7 +454,7 @@ const validatorExtension = (function() {
           if (pattern.test(value)) {
             validationResult.isValid = false;
             validationResult.errors = validationResult.errors || [];
-            validationResult.errors.push(\`Potentially unsafe input detected in \${input.id || 'a field'}\`);
+            validationResult.errors.push(\`Potentially unsafe input detected in \${input.id || \'a field\'}\`);
             break;
           }
         }
@@ -475,35 +475,35 @@ const validatorExtension = (function() {
     // Map of input fields to their physiological parameter types
     const parameterMap = {
       // FRS form fields
-      'frs-age': 'age',
-      'frs-sbp': 'sbp',
-      'frs-total-chol': 'totalChol',
-      'frs-hdl': 'hdl',
-      'frs-ldl': 'ldl',
+      \'frs-age\': \'age\',
+      \'frs-sbp\': \'sbp\',
+      \'frs-total-chol\': \'totalChol\',
+      \'frs-hdl\': \'hdl\',
+      \'frs-ldl\': \'ldl\',
       
       // QRISK form fields
-      'qrisk-age': 'age',
-      'qrisk-sbp': 'sbp',
-      'qrisk-total-chol': 'totalChol',
-      'qrisk-hdl': 'hdl',
-      'qrisk-ldl': 'ldl',
-      'qrisk-height': 'height',
-      'qrisk-weight': 'weight',
+      \'qrisk-age\': \'age\',
+      \'qrisk-sbp\': \'sbp\',
+      \'qrisk-total-chol\': \'totalChol\',
+      \'qrisk-hdl\': \'hdl\',
+      \'qrisk-ldl\': \'ldl\',
+      \'qrisk-height\': \'height\',
+      \'qrisk-weight\': \'weight\',
       
       // Medication form fields
-      'med-total-chol': 'totalChol',
-      'med-ldl': 'ldl',
-      'med-hdl': 'hdl',
-      'med-trig': 'trig',
-      'med-lpa': 'lpa',
-      'med-apob': 'apob'
+      \'med-total-chol\': \'totalChol\',
+      \'med-ldl\': \'ldl\',
+      \'med-hdl\': \'hdl\',
+      \'med-trig\': \'trig\',
+      \'med-lpa\': \'lpa\',
+      \'med-apob\': \'apob\'
     };
     
     // Find all numeric inputs
-    const numericInputs = form.querySelectorAll('input[type="number"]');
+    const numericInputs = form.querySelectorAll(\'input[type='number']\');
     numericInputs.forEach(input => {
       if (parameterMap[input.id]) {
-        input.setAttribute('data-param-type', parameterMap[input.id]);
+        input.setAttribute(\'data-param-type\', parameterMap[input.id]);
       }
     });
   }
@@ -517,41 +517,41 @@ const validatorExtension = (function() {
 })();
 
 // If the main validation functions exist, enhance them
-document.addEventListener('DOMContentLoaded', function() {
-  if (typeof validateNumericInput === 'function') {
+document.addEventListener(\'DOMContentLoaded\', function() {
+  if (typeof validateNumericInput === \'function\') {
     window.originalValidateNumericInput = validateNumericInput;
-    window.validateNumericInput = validatorExtension.withSanitization(validateNumericInput, 'number');
+    window.validateNumericInput = validatorExtension.withSanitization(validateNumericInput, \'number\');
   }
   
-  if (typeof validateSelectInput === 'function') {
+  if (typeof validateSelectInput === \'function\') {
     window.originalValidateSelectInput = validateSelectInput;
-    window.validateSelectInput = validatorExtension.withSanitization(validateSelectInput, 'text');
+    window.validateSelectInput = validatorExtension.withSanitization(validateSelectInput, \'text\');
   }
   
-  if (typeof validateForm === 'function') {
+  if (typeof validateForm === \'function\') {
     window.originalValidateForm = validateForm;
     window.validateForm = validatorExtension.validateFormSecurely;
   }
   
   // Add physiological validation to all appropriate forms
-  ['frs-form', 'qrisk-form', 'medication-form'].forEach(formId => {
+  [\'frs-form\', \'qrisk-form\', \'medication-form\'].forEach(formId => {
     validatorExtension.addPhysiologicalValidation(formId);
   });
   
-  console.log('Validator extensions initialized');
+  console.log(\'Validator extensions initialized\');
 });
 `;
 
 fs.writeFileSync(validatorExtensionPath, validatorExtensionContent);
-console.log('Validator extension created successfully!');
+console.log(\'Validator extension created successfully!\');
 
 // Update index.html to include the validator extension
-if (!indexHtml.includes('validator-extension.js')) {
+if (!indexHtml.includes(\'validator-extension.js\')) {
   // Add before closing body tag but after input sanitizer
-  indexHtml = indexHtml.replace('<script src="js/utils/input-sanitizer.js"></script>', 
-    '<script src="js/utils/input-sanitizer.js"></script>\n    <script src="js/utils/validator-extension.js"></script>');
+  indexHtml = indexHtml.replace(\'<script src='js/utils/input-sanitizer.js'></script>\',
+    \'<script src='js/utils/input-sanitizer.js'></script>\n    <script src='js/utils/validator-extension.js'></script>\');
   fs.writeFileSync(indexHtmlPath, indexHtml);
-  console.log('Added validator extension script to index.html');
+  console.log(\'Added validator extension script to index.html\');
 }
 
-console.log('Input sanitization implementation complete!');
+console.log(\'Input sanitization implementation complete!\');

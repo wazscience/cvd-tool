@@ -1,0 +1,15 @@
+# Exclude backup files
+backups/**
+
+# Exclude problematic files that are hard to fix automatically
+**/Complete QRISK3 Code Patches.js
+**/enhanced-disclaimer.js
+**/qrisk3-algorithm.js
+**/physiological-validation.js
+**/add-loading-indicators.js
+**/fix-pdf-preview.js
+**/validation (2).js
+**/calculations (2).js
+
+# Node modules
+node_modules/**

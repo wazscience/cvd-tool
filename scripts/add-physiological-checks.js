@@ -21,7 +21,7 @@ if (!fs.existsSync(utilsDir)) {
 // Create physiological validation module
 console.log('Creating physiological validation module...');
 
-const physiologicalValidationContent = `/**
+const physiologicalValidationContent = `/**;
  * Physiological Validation Utility
  * Provides validation for physiologically plausible values in clinical data
  */
@@ -198,7 +198,7 @@ const physiologicalValidation = (function() {
   };
   
   // Implausible clinical combinations - checks functions
-  const IMPLAUSIBLE_COMBINATIONS = [
+  const IMPLAUSIBLE_COMBINATIONS = [;
     { 
       check: function(values) {
         return typeof values.totalChol_mmol === 'number' && 
@@ -277,7 +277,7 @@ const physiologicalValidation = (function() {
    */
   function checkPhysiologicalPlausibility(parameterType, value) {
     if (!PHYSIOLOGICAL_RANGES[parameterType]) {
-      console.warn(\`No physiological range defined for parameter "\${parameterType}"\`);
+      console.warn(\`No physiological range defined for parameter '\${parameterType}'\`);
       return { isValid: true, isWarning: false, message: null, note: null };
     }
     
@@ -416,7 +416,7 @@ const physiologicalValidation = (function() {
     
     // Set message and show
     if (note) {
-      warningElement.innerHTML = \`<div class="warning-message">\${message}</div><div class="warning-note">\${note}</div>\`;
+      warningElement.innerHTML = \`<div class='warning-message'>\${message}</div><div class='warning-note'>\${note}</div>\`;
     } else {
       warningElement.textContent = message;
     }
@@ -600,14 +600,14 @@ const physiologicalValidation = (function() {
     // Update warnings container
     warningsContainer.style.display = 'block';
     warningsContainer.innerHTML = \`
-      <div class="combination-warnings-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      <div class='combination-warnings-header'>
+        <svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z'></path><line x1='12' y1='9' x2='12' y2='13'></line><line x1='12' y1='17' x2='12.01' y2='17'></line></svg>
         <h4>Physiologically Implausible Combinations</h4>
       </div>
       <ul>
         \${warnings.map(warning => \`<li>\${warning}</li>\`).join('')}
       </ul>
-      <p class="combination-warnings-note">Please review the highlighted values and correct if needed. If these values are correct, please add a note indicating this is an unusual clinical presentation.</p>
+      <p class='combination-warnings-note'>Please review the highlighted values and correct if needed. If these values are correct, please add a note indicating this is an unusual clinical presentation.</p>
     \`;
   }
   
@@ -785,7 +785,7 @@ try {
   cssContent = '/* CVD Risk Toolkit Styles */\n\n';
 }
 
-const validationCss = `
+const validationCss = `;
 /* Physiological Validation Styles */
 .physiological-warning {
   padding: var(--space-xs) var(--space-sm);
@@ -937,17 +937,17 @@ try {
 if (!indexHtml.includes('physiological-validation.js')) {
   // Add before closing body tag
   const validationScript = '<script src="js/utils/physiological-validation.js"></script>';
-  
+
   // Insert at appropriate location in script loading sequence
   if (indexHtml.includes('<!-- Security and Privacy Utilities -->')) {
     // Add after security scripts
-    indexHtml = indexHtml.replace('<!-- Initialize Security Framework -->', 
+    indexHtml = indexHtml.replace('<!-- Initialize Security Framework -->',
       '<!-- Initialize Security Framework -->\n    ' + validationScript);
   } else {
     // Add before closing body tag
     indexHtml = indexHtml.replace('</body>', '    ' + validationScript + '\n</body>');
   }
-  
+
   fs.writeFileSync(indexHtmlPath, indexHtml);
   console.log('Added physiological validation script to index.html');
 }
@@ -956,7 +956,7 @@ if (!indexHtml.includes('physiological-validation.js')) {
 console.log('Creating enhanced legal disclaimer implementation...');
 const enhanceDisclaimerPath = path.join(jsDir, 'utils', 'enhanced-disclaimer.js');
 
-const enhancedDisclaimerContent = `/**
+const enhancedDisclaimerContent = `/**;
  * Enhanced Legal Disclaimer Module
  * Provides a more prominent and comprehensive legal disclaimer
  */
@@ -1016,29 +1016,29 @@ const enhancedDisclaimer = (function() {
       modal.className = 'modal enhanced-disclaimer-modal';
       
       modal.innerHTML = \`
-        <div class="modal-content">
-          <div class="modal-header disclaimer-header">
-            <h3 class="modal-title">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        <div class='modal-content'>
+          <div class='modal-header disclaimer-header'>
+            <h3 class='modal-title'>
+              <svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'></path><line x1='12' y1='9' x2='12' y2='13'></line><line x1='12' y1='17' x2='12.01' y2='17'></line></svg>
               \${disclaimerContent.title}
             </h3>
           </div>
-          <div class="modal-body">
-            <div class="disclaimer-content">
+          <div class='modal-body'>
+            <div class='disclaimer-content'>
               \${disclaimerContent.content}
             </div>
             
             \${config.requireAcknowledgment ? \`
-            <div class="disclaimer-acknowledgment">
+            <div class='disclaimer-acknowledgment'>
               <label>
-                <input type="checkbox" id="disclaimer-acknowledgment-checkbox">
+                <input type='checkbox' id='disclaimer-acknowledgment-checkbox'>
                 <span>\${disclaimerContent.acknowledgmentText}</span>
               </label>
             </div>
             \` : ''}
           </div>
-          <div class="modal-footer">
-            <button type="button" class="primary-btn" id="disclaimer-accept-btn" \${config.requireAcknowledgment ? 'disabled' : ''}>
+          <div class='modal-footer'>
+            <button type='button' class='primary-btn' id='disclaimer-accept-btn' \${config.requireAcknowledgment ? 'disabled' : ''}>
               I Understand
             </button>
           </div>
@@ -1153,8 +1153,8 @@ const enhancedDisclaimer = (function() {
           <strong>Healthcare Professional Use Only:</strong> 
           \${disclaimerContent.reminderText}
         </p>
-        <button class="disclaimer-info-btn" onclick="enhancedDisclaimer.showDisclaimerModal(true)">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <button class='disclaimer-info-btn' onclick='enhancedDisclaimer.showDisclaimerModal(true)'>
+          <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'></circle><line x1='12' y1='16' x2='12' y2='12'></line><line x1='12' y1='8' x2='12.01' y2='8'></line></svg>
         </button>
       \`;
     });
@@ -1248,7 +1248,7 @@ const enhancedDisclaimer = (function() {
         cursor: pointer;
       }
       
-      .disclaimer-acknowledgment input[type="checkbox"] {
+      .disclaimer-acknowledgment input[type='checkbox'] {
         margin-top: 3px;
       }
       
@@ -1299,10 +1299,10 @@ console.log('Enhanced legal disclaimer implementation created successfully!');
 if (!indexHtml.includes('enhanced-disclaimer.js')) {
   // Add before closing body tag
   const disclaimerScript = '<script src="js/utils/enhanced-disclaimer.js"></script>';
-  
+
   // Insert before closing body tag
   indexHtml = indexHtml.replace('</body>', '    ' + disclaimerScript + '\n</body>');
-  
+
   fs.writeFileSync(indexHtmlPath, indexHtml);
   console.log('Added enhanced disclaimer script to index.html');
 }

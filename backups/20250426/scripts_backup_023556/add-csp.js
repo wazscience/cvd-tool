@@ -20,18 +20,18 @@ if (html.includes('Content-Security-Policy')) {
 
 // Define the CSP rules
 const cspRules = [
-  "default-src 'self'",
-  "script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'", // 'unsafe-inline' needed for certain functionality
-  "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: /api/placeholder/",
-  "connect-src 'self'",
-  "frame-src 'none'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "upgrade-insecure-requests"
+  'default-src \'self\'',
+  'script-src \'self\' https://cdnjs.cloudflare.com \'unsafe-inline\'', // 'unsafe-inline' needed for certain functionality
+  'style-src \'self\' https://fonts.googleapis.com \'unsafe-inline\'',
+  'font-src \'self\' https://fonts.gstatic.com',
+  'img-src \'self\' data: /api/placeholder/',
+  'connect-src \'self\'',
+  'frame-src \'none\'',
+  'object-src \'none\'',
+  'base-uri \'self\'',
+  'form-action \'self\'',
+  'frame-ancestors \'none\'',
+  'upgrade-insecure-requests'
 ].join('; ');
 
 // Create CSP meta tag

@@ -1,21 +1,114 @@
 {
-    "name": "CVD Risk Toolkit",
-    "short_name": "CVD Toolkit",
-    "description": "Cardiovascular Disease Risk Assessment Tool with Lp(a) Post-Test Modifier",
-    "start_url": "/",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#2c3e50",
-    "icons": [
-      {
-        "src": "icons/icon-192x192.png",
-        "sizes": "192x192",
-        "type": "image/png"
-      },
-      {
-        "src": "icons/icon-512x512.png",
-        "sizes": "512x512",
-        "type": "image/png"
-      }
-    ]
-  }
+  "name": "Enhanced CVD Risk Toolkit",
+  "short_name": "CVD Toolkit",
+  "description": "A comprehensive Cardiovascular Disease (CVD) Risk Assessment Tool for healthcare professionals, incorporating Framingham, QRISK3, and Lp(a) post-test modifiers with evidence-based recommendations.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "display_override": [
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
+  ],
+  "background_color": "#ffffff",
+  "theme_color": "#2c7afc",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-CA",
+  "categories": [
+    "medical",
+    "health",
+    "productivity",
+    "education"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshots/screenshot_desktop_main.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "CVD Toolkit Main Interface (Desktop)",
+      "form_factor": "wide"
+    },
+    {
+      "src": "screenshots/screenshot_mobile_results.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "label": "Risk Score Results (Mobile)",
+      "form_factor": "narrow"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "New FRS Calculation",
+      "short_name": "FRS Calc",
+      "description": "Start a new Framingham Risk Score calculation.",
+      "url": "/index.html#tab-frs-button",
+      "icons": [{ "src": "icons/shortcut-frs-96x96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "New QRISK3 Calculation",
+      "short_name": "QRISK3 Calc",
+      "description": "Start a new QRISK3 risk calculation.",
+      "url": "/index.html#tab-qrisk-button",
+      "icons": [{ "src": "icons/shortcut-qrisk-96x96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Medications & Labs Input",
+      "short_name": "Meds/Labs",
+      "description": "Access the Medications and Labs data input section.",
+      "url": "/index.html#tab-medication-button",
+      "icons": [{ "src": "icons/shortcut-meds-96x96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}

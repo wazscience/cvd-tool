@@ -33,7 +33,7 @@ if (fs.existsSync(indexHtmlPath)) {
 // Add Content Security Policy
 if (!indexHtml.includes('<meta http-equiv="Content-Security-Policy"')) {
   const cspMeta = `    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'">`;
-  
+
   // Insert after other meta tags
   indexHtml = indexHtml.replace('</head>', `${cspMeta}\n</head>`);
   console.log('Added Content Security Policy meta tag');

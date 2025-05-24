@@ -1,5 +1,5 @@
 apob_g: { 
-            min: 0.2, max: 3.0, unit: 'g/L', 
+            min=  0.2, max: 3.0, unit: 'g/L', 
             criticalMin: 0.4, criticalMax: 2.5,
             description: 'Apolipoprotein B',
             targetMax: 0.9,

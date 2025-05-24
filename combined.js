@@ -1,2154 +1,3449 @@
-/**
-   * CVD Risk Toolkit Combined JavaScript
-   * Version: 3.0.0 - Last Updated: 2025-04-26T06:23:49.960Z
-   * This file combines all JavaScript functionality for the CVD Risk Toolkit
-   * 
-   * IMPORTANT: This file is auto-generated. Make changes to individual source files instead.
-   */
-
-  // Utility Functions
-  function safeGet(obj, path, defaultValue = null) {
-    try {
-      const keys = path.split('.');
-      let result = obj;
-      
-      for (const key of keys) {
-        if (result === undefined || result === null) {
-          return defaultValue;
-        }
-        result = result[key];
+// Add heart age for QRISK3
+      if (data.calculationType === 'QRISK3') {
+        riskTableBody.push(['Heart Age', `${data.heartAge} years`]);
       }
       
-      return result === undefined ? defaultValue : result;
-    } catch (e) {
-      return defaultValue;
+      // Add risk category
+      riskTableBody.push(['Risk Category', data.riskCategory.charAt(0).toUpperCase() + data.riskCategory.slice(1)]);
+      
+      content.push({
+        table: {
+          headerRows: 1,
+          widths: ['50%', '50%'],
+          body: riskTableBody
+        },
+        margin: [0, 0, 0, 15]
+      });
+      
+      // Lp(a) info if applicable
+      if (data.lpaModifier > 1.0) {
+        const percentIncrease = ((data.lpaModifier - 1) * 100).toFixed(0);
+        content.push({
+          text: `Note: Elevated Lp(a) has increased the risk by ${percentIncrease}%. The adjusted score accounts for this additional risk factor.`,
+          style: 'note',
+          margin: [0, 0, 0, 15]
+        });
+      }
+      
+      // Treatment recommendations
+      content.push({
+        text: 'Treatment Recommendations',
+        style: 'sectionHeader',
+        margin: [0, 5, 0, 5]
+      });
+      
+      // Statin recommendation
+      if (data.recommendations.statinRecommended) {
+        content.push({
+          text: `Statin Therapy: ${data.recommendations.statinIntensity.charAt(0).toUpperCase() + data.recommendations.statinIntensity.slice(1)} intensity statin therapy is recommended.`,
+          margin: [0, 3, 0, 3]
+        });
+        
+        // Statin options
+        content.push({ text: 'Recommended Statin Options:', margin: [0, 3, 0, 0] });
+        
+        const statinList = [];
+        data.recommendations.statinOptions.forEach(option => {
+          statinList.push(`• ${option.name}: ${option.dose}`);
+        });
+        
+        content.push({
+          text: statinList.join('\n'),
+          margin: [10, 0, 0, 10]
+        });
+      } else {
+        content.push({
+          text: 'Statin Therapy: Not currently recommended based on risk profile.',
+          margin: [0, 3, 0, 10]
+        });
+      }
+      
+      // Treatment targets
+      content.push({ text: 'Treatment Targets:', margin: [0, 3, 0, 0] });
+      content.push({
+        text: [
+          `• LDL Cholesterol: < ${data.recommendations.ldlTarget.toFixed(1)} mmol/L (${Math.round(data.recommendations.ldlTarget * 38.67)} mg/dL)\n`,
+          `• Non-HDL Cholesterol: < ${data.recommendations.nonHDLTarget.toFixed(1)} mmol/L (${Math.round(data.recommendations.nonHDLTarget * 38.67)} mg/dL)`
+        ],
+        margin: [10, 0, 0, 10]
+      });
+      
+      // Follow-up
+      content.push({
+        text: `Follow-up: ${data.recommendations.followUp}`,
+        margin: [0, 3, 0, 10]
+      });
+      
+      // Additional tests if available
+      if (data.recommendations.additionalTests.length > 0) {
+        content.push({ text: 'Additional Tests/Monitoring:', margin: [0, 3, 0, 0] });
+        
+        const testsList = [];
+        data.recommendations.additionalTests.forEach(test => {
+          testsList.push(`• ${test}`);
+        });
+        
+        content.push({
+          text: testsList.join('\n'),
+          margin: [10, 0, 0, 10]
+        });
+      }
+      
+      // Lifestyle advice
+      content.push({ text: 'Lifestyle/**
+ * Calculate SBP standard deviation from multiple readings
+ * @param {string} prefix - Prefix for input field IDs (frs or qrisk)
+ */
+export function calculateSBPStandardDeviation(prefix) {
+  // Get the readings
+  const readings = [];
+  for (let i = 1; i <= 6; i++) {
+    const readingInput = document.getElementById(`${prefix}-sbp-reading-${i}`);
+    if (readingInput && readingInput.value.trim() !== '') {
+      const reading = parseFloat(readingInput.value);
+      if (!isNaN(reading)) {
+        readings.push(reading);
+      }
     }
   }
 
-  function debounce(func, wait = 100) {
-    let timeout;
-    return function(...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    };
+  // Check if we have enough readings
+  if (readings.length < 3) {
+    showModal('Please enter at least 3 systolic blood pressure readings to calculate standard deviation.');
+    return;
   }
 
-  function throttle(func, limit = 100) {
-    let inThrottle;
-    return function(...args) {
-      if (!inThrottle) {
-        func.apply(this, args);
-        inThrottle = true;
-        setTimeout(() => inThrottle = false, limit);
-      }
-    };
+  // Calculate mean
+  const sum = readings.reduce((a, b) => a + b, 0);
+  const mean = sum / readings.length;
+
+  // Calculate sum of squared differences
+  const squaredDifferencesSum = readings.reduce((sum, value) => {
+    return sum + Math.pow(value - mean, 2);
+  }, 0);
+
+  // Calculate standard deviation
+  const standardDeviation = Math.sqrt(squaredDifferencesSum / (readings.length - 1));
+
+  // Display result and update input field
+  const resultElement = document.getElementById(`${prefix}-sbp-sd-result`);
+  if (resultElement) {
+    resultElement.style.display = 'block';
+    resultElement.textContent = `Standard Deviation: ${standardDeviation.toFixed(1)} mmHg (from ${readings.length} readings)`;
   }
 
-  // Combined Modules
-  // === validation.js ===
+  const sdInput = document.getElementById(`${prefix}-sbp-sd`);
+  if (sdInput) {
+    sdInput.value = standardDeviation.toFixed(1);
+  }
+}
+
+// =============================================================================
+// FORM VALIDATION LOGIC
+// =============================================================================
+
 /**
-   * CVD Risk Toolkit - Validation Functions
+ * Validates the Framingham Risk Score (FRS) form
+ * @returns {Object} - { isValid: boolean, data: Object, errors: Array }
+ */
+export function validateFRSForm() {
+  const errors = [];
+  const data = {};
+
+  // Validate age
+  const ageResult = validateNumericInput('frs-age', 30, 74, 'Age');
+  if (!ageResult.isValid) {errors.push(ageResult.message);}
+  data.age = ageResult.value;
+
+  // Validate sex
+  const sexResult = validateSelectInput('frs-sex', 'sex');
+  if (!sexResult.isValid) {errors.push(sexResult.message);}
+  data.sex = sexResult.value;
+
+  // Validate total cholesterol
+  const totalCholResult = validateNumericInput('frs-total-chol', 1, 15, 'Total Cholesterol');
+  if (!totalCholResult.isValid) {errors.push(totalCholResult.message);}
+  data.totalChol = totalCholResult.value;
+  data.totalCholUnit = document.getElementById('frs-total-chol-unit')?.value || 'mmol/L';
+
+  // Validate HDL cholesterol
+  const hdlResult = validateNumericInput('frs-hdl', 0.5, 3, 'HDL Cholesterol');
+  if (!hdlResult.isValid) {errors.push(hdlResult.message);}
+  data.hdl = hdlResult.value;
+  data.hdlUnit = document.getElementById('frs-hdl-unit')?.value || 'mmol/L';
+  
+  // Check that HDL is not greater than total cholesterol
+  if (data.totalChol && data.hdl) {
+    let tcInMmol = data.totalChol;
+    let hdlInMmol = data.hdl;
+    
+    // Convert to mmol/L if needed
+    if (data.totalCholUnit === 'mg/dL') {
+      tcInMmol = convertCholesterol(data.totalChol, 'mg/dL', 'mmol/L');
+    }
+    if (data.hdlUnit === 'mg/dL') {
+      hdlInMmol = convertCholesterol(data.hdl, 'mg/dL', 'mmol/L');
+    }
+    
+    if (hdlInMmol > tcInMmol) {
+      errors.push('HDL cholesterol cannot be greater than total cholesterol.');
+    }
+  }
+
+  // Validate systolic blood pressure
+  const sbpResult = validateNumericInput('frs-sbp', 90, 200, 'Systolic Blood Pressure');
+  if (!sbpResult.isValid) {errors.push(sbpResult.message);}
+  data.sbp = sbpResult.value;
+
+  // Validate BP treatment
+  const bpTreatmentResult = validateSelectInput('frs-bp-treatment', 'blood pressure treatment status');
+  if (!bpTreatmentResult.isValid) {errors.push(bpTreatmentResult.message);}
+  data.bpTreatment = bpTreatmentResult.value === 'yes';
+
+  // Validate smoker status
+  const smokerResult = validateSelectInput('frs-smoker', 'smoker status');
+  if (!smokerResult.isValid) {errors.push(smokerResult.message);}
+  data.smoker = smokerResult.value === 'yes';
+
+  // Validate diabetes (not required)
+  data.diabetes = document.getElementById('frs-diabetes')?.value === 'yes';
+
+  // Validate Lp(a) (not required)
+  const lpaResult = validateNumericInput('frs-lpa', 0, 500, 'Lp(a) Level', false);
+  if (!lpaResult.isValid && lpaResult.message) {errors.push(lpaResult.message);}
+  data.lpa = lpaResult.value;
+  data.lpaUnit = document.getElementById('frs-lpa-unit')?.value || 'mg/dL';
+
+  // Add the LDL-C value if provided for treatment recommendations
+  const ldlInput = document.getElementById('frs-ldl');
+  if (ldlInput) {
+    const ldlResult = validateNumericInput('frs-ldl', 0.5, 10, 'LDL Cholesterol', false);
+    if (!ldlResult.isValid && ldlResult.message) {errors.push(ldlResult.message);}
+    data.ldl = ldlResult.value;
+    if (data.ldl) {
+      data.ldlUnit = document.getElementById('frs-ldl-unit')?.value || 'mmol/L';
+    }
+  }
+
+  // Validate physiological plausibility
+  if (physiologicalValidation) {
+    physiologicalValidation.validatePhysiologicalForm('frs-form');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    data: data,
+    errors: errors
+  };
+}
+
+/**
+ * Validates the QRISK3 form
+ * @returns {Object} - { isValid: boolean, data: Object, errors: Array }
+ */
+export function validateQRISKForm() {
+  const errors = [];
+  const data = {};
+
+  // Validate age
+  const ageResult = validateNumericInput('qrisk-age', 25, 84, 'Age');
+  if (!ageResult.isValid) {errors.push(ageResult.message);}
+  data.age = ageResult.value;
+
+  // Validate sex
+  const sexResult = validateSelectInput('qrisk-sex', 'sex');
+  if (!sexResult.isValid) {errors.push(sexResult.message);}
+  data.sex = sexResult.value;
+
+  // Validate ethnicity
+  const ethnicityResult = validateSelectInput('qrisk-ethnicity', 'ethnicity');
+  if (!ethnicityResult.isValid) {errors.push(ethnicityResult.message);}
+  data.ethnicity = ethnicityResult.value;
+
+  // Validate height
+  const heightUnit = document.getElementById('qrisk-height-unit')?.value || 'cm';
+  let heightResult;
+
+  if (heightUnit === 'cm') {
+    heightResult = validateNumericInput('qrisk-height', 100, 250, 'Height');
+    if (!heightResult.isValid) {errors.push(heightResult.message);}
+    data.height = heightResult.value;
+  } else {
+    // Validate feet and inches
+    const feetResult = validateNumericInput('qrisk-height-feet', 3, 7, 'Height (feet)', true);
+    const inchesResult = validateNumericInput('qrisk-height-inches', 0, 11, 'Height (inches)', false);
+
+    if (!feetResult.isValid) {errors.push(feetResult.message);}
+    if (!inchesResult.isValid && inchesResult.message) {errors.push(inchesResult.message);}
+
+    if (feetResult.isValid) {
+      const inches = inchesResult.value || 0;
+      try {
+        data.height = convertHeightToCm(feetResult.value, inches);
+      } catch (error) {
+        errors.push(`Height conversion error: ${error.message}`);
+      }
+    }
+  }
+
+  // Validate weight
+  const weightResult = validateNumericInput('qrisk-weight', 30, 200, 'Weight');
+  if (!weightResult.isValid) {errors.push(weightResult.message);}
+  data.weight = weightResult.value;
+
+  // Convert weight if needed
+  if (data.weight) {
+    const weightUnit = document.getElementById('qrisk-weight-unit')?.value || 'kg';
+    if (weightUnit === 'lb') {
+      try {
+        data.weight = convertWeightToKg(data.weight);
+      } catch (error) {
+        errors.push(`Weight conversion error: ${error.message}`);
+      }
+    }
+  }
+
+  // Calculate BMI if we have height and weight
+  if (data.height && data.weight) {
+    try {
+      data.bmi = calculateBMI(data.height, data.weight);
+    } catch (error) {
+      errors.push(`BMI calculation error: ${error.message}`);
+    }
+  }
+
+  // Validate systolic blood pressure
+  const sbpResult = validateNumericInput('qrisk-sbp', 70, 210, 'Systolic Blood Pressure');
+  if (!sbpResult.isValid) {errors.push(sbpResult.message);}
+  data.sbp = sbpResult.value;
+
+  // Validate systolic blood pressure standard deviation (optional)
+  const sbpSDResult = validateNumericInput('qrisk-sbp-sd', 0, 30, 'SBP Standard Deviation', false);
+  if (!sbpSDResult.isValid && sbpSDResult.message) {errors.push(sbpSDResult.message);}
+  data.sbpSD = sbpSDResult.value;
+
+  // Validate BP treatment
+  const bpTreatmentResult = validateSelectInput('qrisk-bp-treatment', 'blood pressure treatment status');
+  if (!bpTreatmentResult.isValid) {errors.push(bpTreatmentResult.message);}
+  data.onBloodPressureTreatment = bpTreatmentResult.value === 'yes';
+
+  // Validate total cholesterol and HDL
+  const totalCholResult = validateNumericInput('qrisk-total-chol', 1, 15, 'Total Cholesterol');
+  if (!totalCholResult.isValid) {errors.push(totalCholResult.message);}
+  data.totalChol = totalCholResult.value;
+  data.totalCholUnit = document.getElementById('qrisk-total-chol-unit')?.value || 'mmol/L';
+
+  const hdlResult = validateNumericInput('qrisk-hdl', 0.5, 3, 'HDL Cholesterol');
+  if (!hdlResult.isValid) {errors.push(hdlResult.message);}
+  data.hdl = hdlResult.value;
+  data.hdlUnit = document.getElementById('qrisk-hdl-unit')?.value || 'mmol/L';
+  
+  // Check that HDL is not greater than total cholesterol
+  if (data.totalChol && data.hdl) {
+    let tcInMmol = data.totalChol;
+    let hdlInMmol = data.hdl;
+    
+    // Convert to mmol/L if needed
+    if (data.totalCholUnit === 'mg/dL') {
+      tcInMmol = convertCholesterol(data.totalChol, 'mg/dL', 'mmol/L');
+    }
+    if (data.hdlUnit === 'mg/dL') {
+      hdlInMmol = convertCholesterol(data.hdl, 'mg/dL', 'mmol/L');
+    }
+    
+    if (hdlInMmol > tcInMmol) {
+      errors.push('HDL cholesterol cannot be greater than total cholesterol.');
+    }
+  }
+
+  // Additional QRISK3 inputs - all optional with validation
+  
+  // Diabetes status
+  data.type1Diabetes = document.getElementById('qrisk-type1-diabetes')?.value === 'yes';
+  data.type2Diabetes = document.getElementById('qrisk-type2-diabetes')?.value === 'yes';
+  
+  // Check if both type 1 and type 2 diabetes are marked as 'yes'
+  if (data.type1Diabetes && data.type2Diabetes) {
+    errors.push('Patient cannot have both Type 1 and Type 2 diabetes simultaneously.');
+  }
+
+  // Validate smoking status
+  const smokingStatusResult = validateSelectInput('qrisk-smoking-status', 'smoking status');
+  if (!smokingStatusResult.isValid) {errors.push(smokingStatusResult.message);}
+  data.smokingStatus = smokingStatusResult.value;
+
+  // Family history of coronary heart disease
+  data.familyHistory = document.getElementById('qrisk-family-history')?.value === 'yes';
+
+  // Chronic kidney disease
+  data.ckd = document.getElementById('qrisk-ckd')?.value === 'yes';
+
+  // Atrial fibrillation
+  data.atrialFibrillation = document.getElementById('qrisk-atrial-fibrillation')?.value === 'yes';
+
+  // Migraine
+  data.migraine = document.getElementById('qrisk-migraine')?.value === 'yes';
+
+  // Rheumatoid arthritis
+  data.rheumatoidArthritis = document.getElementById('qrisk-rheumatoid-arthritis')?.value === 'yes';
+
+  // Systemic lupus erythematosus
+  data.sle = document.getElementById('qrisk-sle')?.value === 'yes';
+
+  // Severe mental illness
+  data.mentalIllness = document.getElementById('qrisk-mental-illness')?.value === 'yes';
+
+  // On atypical antipsychotic medication
+  data.atypicalAntipsychotics = document.getElementById('qrisk-atypical-antipsychotics')?.value === 'yes';
+
+  // Taking corticosteroids
+  data.corticosteroids = document.getElementById('qrisk-corticosteroids')?.value === 'yes';
+
+  // Erectile dysfunction (only for males)
+  if (data.sex === 'male') {
+    data.erectileDysfunction = document.getElementById('qrisk-erectile-dysfunction')?.value === 'yes';
+  }
+
+  // Validate Lp(a) (not required)
+  const lpaResult = validateNumericInput('qrisk-lpa', 0, 500, 'Lp(a) Level', false);
+  if (!lpaResult.isValid && lpaResult.message) {errors.push(lpaResult.message);}
+  data.lpa = lpaResult.value;
+  if (data.lpa) {
+    data.lpaUnit = document.getElementById('qrisk-lpa-unit')?.value || 'mg/dL';
+  }
+
+  // Validate physiological plausibility
+  if (physiologicalValidation) {
+    physiologicalValidation.validatePhysiologicalForm('qrisk-form');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    data: data,
+    errors: errors
+  };
+}
+
+// =============================================================================
+// UI INITIALIZATION AND EVENT HANDLERS
+// =============================================================================
+
+/**
+ * Set up all event listeners for the application
+ */
+function setupEventListeners() {
+  // Unit conversion toggles
+  setupUnitConversionHandlers();
+  
+  // Form submission handlers
+  const frsForm = document.getElementById('frs-form');
+  const qriskForm = document.getElementById('qrisk-form');
+  
+  if (frsForm) {
+    frsForm.addEventListener('submit', handleFRSFormSubmit);
+  }
+  
+  if (qriskForm) {
+    qriskForm.addEventListener('submit', handleQRISKFormSubmit);
+  }
+  
+  // Tab switching
+  setupTabHandlers();
+  
+  // Non-HDL calculation
+  setupNonHDLCalculation();
+  
+  // SBP standard deviation calculator
+  setupSBPStandardDeviationCalculator();
+  
+  // Reset buttons
+  document.querySelectorAll('.reset-form-button').forEach(button => {
+    button.addEventListener('click', (event) => {
+      const formId = event.target.getAttribute('data-form-id');
+      if (formId) {
+        resetForm(formId);
+      }
+    });
+  });
+  
+  // Export buttons
+  document.querySelectorAll('.export-pdf-button').forEach(button => {
+    button.addEventListener('click', exportResultsAsPDF);
+  });
+  
+  // Save/load calculations
+  const saveButton = document.getElementById('save-calculation-button');
+  if (saveButton) {
+    saveButton.addEventListener('click', saveCurrentCalculation);
+  }
+  
+  const loadButton = document.getElementById('load-calculation-button');
+  if (loadButton) {
+    loadButton.addEventListener('click', loadSavedCalculation);
+  }
+}
+
+/**
+ * Initialize modal close buttons
+ */
+function initializeModals() {
+  // Get all close buttons and modal backgrounds
+  document.querySelectorAll('.close-modal, .modal-background').forEach(element => {
+    element.addEventListener('click', (event) => {
+      // Close the parent modal
+      const modal = event.target.closest('.modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    });
+  });
+  
+  // Prevent closing when clicking inside modal content
+  document.querySelectorAll('.modal-content').forEach(content => {
+    content.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
+  });
+  
+  // Close modals when ESC key is pressed
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      document.querySelectorAll('.modal').forEach(modal => {
+        modal.style.display = 'none';
+      });
+    }
+  });
+}
+
+/**
+ * Set up unit conversion event handlers
+ */
+function setupUnitConversionHandlers() {
+  // Height unit toggle
+  const heightUnitSelects = document.querySelectorAll('.height-unit-select');
+  heightUnitSelects.forEach(select => {
+    select.addEventListener('change', (event) => {
+      const unit = event.target.value;
+      const formId = event.target.getAttribute('data-form-id');
+      if (unit && formId) {
+        toggleHeightUnit(unit, formId);
+      }
+    });
+  });
+  
+  // Weight unit toggle
+  const weightUnitSelects = document.querySelectorAll('.weight-unit-select');
+  weightUnitSelects.forEach(select => {
+    select.addEventListener('change', (event) => {
+      const unit = event.target.value;
+      const formId = event.target.getAttribute('data-form-id');
+      if (unit && formId) {
+        toggleWeightUnit(unit, formId);
+      }
+    });
+  });
+  
+  // Cholesterol unit toggles
+  const cholUnitSelects = document.querySelectorAll('.cholesterol-unit-select');
+  cholUnitSelects.forEach(select => {
+    select.addEventListener('change', (event) => {
+      const unit = event.target.value;
+      const fieldId = event.target.getAttribute('data-field-id');
+      if (unit && fieldId) {
+        convertCholesterolField(fieldId, unit);
+      }
+    });
+  });
+  
+  // Lp(a) unit toggles
+  const lpaUnitSelects = document.querySelectorAll('.lpa-unit-select');
+  lpaUnitSelects.forEach(select => {
+    select.addEventListener('change', (event) => {
+      const unit = event.target.value;
+      const fieldId = event.target.getAttribute('data-field-id');
+      if (unit && fieldId) {
+        convertLpaField(fieldId, unit);
+      }
+    });
+  });
+}
+
+/**
+ * Handle height unit toggle
+ * @param {string} unit - New height unit ('cm' or 'ft/in')
+ * @param {string} formId - The form ID
+ */
+function toggleHeightUnit(unit, formId) {
+  const cmField = document.getElementById(`${formId}-height`);
+  const feetField = document.getElementById(`${formId}-height-feet`);
+  const inchesField = document.getElementById(`${formId}-height-inches`);
+  const cmContainer = document.getElementById(`${formId}-height-cm-container`);
+  const imperialContainer = document.getElementById(`${formId}-height-imperial-container`);
+  
+  if (!cmField || !feetField || !inchesField || !cmContainer || !imperialContainer) {
+    console.error('Missing height fields for unit toggle');
+    return;
+  }
+  
+  if (unit === 'cm') {
+    // Show cm field, hide feet/inches
+    cmContainer.style.display = 'flex';
+    imperialContainer.style.display = 'none';
+    
+    // Convert feet/inches to cm if values exist
+    if (feetField.value && inchesField.value) {
+      try {
+        const feet = parseFloat(feetField.value) || 0;
+        const inches = parseFloat(inchesField.value) || 0;
+        cmField.value = convertHeightToCm(feet, inches).toFixed(1);
+      } catch (error) {
+        console.error('Error converting height:', error);
+      }
+    }
+  } else {
+    // Show feet/inches fields, hide cm
+    cmContainer.style.display = 'none';
+    imperialContainer.style.display = 'flex';
+    
+    // Convert cm to feet/inches if value exists
+    if (cmField.value) {
+      try {
+        const { feet, inches } = convertHeightToFeetInches(parseFloat(cmField.value));
+        feetField.value = feet;
+        inchesField.value = inches;
+      } catch (error) {
+        console.error('Error converting height:', error);
+      }
+    }
+  }
+}
+
+/**
+ * Handle weight unit toggle
+ * @param {string} unit - New weight unit ('kg' or 'lb')
+ * @param {string} formId - The form ID
+ */
+function toggleWeightUnit(unit, formId) {
+  const weightField = document.getElementById(`${formId}-weight`);
+  if (!weightField) {
+    console.error(`Weight field ${formId}-weight not found`);
+    return;
+  }
+  
+  const value = parseFloat(weightField.value);
+  
+  if (!value) {return;} // No value to convert
+  
+  try {
+    if (unit === 'kg') {
+      // Convert from pounds to kg
+      weightField.value = convertWeightToKg(value).toFixed(1);
+    } else {
+      // Convert from kg to pounds
+      weightField.value = convertWeightToPounds(value).toFixed(0);
+    }
+  } catch (error) {
+    console.error('Error converting weight:', error);
+  }
+}
+
+/**
+ * Convert cholesterol field between mg/dL and mmol/L
+ * @param {string} fieldId - Field ID to convert
+ * @param {string} unit - New unit ('mg/dL' or 'mmol/L')
+ */
+function convertCholesterolField(fieldId, unit) {
+  const field = document.getElementById(fieldId);
+  if (!field || !field.value) {return;} // No field or value to convert
+  
+  const value = parseFloat(field.value);
+  const previousUnit = unit === 'mg/dL' ? 'mmol/L' : 'mg/dL';
+  
+  try {
+    field.value = convertCholesterol(value, previousUnit, unit).toFixed(unit === 'mmol/L' ? 2 : 0);
+  } catch (error) {
+    console.error('Error converting cholesterol:', error);
+    showModal(`Error converting cholesterol value: ${error.message}`);
+  }
+}
+
+/**
+ * Convert Lp(a) field between mg/dL and nmol/L
+ * @param {string} fieldId - Field ID to convert
+ * @param {string} unit - New unit ('mg/dL' or 'nmol/L')
+ */
+function convertLpaField(fieldId, unit) {
+  const field = document.getElementById(fieldId);
+  if (!field || !field.value) {return;} // No field or value to convert
+  
+  const value = parseFloat(field.value);
+  const previousUnit = unit === 'mg/dL' ? 'nmol/L' : 'mg/dL';
+  
+  try {
+    field.value = convertLpa(value, previousUnit, unit).toFixed(0);
+  } catch (error) {
+    console.error('Error converting Lp(a):', error);
+    showModal(`Error converting Lp(a) value: ${error.message}`);
+  }
+}
+
+/**
+ * Set up non-HDL calculation
+ */
+function setupNonHDLCalculation() {
+  // Monitor total cholesterol and HDL input changes
+  const totalCholInput = document.getElementById('med-total-chol');
+  const hdlInput = document.getElementById('med-hdl');
+  
+  if (totalCholInput && hdlInput) {
+    totalCholInput.addEventListener('input', calculateNonHDL);
+    hdlInput.addEventListener('input', calculateNonHDL);
+    
+    // Total cholesterol unit change
+    const totalCholUnit = document.getElementById('med-total-chol-unit');
+    if (totalCholUnit) {
+      totalCholUnit.addEventListener('change', calculateNonHDL);
+    }
+    
+    // HDL unit change
+    const hdlUnit = document.getElementById('med-hdl-unit');
+    if (hdlUnit) {
+      hdlUnit.addEventListener('change', calculateNonHDL);
+    }
+    
+    // Calculate on page load if values exist
+    if (totalCholInput.value && hdlInput.value) {
+      calculateNonHDL();
+    }
+  }
+}
+
+/**
+ * Set up SBP standard deviation calculator
+ */
+function setupSBPStandardDeviationCalculator() {
+  // FRS form
+  const frsCalculateButton = document.getElementById('frs-sbp-sd-calculate');
+  if (frsCalculateButton) {
+    frsCalculateButton.addEventListener('click', () => calculateSBPStandardDeviation('frs'));
+  }
+  
+  // QRISK form
+  const qriskCalculateButton = document.getElementById('qrisk-sbp-sd-calculate');
+  if (qriskCalculateButton) {
+    qriskCalculateButton.addEventListener('click', () => calculateSBPStandardDeviation('qrisk'));
+  }
+}
+
+/**
+ * Set up tab handling
+ */
+function setupTabHandlers() {
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', (event) => {
+      // Get the target content ID
+      const targetId = event.currentTarget.getAttribute('data-target');
+      if (!targetId) return;
+      
+      // Get the target content element
+      const targetContent = document.getElementById(targetId);
+      if (!targetContent) return;
+      
+      // Deactivate all tabs in this container
+      const tabContainer = event.currentTarget.closest('.tabs');
+      tabContainer.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      
+      // Activate clicked tab
+      event.currentTarget.classList.add('active');
+      event.currentTarget.setAttribute('aria-selected', 'true');
+      
+      // Hide all tab content
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+        content.setAttribute('aria-hidden', 'true');
+      });
+      
+      // Show target content
+      targetContent.classList.add('active');
+      targetContent.setAttribute('aria-hidden', 'false');
+      
+      // Store active tab in session
+      try {
+        sessionStorage.setItem('activeTab', targetId);
+      } catch (error) {
+        console.warn('Could not save active tab to session storage:', error);
+      }
+    });
+  });
+  
+  // Initialize active tab from URL or session storage
+  initializeActiveTab();
+}
+
+/**
+ * Initialize active tab from URL or session storage
+ */
+function initializeActiveTab() {
+  // Check for tab parameter in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get('tab');
+  
+  if (tabParam) {
+    // Activate tab from URL parameter
+    const tab = document.querySelector(`.tab[data-target="${tabParam}"]`);
+    if (tab) {
+      // Trigger click event
+      tab.click();
+      return;
+    }
+  }
+  
+  // Check session storage
+  try {
+    const activeTab = sessionStorage.getItem('activeTab');
+    if (activeTab) {
+      const tab = document.querySelector(`.tab[data-target="${activeTab}"]`);
+      if (tab) {
+        // Trigger click event
+        tab.click();
+        return;
+      }
+    }
+  } catch (error) {
+    console.warn('Could not retrieve active tab from session storage:', error);
+  }
+  
+  // Default: activate first tab
+  const firstTab = document.querySelector('.tab');
+  if (firstTab) {
+    firstTab.click();
+  }
+}
+
+/**
+ * Set default units based on browser locale
+ */
+function setupDefaultUnits() {
+  // Get user's locale
+  const locale = navigator.language || navigator.userLanguage || 'en-US';
+  
+  // Default units for US
+  const isUS = locale.includes('US') || locale.includes('us');
+  
+  // Set default cholesterol units
+  document.querySelectorAll('.cholesterol-unit-select').forEach(select => {
+    select.value = isUS ? 'mg/dL' : 'mmol/L';
+    
+    // Trigger the change event to update related fields
+    try {
+      const event = new Event('change');
+      select.dispatchEvent(event);
+    } catch (error) {
+      console.error('Error dispatching change event:', error);
+    }
+  });
+  
+  // Set default height units
+  document.querySelectorAll('.height-unit-select').forEach(select => {
+    select.value = isUS ? 'ft/in' : 'cm';
+    
+    // Trigger the change event to show/hide fields
+    try {
+      const event = new Event('change');
+      select.dispatchEvent(event);
+    } catch (error) {
+      console.error('Error dispatching change event:', error);
+    }
+  });
+  
+  // Set default weight units
+  document.querySelectorAll('.weight-unit-select').forEach(select => {
+    select.value = isUS ? 'lb' : 'kg';
+  });
+}
+
+/**
+ * Show the medical disclaimer on first visit
+ */
+async function showDisclaimerIfFirstVisit() {
+  try {
+    const hasShownDisclaimer = await secureStorage.getItem('hasShownDisclaimer');
+    
+    if (!hasShownDisclaimer) {
+      // Show the disclaimer modal
+      const disclaimerModal = document.getElementById('disclaimer-modal');
+      if (disclaimerModal) {
+        disclaimerModal.style.display = 'block';
+        
+        // Add event listener to accept button
+        const acceptButton = document.getElementById('accept-disclaimer-button');
+        if (acceptButton) {
+          acceptButton.addEventListener('click', async () => {
+            await secureStorage.setItem('hasShownDisclaimer', true);
+            disclaimerModal.style.display = 'none';
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error checking disclaimer status:', error);
+  }
+}
+
+/**
+ * Validates and handles FRS form submission
+ * @param {Event} event - Form submission event
+ */
+async function handleFRSFormSubmit(event) {
+  event.preventDefault();
+  
+  // Show loading indicator
+  loadingIndicator.show('Calculating Framingham Risk Score...');
+  
+  // Small delay to allow UI to update
+  setTimeout(async () => {
+    try {
+      // Validate form
+      const validationResult = validateFRSForm();
+      
+      if (!validationResult.isValid) {
+        displayErrors(validationResult.errors);
+        loadingIndicator.hide();
+        return;
+      }
+      
+      // Store data for visualizations
+      window.lastFRSFormData = validationResult.data;
+      
+      // Calculate FRS risk score
+      const riskResult = calculateFraminghamRiskScore(validationResult.data);
+      
+      // Get treatment recommendations
+      const recommendations = calculateTreatmentRecommendations({
+        ...validationResult.data,
+        ...riskResult
+      });
+      
+      // Display results
+      displayFRSResults(riskResult, recommendations);
+      
+      // Scroll to results
+      const resultsEl = document.getElementById('frs-results');
+      if (resultsEl) {
+        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (error) {
+      console.error('Error calculating FRS:', error);
+      showModal('An error occurred during calculation: ' + error.message);
+    } finally {
+      // Hide loading indicator
+      loadingIndicator.hide();
+    }
+  }, 100);
+}
+
+/**
+ * Display FRS results
+ * @param {Object} results - Risk calculation results
+ * @param {Object} recommendations - Treatment recommendations
+ */
+function displayFRSResults(results, recommendations) {
+  const resultsElement = document.getElementById('frs-results');
+  if (!resultsElement) return;
+  
+  // Make sure results are visible
+  resultsElement.style.display = 'block';
+  
+  // Format risk scores
+  const riskPercentage = parseFloat(results.risk).toFixed(1);
+  const adjustedRiskPercentage = parseFloat(results.adjustedRisk).toFixed(1);
+  const relativeRisk = parseFloat(results.relativeRisk).toFixed(1);
+  
+  // Set risk score elements
+  const riskScoreEl = document.getElementById('frs-risk-score');
+  const adjustedRiskScoreEl = document.getElementById('frs-adjusted-risk-score');
+  const relativeRiskEl = document.getElementById('frs-relative-risk');
+  
+  if (riskScoreEl) riskScoreEl.textContent = riskPercentage + '%';
+  if (adjustedRiskScoreEl) adjustedRiskScoreEl.textContent = adjustedRiskPercentage + '%';
+  if (relativeRiskEl) relativeRiskEl.textContent = relativeRisk + 'x';
+  
+  // Set risk category and styling
+  const riskCategoryElement = document.getElementById('frs-risk-category');
+  if (riskCategoryElement) {
+    const category = results.category;
+    riskCategoryElement.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+    
+    // Reset classes
+    riskCategoryElement.classList.remove('risk-low', 'risk-moderate', 'risk-high');
+    riskCategoryElement.classList.add('risk-' + category);
+  }
+  
+  // Show the appropriate heart risk image
+  const heartRiskLow = document.getElementById('heart-risk-low');
+  const heartRiskModerate = document.getElementById('heart-risk-moderate');
+  const heartRiskHigh = document.getElementById('heart-risk-high');
+  
+  if (heartRiskLow && heartRiskModerate && heartRiskHigh) {
+    heartRiskLow.style.display = results.category === 'low' ? 'inline-block' : 'none';
+    heartRiskModerate.style.display = results.category === 'moderate' ? 'inline-block' : 'none';
+    heartRiskHigh.style.display = results.category === 'high' ? 'inline-block' : 'none';
+  }
+  
+  // Display Lp(a) information if applicable
+  const lpaInfoElement = document.getElementById('frs-lpa-info');
+  if (lpaInfoElement) {
+    if (results.lpaModifier > 1.0) {
+      const percentIncrease = ((results.lpaModifier - 1) * 100).toFixed(0);
+      lpaInfoElement.innerHTML = inputSanitizer.sanitizeHTML(`
+        <div class="alert alert-info">
+          <strong>Lp(a) Modified Score:</strong> Elevated Lp(a) has increased the risk by ${percentIncrease}%. 
+          The adjusted score accounts for this additional risk factor.
+        </div>
+      `);
+      lpaInfoElement.style.display = 'block';
+    } else {
+      lpaInfoElement.style.display = 'none';
+    }
+  }
+  
+  // Display treatment recommendations
+  displayTreatmentRecommendations(recommendations, 'frs');
+  
+  // Create or update visualizations if available
+  if (window.riskVisualization) {
+    window.riskVisualization.createFRSCharts(results);
+  }
+  
+  // Update data for PDF export
+  window.pdfExportData = {
+    calculationType: 'Framingham Risk Score',
+    riskPercentage: riskPercentage,
+    adjustedRiskPercentage: adjustedRiskPercentage,
+    relativeRisk: relativeRisk,
+    riskCategory: results.category,
+    lpaModifier: results.lpaModifier,
+    recommendations: recommendations
+  };
+}
+
+/**
+ * Validates and handles QRISK3 form submission
+ * @param {Event} event - Form submission event
+ */
+async function handleQRISKFormSubmit(event) {
+  event.preventDefault();
+  
+  // Show loading indicator
+  loadingIndicator.show('Calculating QRISK3 Score...');
+  
+  // Small delay to allow UI to update
+  setTimeout(async () => {
+    try {
+      // Validate form
+      const validationResult = validateQRISKForm();
+      
+      if (!validationResult.isValid) {
+        displayErrors(validationResult.errors);
+        loadingIndicator.hide();
+        return;
+      }
+      
+      // Store data for visualizations
+      window.lastQRISKFormData = validationResult.data;
+      
+      // Update loading progress
+      loadingIndicator.setProgress(30, 'Running algorithm...');
+      
+      // Calculate QRISK3 score
+      const riskResult = await calculateQRISK3(validationResult.data);
+      
+      // Update loading progress
+      loadingIndicator.setProgress(70, 'Generating recommendations...');
+      
+      // Get treatment recommendations
+      const recommendations = calculateTreatmentRecommendations({
+        ...validationResult.data,
+        ...riskResult
+      });
+      
+      // Update loading progress
+      loadingIndicator.setProgress(90, 'Finishing...');
+      
+      // Display results
+      displayQRISKResults(riskResult, recommendations);
+      
+      // Scroll to results
+      const resultsEl = document.getElementById('qrisk-results');
+      if (resultsEl) {
+        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch (error) {
+      console.error('Error calculating QRISK3:', error);
+      showModal('An error occurred during calculation: ' + error.message);
+    } finally {
+      // Hide loading indicator
+      loadingIndicator.hide();
+    }
+  }, 100);
+}
+
+/**
+ * Display treatment recommendations
+ * @param {Object} recommendations - Treatment recommendations
+ * @param {string} prefix - Prefix for element IDs (frs or qrisk)
+ */
+function displayTreatmentRecommendations(recommendations, prefix) {
+  // Treatment summary
+  const treatmentSummaryElement = document.getElementById(`${prefix}-treatment-summary`);
+  if (treatmentSummaryElement) {
+    let summaryHTML = '';
+    
+    // Statin recommendation
+    if (recommendations.statinRecommended) {
+      summaryHTML += `<p><strong>Statin Therapy:</strong> ${recommendations.statinIntensity.charAt(0).toUpperCase() + recommendations.statinIntensity.slice(1)} intensity statin therapy is recommended.</p>`;
+    } else {
+      summaryHTML += '<p><strong>Statin Therapy:</strong> Not currently recommended based on risk profile.</p>';
+    }
+    
+    // LDL and non-HDL targets
+    summaryHTML += `
+      <p><strong>Treatment Targets:</strong></p>
+      <ul>
+        <li>LDL Cholesterol: &lt; ${recommendations.ldlTarget.toFixed(1)} mmol/L (${Math.round(recommendations.ldlTarget * 38.67)} mg/dL)</li>
+        <li>Non-HDL Cholesterol: &lt; ${recommendations.nonHDLTarget.toFixed(1)} mmol/L (${Math.round(recommendations.nonHDLTarget * 38.67)} mg/dL)</li>
+      </ul>
+    `;
+    
+    // Follow-up recommendation
+    summaryHTML += `<p><strong>Follow-up:</strong> ${recommendations.followUp}</p>`;
+    
+    treatmentSummaryElement.innerHTML = inputSanitizer.sanitizeHTML(summaryHTML);
+  }
+  
+  // Statin options
+  const statinOptionsElement = document.getElementById(`${prefix}-statin-options`);
+  if (statinOptionsElement) {
+    if (recommendations.statinRecommended) {
+      let optionsHTML = '<ul>';
+      recommendations.statinOptions.forEach(option => {
+        optionsHTML += `<li><strong>${inputSanitizer.sanitizeString(option.name)}:</strong> ${inputSanitizer.sanitizeString(option.dose)}</li>`;
+      });
+      optionsHTML += '</ul>';
+      statinOptionsElement.innerHTML = optionsHTML;
+      statinOptionsElement.style.display = 'block';
+    } else {
+      statinOptionsElement.style.display = 'none';
+    }
+  }
+  
+  // Additional tests
+  const additionalTestsElement = document.getElementById(`${prefix}-additional-tests`);
+  if (additionalTestsElement) {
+    if (recommendations.additionalTests.length > 0) {
+      let testsHTML = '<ul>';
+      recommendations.additionalTests.forEach(test => {
+        testsHTML += `<li>${inputSanitizer.sanitizeString(test)}</li>`;
+      });
+      testsHTML += '</ul>';
+      additionalTestsElement.innerHTML = testsHTML;
+      additionalTestsElement.style.display = 'block';
+    } else {
+      additionalTestsElement.style.display = 'none';
+    }
+  }
+  
+  // Lifestyle advice
+  const lifestyleAdviceElement = document.getElementById(`${prefix}-lifestyle-advice`);
+  if (lifestyleAdviceElement) {
+    let adviceHTML = '<ul>';
+    recommendations.lifestyleAdvice.forEach(advice => {
+      adviceHTML += `<li>${inputSanitizer.sanitizeString(advice)}</li>`;
+    });
+    adviceHTML += '</ul>';
+    lifestyleAdviceElement.innerHTML = adviceHTML;
+  }
+}
+
+/**
+ * Reset form to default values
+ * @param {string} formId - Form ID to reset
+ */
+function resetForm(formId) {
+  const form = document.getElementById(formId);
+  if (!form) return;
+  
+  // Reset the form inputs
+  form.reset();
+  
+  // Hide any displayed errors
+  form.querySelectorAll('.error-message').forEach(el => {
+    el.style.display = 'none';
+  });
+  
+  // Remove error styling from inputs
+  form.querySelectorAll('.error').forEach(el => {
+    el.classList.remove('error');
+  });
+  
+  // Hide results section
+  const resultsId = formId.replace('-form', '-results');
+  const resultsElement = document.getElementById(resultsId);
+  if (resultsElement) {
+    resultsElement.style.display = 'none';
+  }
+  
+  // Reset physiological validation warnings
+  if (physiologicalValidation) {
+    // Clear individual field warnings
+    form.querySelectorAll('input[type="number"]').forEach(input => {
+      physiologicalValidation.clearPhysiologicalWarning(input.id);
+    });
+    
+    // Hide combination warnings if present
+    const warningsContainer = document.getElementById(`${formId}-combination-warnings`);
+    if (warningsContainer) {
+      warningsContainer.style.display = 'none';
+    }
+    
+    // Clear all warnings (this will remove DOM elements)
+    physiologicalValidation.clearAllWarnings();
+  }
+}
+
+/**
+ * Export current results as PDF
+ */
+async function exportResultsAsPDF() {
+  // Check if we have data to export
+  if (!window.pdfExportData) {
+    showModal('No calculation results available to export.');
+    return;
+  }
+  
+  // Check if pdfMake is available
+  if (typeof pdfMake === 'undefined') {
+    showModal('PDF export functionality is not available. Please ensure pdfmake.js is loaded.');
+    return;
+  }
+  
+  // Show loading indicator
+  loadingIndicator.show('Generating PDF...');
+  
+  // Small delay to let the UI update
+  setTimeout(() => {
+    try {
+      // Get the data
+      const data = window.pdfExportData;
+      
+      // Create PDF content
+      const content = [];
+      
+      // Title
+      content.push({
+        text: 'Cardiovascular Disease Risk Assessment',
+        style: 'header',
+        margin: [0, 0, 0, 10]
+      });
+      
+      // Calculation type
+      content.push({
+        text: `Risk Assessment Method: ${data.calculationType}`,
+        style: 'subheader',
+        margin: [0, 5, 0, 15]
+      });
+      
+      // Results summary
+      content.push({
+        text: 'Risk Assessment Results',
+        style: 'sectionHeader',
+        margin: [0, 10, 0, 5]
+      });
+      
+      // Risk table
+      const riskTableBody = [
+        [{ text: 'Measure', style: 'tableHeader' }, { text: 'Result', style: 'tableHeader' }],
+        ['10-year CVD Risk', `${data.riskPercentage}%`],
+        ['Adjusted Risk (with Lp(a))', `${data.adjustedRiskPercentage}%`],
+        ['Relative Risk', `${data.relativeRisk}x`]
+      ];
+      
+      // Add heart age for QRISK3
+      if (data.calculationType === 'QRISK3') {
+        riskTableBody.push(['Heart Age', `${data.heartAge} years`]);
+      }
+      
+      // Add risk category
+      riskTableBody.push(['Risk Category', data.riskCategory.charAt(0).toUpperCase() + data.riskCategory.slice(1)]);
+      
+      content.push({
+        table: {
+          headerRows: 1,
+          widths: ['50%', '50%'],
+          body: riskTableBody
+        },
+        margin: [0, 0, 0, 15]
+      });/**
+ * CVD Risk Toolkit with Lp(a) Post-Test Modifier
+ * Enhanced Combined JavaScript File - ESM Version
+ * 
+ * Version: 1.3.2
+ * Last Updated: 2025-05-04
+ * 
+ * LEGAL DISCLAIMER:
+ * This software is provided for educational and informational purposes only.
+ * It is not intended to be a substitute for professional medical advice, diagnosis, or treatment.
+ * Always seek the advice of a qualified healthcare provider with any questions regarding medical conditions.
+ *
+ * REFERENCES AND ATTRIBUTIONS:
+ * - QRISK3 algorithm: Hippisley-Cox J, et al. BMJ 2017;357:j2099
+ * - Framingham Risk Score: D'Agostino RB Sr, et al. Circulation 2008;117:743-53
+ * - Lp(a) adjustments based on: Willeit P, et al. Lancet 2018;392:1311-1320
+ */
+
+// =============================================================================
+// MODULE IMPORTS AND DEPENDENCIES
+// =============================================================================
+
+// Import dependencies - these would be managed by a build system in production
+let Chart; // Will be loaded dynamically if needed
+let QRISK3; // Will be loaded dynamically if needed
+let pdfMake; // Will be loaded dynamically if needed
+
+// Constants for unit conversions
+const CONVERSION = {
+  CHOL_MMOL_TO_MGDL: 38.67,
+  TG_MMOL_TO_MGDL: 88.5,
+  LPA_NMOL_TO_MGDL: 0.4,
+  LPA_MGDL_TO_NMOL: 2.5
+};
+
+// App assets to be cached by service worker
+const APP_ASSETS = [
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/combined.js',
+  '/js/qrisk3-algorithm.js',
+  '/js/qrisk3-implementation.js',
+  '/icons/icon-192x192.svg',
+  '/icons/icon-512x512.svg',
+  '/icons/heart-risk-low.svg',
+  '/icons/heart-risk-moderate.svg',
+  '/icons/heart-risk-high.svg'
+];
+
+/**
+ * Check dependency availability and load if needed
+ * @returns {Promise<boolean>} - Whether all dependencies are available
+ */
+export async function checkDependencies() {
+  // Track any failed dependencies
+  const failures = [];
+  
+  // Check each dependency and attempt to load if missing
+  try {
+    // Check QRISK3
+    if (!QRISK3 && !window.QRISK3) {
+      if (!await loadQRISK3(2)) { // Try loading with 2 retries
+        failures.push('QRISK3');
+      }
+    }
+    
+    // Check Chart.js
+    if (!Chart && !window.Chart) {
+      if (!await loadChartJS(2)) { // Try loading with 2 retries
+        failures.push('Chart.js');
+      }
+    }
+    
+    // Check pdfMake
+    if (!window.pdfMake) {
+      if (!await loadPDFMake(2)) { // Try loading with 2 retries
+        failures.push('pdfMake');
+      }
+    }
+    
+    // If any dependencies failed to load, show a message
+    if (failures.length > 0) {
+      const missingDeps = failures.join(', ');
+      console.warn(`Some dependencies could not be loaded: ${missingDeps}`);
+      showModal(`Some components failed to load (${missingDeps}). Some features may be limited.`);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking dependencies:', error);
+    return false;
+  }
+}
+
+/**
+ * Load QRISK3 algorithm dynamically with retry capability
+ * @param {number} retries - Number of retry attempts
+ * @returns {Promise<boolean>} - Whether loaded successfully
+ */
+export async function loadQRISK3(retries = 2) {
+  if (window.QRISK3) {
+    QRISK3 = window.QRISK3;
+    return true;
+  }
+  
+  try {
+    const script = document.createElement('script');
+    script.src = './js/qrisk3-algorithm.js';
+    script.async = true;
+    script.onerror = (e) => console.error('Failed to load QRISK3:', e);
+    
+    const loadPromise = new Promise((resolve, reject) => {
+      script.onload = () => {
+        if (window.QRISK3) {
+          QRISK3 = window.QRISK3;
+          resolve(true);
+        } else {
+          reject(new Error('QRISK3 loaded but not available in window context'));
+        }
+      };
+      script.onerror = () => reject(new Error('Failed to load QRISK3 algorithm'));
+    });
+    
+    document.head.appendChild(script);
+    return await loadPromise;
+  } catch (error) {
+    console.error('Error loading QRISK3:', error);
+    
+    // Retry loading if attempts remain
+    if (retries > 0) {
+      console.log(`Retrying QRISK3 load, ${retries} attempts remaining`);
+      return await loadQRISK3(retries - 1);
+    }
+    
+    return false;
+  }
+}
+
+/**
+ * Load Chart.js dynamically with retry capability
+ * @param {number} retries - Number of retry attempts
+ * @returns {Promise<boolean>} - Whether loaded successfully
+ */
+export async function loadChartJS(retries = 2) {
+  if (window.Chart) {
+    Chart = window.Chart;
+    return true;
+  }
+  
+  try {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
+    script.integrity = 'sha384-NeNyJFH+Otf7mrUZeRCeHH1Sv9QrAbvWrIGZF8FeTRI+LTqQTh6dq5TVOArAj1fS';
+    script.crossOrigin = 'anonymous';
+    script.async = true;
+    
+    const loadPromise = new Promise((resolve, reject) => {
+      script.onload = () => {
+        if (window.Chart) {
+          Chart = window.Chart;
+          
+          // Set global defaults for all charts
+          Chart.defaults.font.family = "var(--font-sans)";
+          Chart.defaults.color = "var(--text-color)";
+          Chart.defaults.backgroundColor = "var(--background-color)";
+          
+          resolve(true);
+        } else {
+          reject(new Error('Chart.js loaded but not available in window context'));
+        }
+      };
+      script.onerror = () => reject(new Error('Failed to load Chart.js'));
+    });
+    
+    document.head.appendChild(script);
+    return await loadPromise;
+  } catch (error) {
+    console.error('Error loading Chart.js:', error);
+    
+    // Retry loading if attempts remain
+    if (retries > 0) {
+      console.log(`Retrying Chart.js load, ${retries} attempts remaining`);
+      return await loadChartJS(retries - 1);
+    }
+    
+    return false;
+  }
+}
+
+/**
+ * Load pdfMake dynamically with retry capability
+ * @param {number} retries - Number of retry attempts
+ * @returns {Promise<boolean>} - Whether loaded successfully
+ */
+export async function loadPDFMake(retries = 2) {
+  if (window.pdfMake) {
+    return true;
+  }
+  
+  try {
+    // Check if already loaded
+    if (document.querySelector('script[src*="pdfmake"]')) {
+      if (window.pdfMake) {
+        return true;
+      } else {
+        // Script tag exists but library not loaded - may be loading
+        await new Promise(resolve => setTimeout(resolve, 500));
+        if (window.pdfMake) {
+          return true;
+        }
+      }
+    }
+    
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js';
+    script.integrity = 'sha512-a9NgEEK7tsCvABL7KqtUTQjl69z7091EVPpw5KxPlZ93T141ffe1woLtbXTX+r2/8TtTvRX/v4zTL2UlMUPgwg==';
+    script.crossOrigin = 'anonymous';
+    script.async = true;
+    
+    // Load fonts
+    const fontScript = document.createElement('script');
+    fontScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.min.js';
+    fontScript.integrity = 'sha512-P0bOMePRS378NwmPDVPU456LNKK0ndTM6LCqm0q1i7oKYgH2WigS2Wv+ZJ+5YYsj1r+QIXrJ1mua4cHQcAxwZg==';
+    fontScript.crossOrigin = 'anonymous';
+    fontScript.async = true;
+    
+    const loadPromise = new Promise((resolve, reject) => {
+      script.onload = () => {
+        // Load fonts after main script
+        document.head.appendChild(fontScript);
+        
+        fontScript.onload = () => {
+          if (window.pdfMake) {
+            resolve(true);
+          } else {
+            reject(new Error('pdfMake loaded but not available in window context'));
+          }
+        };
+        
+        fontScript.onerror = () => reject(new Error('Failed to load pdfMake fonts'));
+      };
+      script.onerror = () => reject(new Error('Failed to load pdfMake'));
+    });
+    
+    document.head.appendChild(script);
+    return await loadPromise;
+  } catch (error) {
+    console.error('Error loading pdfMake:', error);
+    
+    // Retry loading if attempts remain
+    if (retries > 0) {
+      console.log(`Retrying pdfMake load, ${retries} attempts remaining`);
+      return await loadPDFMake(retries - 1);
+    }
+    
+    return false;
+  }
+}
+
+// =============================================================================
+// CORE UTILITY FUNCTIONS
+// =============================================================================
+
+/**
+ * Safely access nested properties without errors
+ * @param {Object} obj - Object to access
+ * @param {string} path - Dot-separated path to property
+ * @param {*} defaultValue - Default value if property doesn't exist
+ * @returns {*} - Property value or default value
+ */
+export function safeGet(obj, path, defaultValue = null) {
+  try {
+    if (obj === null || obj === undefined) {
+      return defaultValue;
+    }
+    
+    const keys = path.split('.');
+    let result = obj;
+    
+    for (const key of keys) {
+      if (result === undefined || result === null) {
+        return defaultValue;
+      }
+      result = result[key];
+    }
+    
+    return result === undefined ? defaultValue : result;
+  } catch (e) {
+    console.error(`Error accessing property path ${path}:`, e);
+    return defaultValue;
+  }
+}
+
+/**
+ * Debounce function for performance optimization
+ * @param {Function} func - Function to debounce
+ * @param {number} wait - Wait time in milliseconds
+ * @returns {Function} - Debounced function
+ */
+export function debounce(func, wait = 100) {
+  if (typeof func !== 'function') {
+    throw new TypeError('Expected a function as first argument');
+  }
+  
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
+
+/**
+ * Throttle function for performance optimization
+ * @param {Function} func - Function to throttle
+ * @param {number} limit - Limit time in milliseconds
+ * @returns {Function} - Throttled function
+ */
+export function throttle(func, limit = 100) {
+  if (typeof func !== 'function') {
+    throw new TypeError('Expected a function as first argument');
+  }
+  
+  let inThrottle;
+  return function(...args) {
+    const context = this;
+    if (!inThrottle) {
+      func.apply(context, args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
+  };
+}
+
+/**
+ * Memoization for expensive calculations
+ * @param {Function} fn - Function to memoize
+ * @returns {Function} - Memoized function
+ */
+export const memoize = (fn) => {
+  if (typeof fn !== 'function') {
+    throw new TypeError('Expected a function as argument');
+  }
+  
+  const cache = new Map();
+  return function(...args) {
+    const key = JSON.stringify(args);
+    if (cache.has(key)) {
+      return cache.get(key);
+    }
+    const result = fn.apply(this, args);
+    cache.set(key, result);
+    return result;
+  };
+};
+
+/**
+ * Error boundary wrapper for critical functions
+ * @param {Function} fn - Function to wrap
+ * @param {*} fallback - Fallback value on error
+ * @returns {Function} - Wrapped function
+ */
+export function withErrorBoundary(fn, fallback = null) {
+  if (typeof fn !== 'function') {
+    throw new TypeError('Expected a function as first argument');
+  }
+  
+  return function(...args) {
+    try {
+      return fn.apply(this, args);
+    } catch (error) {
+      console.error(`Error in function ${fn.name || 'anonymous'}:`, error);
+      if (window.enhancedDisplay && typeof window.enhancedDisplay.showError === 'function') {
+        window.enhancedDisplay.showError('An error occurred. Please try again.');
+      } else {
+        showModal('An error occurred. Please try again.');
+      }
+      return fallback;
+    }
+  };
+}
+
+/**
+ * Deep clone an object without reference
+ * @param {*} obj - Object to clone
+ * @returns {*} - Cloned object
+ */
+export function deepClone(obj) {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  
+  try {
+    return JSON.parse(JSON.stringify(obj));
+  } catch (e) {
+    console.error('Error deep cloning object:', e);
+    
+    // Fallback method if JSON serialization fails
+    if (Array.isArray(obj)) {
+      const copy = [];
+      for (let i = 0, len = obj.length; i < len; i++) {
+        copy[i] = deepClone(obj[i]);
+      }
+      return copy;
+    }
+    
+    const copy = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        copy[key] = deepClone(obj[key]);
+      }
+    }
+    return copy;
+  }
+}
+
+/**
+ * Log an event to console with timestamp
+ * @param {string} type - Event type 
+ * @param {string} message - Event message
+ * @param {Object} data - Additional data
+ */
+export function logEvent(type, message, data = null) {
+  const timestamp = new Date().toISOString();
+  if (data) {
+    console.log(`[${timestamp}] [${type}] ${message}`, data);
+  } else {
+    console.log(`[${timestamp}] [${type}] ${message}`);
+  }
+}
+
+// =============================================================================
+// INPUT VALIDATION AND SANITIZATION
+// =============================================================================
+
+/**
+ * Input Sanitizer Module
+ * Provides methods to sanitize and validate various types of input
+ */
+export const inputSanitizer = (() => {
+  /**
+   * Sanitize a string to prevent XSS attacks
+   * @param {string} str - String to sanitize
+   * @returns {string} - Sanitized string
    */
+  function sanitizeString(str) {
+    if (str === undefined || str === null) {
+      return '';
+    }
+    
+    // Convert to string if not already
+    if (typeof str !== 'string') {
+      str = String(str);
+    }
+    
+    // Replace HTML special characters with their entities
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
   
   /**
-   * Validates a numeric input field
-   * @param {string} fieldId - The ID of the input field
-   * @param {number} min - Minimum allowed value
-   * @param {number} max - Maximum allowed value
-   * @param {string} fieldName - Human-readable field name for error messages
+   * Sanitize HTML content with a restricted set of allowed tags
+   * @param {string} html - HTML content to sanitize
+   * @returns {string} - Sanitized HTML
+   */
+  function sanitizeHTML(html) {
+    if (html === undefined || html === null) {
+      return '';
+    }
+    
+    // Convert to string if not already
+    if (typeof html !== 'string') {
+      html = String(html);
+    }
+    
+    // DOMPurify is preferred, but as a simple fallback use a basic approach
+    // This is not comprehensive - in production, use a proper sanitizer library
+    
+    // Replace script tags
+    html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    
+    // Remove event attributes
+    const eventAttributes = [
+      'onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onmousedown', 
+      'onmouseup', 'onkeydown', 'onkeypress', 'onkeyup', 'onchange', 'onsubmit',
+      'onfocus', 'onblur'
+    ];
+    
+    eventAttributes.forEach(attr => {
+      const regex = new RegExp(`\\s${attr}\\s*=\\s*(['"]).*?\\1`, 'gi');
+      html = html.replace(regex, '');
+    });
+    
+    return html;
+  }
+  
+  /**
+   * Sanitize and validate a number value
+   * @param {string|number} value - Value to sanitize
+   * @param {Object} options - Validation options
+   * @returns {number|null} - Sanitized number or null if invalid
+   */
+  function sanitizeNumber(value, options = {}) {
+    const { min, max, decimal = false } = options;
+    
+    // Convert to string if not already
+    if (typeof value !== 'string') {
+      value = String(value);
+    }
+    
+    // Remove any non-numeric characters except decimal point
+    let sanitized = decimal ? 
+      value.replace(/[^\d.-]/g, '') : 
+      value.replace(/[^\d-]/g, '');
+    
+    // Convert to number
+    let num = decimal ? parseFloat(sanitized) : parseInt(sanitized, 10);
+    
+    // Check if valid number
+    if (isNaN(num)) {
+      return null;
+    }
+    
+    // Apply min/max constraints if provided
+    if (min !== undefined && num < min) {
+      num = min;
+    }
+    
+    if (max !== undefined && num > max) {
+      num = max;
+    }
+    
+    return num;
+  }
+  
+  /**
+   * Sanitize a URL
+   * @param {string} url - URL to sanitize
+   * @returns {string} - Sanitized URL or # if invalid
+   */
+  function sanitizeURL(url) {
+    if (typeof url !== 'string') {
+      return '#';
+    }
+    
+    url = url.trim();
+    
+    // Check for javascript: or data: protocols
+    if (/^(javascript|data|vbscript):/i.test(url)) {
+      return '#';
+    }
+    
+    // Validate URL format
+    try {
+      new URL(url);
+      return url;
+    } catch (e) {
+      // If URL is relative, prepend with origin
+      if (url.startsWith('/')) {
+        return window.location.origin + url;
+      }
+      return '#';
+    }
+  }
+  
+  /**
+   * Validate input against common patterns
+   * @param {string} value - Value to validate
+   * @param {string} type - Validation type (TEXT, NUMBER, EMAIL, URL)
+   * @returns {boolean} - Whether the input is valid
+   */
+  function validateInput(value, type) {
+    if (value === undefined || value === null) {
+      return false;
+    }
+    
+    // Convert to string if not already
+    if (typeof value !== 'string') {
+      value = String(value);
+    }
+    
+    const patterns = {
+      TEXT: /^[^<>]*$/,
+      NUMBER: /^-?\d+(\.\d+)?$/,
+      EMAIL: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      URL: /^(https?:\/\/)?([\w-]+(\.[\w-]+)+)([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?$/
+    };
+    
+    if (!patterns[type]) {
+      return false;
+    }
+    
+    return patterns[type].test(value);
+  }
+  
+  /**
+   * Validate numeric input with min/max constraints
+   * @param {string} fieldId - Field ID to validate
+   * @param {number} min - Minimum value
+   * @param {number} max - Maximum value
+   * @param {string} fieldName - Field name for error messages
    * @param {boolean} required - Whether the field is required
    * @returns {Object} - { isValid, value, message }
    */
   function validateNumericInput(fieldId, min, max, fieldName, required = true) {
-      const field = document.getElementById(fieldId);
-      if (!field) {
-          console.error(`Field with ID ${fieldId} not found`);
-          return { isValid: false, value: null, message: `Field ${fieldId} not found` };
-      }
-      
-      const value = field.value.trim();
-      const errorDisplay = field.parentElement?.querySelector('.error-message');
-      
-      // Check if field is required and empty
-      if (required && value === '') {
-          field.classList.add('error');
-          if (errorDisplay) errorDisplay.style.display = 'block';
-          return { isValid: false, value: null, message: `${fieldName} is required.` };
-      }
-      
-      // If field is not required and empty, return valid
-      if (!required && value === '') {
-          field.classList.remove('error');
-          if (errorDisplay) errorDisplay.style.display = 'none';
-          return { isValid: true, value: null, message: null };
-      }
-      
-      // Check if input is a number
-      const numValue = parseFloat(value);
-      if (isNaN(numValue)) {
-          field.classList.add('error');
-          if (errorDisplay) errorDisplay.style.display = 'block';
-          return { isValid: false, value: null, message: `${fieldName} must be a number.` };
-      }
-      
-      // Check if value is within range
-      if (numValue < min || numValue > max) {
-          field.classList.add('error');
-          if (errorDisplay) errorDisplay.style.display = 'block';
-          return { isValid: false, value: null, message: `${fieldName} must be between ${min} and ${max}.` };
-      }
-      
-      // Input is valid
+    const field = document.getElementById(fieldId);
+    if (!field) {
+      console.error(`Field with ID ${fieldId} not found`);
+      return {
+        isValid: false,
+        value: null,
+        message: `Internal error: Field ${fieldId} not found.`
+      };
+    }
+    
+    const value = field.value.trim();
+    const errorDisplay = field.parentElement.querySelector('.error-message') ||
+                         field.closest('.form-group')?.querySelector('.error-message');
+    
+    // Check if field is required and empty
+    if (required && value === '') {
+      field.classList.add('error');
+      if (errorDisplay) errorDisplay.style.display = 'block';
+      return {
+        isValid: false,
+        value: null,
+        message: `Please enter a ${fieldName}.`
+      };
+    }
+    
+    // If not required and empty, return valid
+    if (!required && value === '') {
       field.classList.remove('error');
       if (errorDisplay) errorDisplay.style.display = 'none';
-      return { isValid: true, value: numValue, message: null };
-  }
-  
-  /**
-   * Validates a form
-   * @param {string} formId - The ID of the form
-   * @returns {Object} - { isValid, errors }
-   */
-  function validateForm(formId) {
-      const form = document.getElementById(formId);
-      if (!form) {
-          return { isValid: false, errors: ['Form not found'] };
-      }
-      
-      const errors = [];
-      
-      // Validate required fields
-      const requiredFields = form.querySelectorAll('[required]');
-      requiredFields.forEach(field => {
-          if (field.type === 'number') {
-              const result = validateNumericInput(
-                  field.id,
-                  parseFloat(field.getAttribute('min') || '-Infinity'),
-                  parseFloat(field.getAttribute('max') || 'Infinity'),
-                  field.previousElementSibling?.textContent || field.id,
-                  true
-              );
-              
-              if (!result.isValid) {
-                  errors.push(result.message);
-              }
-          }
-      });
-      
       return {
-          isValid: errors.length === 0,
-          errors: errors
+        isValid: true,
+        value: null,
+        message: null
       };
-  }
-  
-
-
-// === calculations.js ===
-/**
-   * CVD Risk Toolkit - Risk Calculation Functions
-   */
-  
-  
-/**
- * Physiologically plausible ranges for clinical values
- */
-const PHYSIOLOGICAL_RANGES = {
-  age: { min: 18, max: 100, unit: 'years', criticalMin: 25, criticalMax: 85, 
-        description: 'Age', category: 'Demographics' },
-  sbp: { min: 70, max: 240, unit: 'mmHg', criticalMin: 90, criticalMax: 220, 
-         description: 'Systolic Blood Pressure', category: 'Vitals' },
-  dbp: { min: 40, max: 140, unit: 'mmHg', criticalMin: 60, criticalMax: 130, 
-         description: 'Diastolic Blood Pressure', category: 'Vitals' },
-  totalChol_mmol: { min: 1.0, max: 15.0, unit: 'mmol/L', criticalMin: 2.5, criticalMax: 12.0, 
-                  description: 'Total Cholesterol', category: 'Lipids' },
-  totalChol_mg: { min: 40, max: 580, unit: 'mg/dL', criticalMin: 100, criticalMax: 465, 
-                 description: 'Total Cholesterol', category: 'Lipids' },
-  hdl_mmol: { min: 0.5, max: 4.0, unit: 'mmol/L', criticalMin: 0.7, criticalMax: 3.0, 
-             description: 'HDL Cholesterol', category: 'Lipids' },
-  hdl_mg: { min: 20, max: 155, unit: 'mg/dL', criticalMin: 27, criticalMax: 116, 
-           description: 'HDL Cholesterol', category: 'Lipids' },
-  ldl_mmol: { min: 0.5, max: 10.0, unit: 'mmol/L', criticalMin: 1.0, criticalMax: 8.0, 
-             description: 'LDL Cholesterol', category: 'Lipids' },
-  ldl_mg: { min: 20, max: 400, unit: 'mg/dL', criticalMin: 40, criticalMax: 300, 
-           description: 'LDL Cholesterol', category: 'Lipids' },
-  // Add basic implausible combinations
-  implausibleCombinations: [
-    { 
-      check: (values) => values.totalChol_mmol < values.hdl_mmol,
-      message: 'Total cholesterol cannot be less than HDL cholesterol'
-    },
-    { 
-      check: (values) => values.sbp < values.dbp,
-      message: 'Systolic blood pressure cannot be less than diastolic blood pressure'
     }
-  ]
-};
-
-  
-  
-/**
- * Check if a value is physiologically plausible
- * @param {string} parameterType - The type of parameter
- * @param {number} value - The value to check
- * @returns {Object} - { isValid, isWarning, message }
- */
-function checkPhysiologicalPlausibility(parameterType, value) {
-  if (!PHYSIOLOGICAL_RANGES[parameterType]) {
-    console.warn(`No physiological range defined for parameter "${parameterType}"`);
-    return { isValid: true, isWarning: false, message: null };
-  }
-  
-  const range = PHYSIOLOGICAL_RANGES[parameterType];
-  
-  // Critical check (highly implausible)
-  if (value < range.min || value > range.max) {
-    return {
-      isValid: false,
-      isWarning: false,
-      message: `${range.description || parameterType} value of ${value} ${range.unit} is outside the physiologically possible range (${range.min}-${range.max} ${range.unit})`
-    };
-  }
-  
-  // Warning check (unusual but possible)
-  if (value < range.criticalMin || value > range.criticalMax) {
+    
+    // Check if value is a valid number
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      field.classList.add('error');
+      if (errorDisplay) errorDisplay.style.display = 'block';
+      return {
+        isValid: false,
+        value: null,
+        message: `Please enter a valid ${fieldName}.`
+      };
+    }
+    
+    // Check if value is within range
+    if (numValue < min || numValue > max) {
+      field.classList.add('error');
+      if (errorDisplay) errorDisplay.style.display = 'block';
+      return {
+        isValid: false,
+        value: numValue,
+        message: `${fieldName} must be between ${min} and ${max}.`
+      };
+    }
+    
+    // Input is valid
+    field.classList.remove('error');
+    if (errorDisplay) errorDisplay.style.display = 'none';
     return {
       isValid: true,
-      isWarning: true,
-      message: `${range.description || parameterType} value of ${value} ${range.unit} is unusual. Please verify this value.`
+      value: numValue,
+      message: null
     };
   }
   
-  // Value is within normal range
-  return { isValid: true, isWarning: false, message: null };
-}
-
-  
-  // Risk calculation functions
-  
-  /**
-   * Calculates Framingham Risk Score
-   * @param {Object} data - Patient data
-   * @returns {Object} - Risk calculation results
-   */
-  function calculateFraminghamRiskScore(data) {
-    // Implementation will be added
-    return { baseRisk: 0, lpaModifier: 1, modifiedRisk: 0, riskCategory: 'low' };
-  }
-  
-  /**
-   * Calculates QRISK3 Score
-   * @param {Object} data - Patient data
-   * @returns {Object} - Risk calculation results
-   */
-  function calculateQRISK3Score(data) {
-    // Implementation will be added
-    return { baseRisk: 0, lpaModifier: 1, modifiedRisk: 0, riskCategory: 'low' };
-  }
-  
-
-
-// === medication.js ===
-/**
- * Medication management functionality for CVD Risk Toolkit
- */
-
-/**
- * Calculate non-HDL cholesterol from total cholesterol and HDL
- */
-function calculateNonHDL() {
-    const totalCholInput = document.getElementById('med-total-chol');
-    const hdlInput = document.getElementById('med-hdl');
-    const nonHDLInput = document.getElementById('med-non-hdl');
-    const nonHDLUnitSpan = document.getElementById('med-non-hdl-unit');
-    
-    if (totalCholInput && hdlInput && nonHDLInput && nonHDLInput.disabled) {
-        const totalCholUnit = document.getElementById('med-total-chol-unit').value;
-        const hdlUnit = document.getElementById('med-hdl-unit').value;
-        
-        let totalChol = parseFloat(totalCholInput.value);
-        let hdl = parseFloat(hdlInput.value);
-        
-        if (!isNaN(totalChol) && !isNaN(hdl)) {
-            // Convert units if needed
-            if (totalCholUnit === 'mg/dL') {
-                totalChol = convertCholesterol(totalChol, 'mg/dL', 'mmol/L');
-            }
-            if (hdlUnit === 'mg/dL') {
-                hdl = convertCholesterol(hdl, 'mg/dL', 'mmol/L');
-            }
-            
-            // Calculate non-HDL
-            const nonHDL = totalChol - hdl;
-            nonHDLInput.value = nonHDL.toFixed(2);
-            nonHDLUnitSpan.textContent = 'mmol/L';
-        }
-    }
-}
-
-/**
- * Main function to evaluate medications and generate recommendations
- */
-function evaluateMedications() {
-    const result = validateMedicationForm();
-    
-    if (!result.isValid) {
-        displayErrors(result.errors);
-        return;
-    }
-    
-    const data = result.data;
-    
-    // Standardize units for assessment
-    const standardizedData = standardizeUnits(data);
-    
-    // Determine target LDL and non-HDL levels based on risk category
-    const targetLevels = determineTargetLevels(standardizedData);
-    
-    // Assess current therapy and determine gaps
-    const assessment = assessCurrentTherapy(standardizedData, targetLevels);
-    
-    // Generate recommendations
-    const recommendations = generateRecommendations(standardizedData, assessment, targetLevels);
-    
-    // Check PCSK9 inhibitor eligibility for PharmaCare
-    const pcsk9Coverage = assessPCSK9Coverage(standardizedData, assessment);
-    
-    // Display results
-    displayMedicationResults(standardizedData, assessment, targetLevels, recommendations, pcsk9Coverage);
-}
-
-/**
- * Standardize units for all measurements to mmol/L
- * @param {Object} data - Raw form data
- * @returns {Object} - Data with standardized units
- */
-function standardizeUnits(data) {
-    const standardized = { ...data };
-    
-    // Convert cholesterol values to mmol/L if needed
-    const cholesterolFields = ['total-chol', 'ldl', 'hdl', 'non-hdl'];
-    cholesterolFields.forEach(field => {
-        if (data[field] !== null && data[field] !== undefined) {
-            if (data[field + '-unit'] === 'mg/dL') {
-                standardized[field] = convertCholesterol(data[field], 'mg/dL', 'mmol/L');
-                standardized[field + '-unit'] = 'mmol/L';
-            }
-        }
-    });
-    
-    // Convert triglycerides to mmol/L if needed
-    if (data['trig'] !== null && data['trig'] !== undefined) {
-        if (data['trig-unit'] === 'mg/dL') {
-            standardized['trig'] = data['trig'] / 88.5; // Conversion factor for triglycerides
-            standardized['trig-unit'] = 'mmol/L';
-        }
-    }
-    
-    // Convert ApoB to g/L if needed
-    if (data['apob'] !== null && data['apob'] !== undefined) {
-        if (data['apob-unit'] === 'mg/dL') {
-            standardized['apob'] = data['apob'] / 100; // Conversion factor for ApoB
-            standardized['apob-unit'] = 'g/L';
-        }
-    }
-    
-    // Convert Lp(a) to mg/dL if needed
-    if (data['lpa'] !== null && data['lpa'] !== undefined) {
-        if (data['lpa-unit'] === 'nmol/L') {
-            standardized['lpa'] = convertLpa(data['lpa'], 'nmol/L', 'mg/dL');
-            standardized['lpa-unit'] = 'mg/dL';
-        }
-    }
-    
-    return standardized;
-}
-
-/**
- * Determine target LDL and non-HDL levels based on risk category
- * @param {Object} data - Standardized patient data
- * @returns {Object} - Target levels
- */
-function determineTargetLevels(data) {
-    const targets = {};
-    
-    // Determine targets based on clinical guidelines
-    if (data.preventionCategory === 'secondary') {
-        // Secondary prevention targets
-        targets.ldl = { value: 1.8, unit: 'mmol/L' };
-        targets.nonHDL = { value: 2.6, unit: 'mmol/L' };
-        targets.apoB = { value: 0.8, unit: 'g/L' };
-        targets.percentReduction = 50;
-        targets.riskCategory = 'Very High Risk';
-        
-        // Even lower targets for recent ACS or multiple events
-        if (data.secondaryDetails === 'mi' || data.secondaryDetails === 'multi') {
-            targets.ldl = { value: 1.4, unit: 'mmol/L' };
-            targets.nonHDL = { value: 2.2, unit: 'mmol/L' };
-            targets.apoB = { value: 0.65, unit: 'g/L' };
-            targets.percentReduction = 50;
-            targets.riskCategory = 'Extreme Risk';
-        }
-    } else {
-        // Primary prevention - check if risk scores are available
-        let highestRisk = 0;
-        
-        // Try to get risk from session storage (cross-tab sharing)
-        const storedRisk = sessionStorage.getItem('last-risk-score');
-        if (storedRisk !== null) {
-            highestRisk = parseFloat(storedRisk);
-        } else {
-            // Try to extract risk score from results if available
-            const riskContainer = document.getElementById('risk-results');
-            if (riskContainer) {
-                const riskValueElements = riskContainer.querySelectorAll('.risk-value');
-                riskValueElements.forEach(element => {
-                    const riskText = element.textContent;
-                    const riskMatch = riskText.match(/(\d+\.\d+)%/);
-                    if (riskMatch) {
-                        const riskValue = parseFloat(riskMatch[1]);
-                        highestRisk = Math.max(highestRisk, riskValue);
-                    }
-                });
-            }
-        }
-        
-        // Set targets based on risk score
-        if (highestRisk >= 20) {
-            // High risk primary prevention
-            targets.ldl = { value: 2.0, unit: 'mmol/L' };
-            targets.nonHDL = { value: 2.6, unit: 'mmol/L' };
-            targets.apoB = { value: 0.8, unit: 'g/L' };
-            targets.percentReduction = 50;
-            targets.riskCategory = 'High Risk';
-        } else if (highestRisk >= 10) {
-            // Intermediate risk primary prevention
-            targets.ldl = { value: 2.0, unit: 'mmol/L' };
-            targets.nonHDL = { value: 2.6, unit: 'mmol/L' };
-            targets.apoB = { value: 0.8, unit: 'g/L' };
-            targets.percentReduction = 30;
-            targets.riskCategory = 'Intermediate Risk';
-        } else {
-            // Low risk primary prevention
-            targets.ldl = { value: 3.5, unit: 'mmol/L' }; // Medication threshold for low risk
-            targets.nonHDL = { value: 4.2, unit: 'mmol/L' };
-            targets.apoB = { value: 1.0, unit: 'g/L' };
-            targets.percentReduction = 30;
-            targets.riskCategory = 'Low Risk';
-        }
-    }
-    
-    // Elevated Lp(a) may warrant more aggressive targets
-    if (data.lpa !== undefined && data.lpa !== null && data.lpa >= 50) {
-        targets.lpaAdjustedLDL = { value: Math.max(targets.ldl.value - 0.3, 1.4), unit: 'mmol/L' };
-        targets.hasElevatedLpa = true;
-    } else {
-        targets.hasElevatedLpa = false;
-    }
-    
-    return targets;
-}
-/**
- * Assess current therapy and determine gaps
- * @param {Object} data - Standardized patient data
- * @param {Object} targets - Target levels
- * @returns {Object} - Assessment results
- */
-function assessCurrentTherapy(data, targets) {
-    const assessment = {
-        currentTherapyIntensity: 'None',
-        atLDLTarget: false,
-        atNonHDLTarget: false,
-        atApoBTarget: false,
-        gapToLDLTarget: 0,
-        gapToNonHDLTarget: 0,
-        estimatedAdditionalLDLReduction: 0,
-        canIntensifyStatin: false,
-        maxStatinReached: false,
-        statinIntolerance: false,
-        onEzetimibe: data.ezetimibe,
-        onPCSK9: data.pcsk9,
-        onMaximumTherapy: false,
-        hypertriglyceridemia: false,
-        mixedDyslipidemia: false
-    };
-    
-    // Assess current therapy intensity
-    if (data.statin !== 'none') {
-        assessment.currentTherapyIntensity = data['statin-intensity'] || 'Unknown';
-        
-        // Check if maximum statin dose reached
-        if (data['statin-intensity'] === 'high') {
-            const maxDoses = {
-                atorvastatin: '80',
-                rosuvastatin: '40',
-                simvastatin: '40',
-                pravastatin: '80',
-                lovastatin: '40',
-                fluvastatin: '80',
-                pitavastatin: '4'
-            };
-            
-            assessment.maxStatinReached = data['statin-dose'] === maxDoses[data.statin];
-        }
-        
-        // Determine if statin can be intensified
-        if (data['statin-intensity'] === 'low' || data['statin-intensity'] === 'moderate') {
-            assessment.canIntensifyStatin = true;
-        }
-    }
-    
-    // Check statin intolerance
-    assessment.statinIntolerance = data['statin-intolerance'] !== 'no';
-    
-    // Check if on maximum therapy
-    assessment.onMaximumTherapy = (
-        (assessment.maxStatinReached || (assessment.statinIntolerance && data['statin-intolerance'] === 'complete')) &&
-        assessment.onEzetimibe
-    );
-    
-    // Evaluate lipid targets
-    if (data.ldl !== undefined && data.ldl !== null) {
-        assessment.atLDLTarget = data.ldl <= targets.ldl.value;
-        assessment.gapToLDLTarget = data.ldl - targets.ldl.value;
-    }
-    
-    if (data['non-hdl'] !== undefined && data['non-hdl'] !== null) {
-        assessment.atNonHDLTarget = data['non-hdl'] <= targets.nonHDL.value;
-        assessment.gapToNonHDLTarget = data['non-hdl'] - targets.nonHDL.value;
-    }
-    
-    if (data.apob !== undefined && data.apob !== null) {
-        assessment.atApoBTarget = data.apob <= targets.apoB.value;
-    }
-    
-    // Check for hypertriglyceridemia
-    if (data.trig !== undefined && data.trig !== null) {
-        assessment.hypertriglyceridemia = data.trig > 2.0;
-        assessment.severeTriglycerides = data.trig > 5.0;
-    }
-    
-    // Check for mixed dyslipidemia
-    if (data.ldl !== undefined && data.trig !== undefined && data.hdl !== undefined) {
-        assessment.mixedDyslipidemia = data.ldl > targets.ldl.value && data.trig > 2.0 && data.hdl < 1.0;
-    }
-    
-    // Estimate additional LDL reduction needed if not at target
-    if (!assessment.atLDLTarget && assessment.gapToLDLTarget > 0) {
-        assessment.estimatedAdditionalLDLReduction = (assessment.gapToLDLTarget / data.ldl) * 100;
-    }
-    
-    return assessment;
-}
-
-/**
- * Generate medication recommendations based on assessment
- * @param {Object} data - Standardized patient data
- * @param {Object} assessment - Current therapy assessment
- * @param {Object} targets - Target levels
- * @returns {Object} - Recommendation details
- */
-function generateRecommendations(data, assessment, targets) {
-    const recommendations = {
-        summary: [],
-        statinChange: null,
-        statinRationale: null,
-        ezetimibeChange: null,
-        ezetimibeRationale: null,
-        pcsk9Change: null,
-        pcsk9Rationale: null,
-        otherTherapies: [],
-        nonPharmacological: [
-            'Therapeutic lifestyle changes (Mediterranean or DASH diet)',
-            'Regular physical activity (150+ minutes/week of moderate activity)',
-            'Smoking cessation for all smokers',
-            'Weight management targeting BMI <25 kg/m²'
-        ]
-    };
-    
-    // Assign risk category
-    const riskCategory = targets.riskCategory;
-    
-    // Determine statin recommendations
-    if (data.statin === 'none' && !assessment.statinIntolerance) {
-        // No current statin and no intolerance
-        if (riskCategory === 'High Risk' || riskCategory === 'Very High Risk' || riskCategory === 'Extreme Risk') {
-            recommendations.statinChange = 'Initiate high-intensity statin therapy';
-            recommendations.statinRationale = 'High-intensity statin therapy is recommended for high-risk patients to achieve ≥50% LDL-C reduction';
-            recommendations.summary.push('Start high-intensity statin (atorvastatin 40-80 mg or rosuvastatin 20-40 mg)');
-        } else if (riskCategory === 'Intermediate Risk') {
-            recommendations.statinChange = 'Initiate moderate-intensity statin therapy';
-            recommendations.statinRationale = 'Moderate-intensity statin therapy is recommended for intermediate-risk patients to achieve 30-50% LDL-C reduction';
-            recommendations.summary.push('Start moderate-intensity statin (atorvastatin 10-20 mg, rosuvastatin 5-10 mg, or equivalent)');
-        } else if (data.ldl >= 5.0) {
-            recommendations.statinChange = 'Consider statin therapy despite low risk due to very high LDL-C';
-            recommendations.statinRationale = 'LDL-C ≥5.0 mmol/L may indicate familial hypercholesterolemia and warrants consideration of statin therapy regardless of risk category';
-            recommendations.summary.push('Consider statin therapy due to very high LDL-C');
-        } else {
-            recommendations.statinChange = 'Statin therapy not routinely recommended for low-risk patients';
-            recommendations.statinRationale = 'For low-risk patients, lifestyle modification is the primary intervention';
-            recommendations.summary.push('Focus on lifestyle modifications');
-        }
-    } else if (data.statin !== 'none' && assessment.canIntensifyStatin && !assessment.atLDLTarget && !assessment.statinIntolerance) {
-        // On non-maximum statin, not at target, and no intolerance
-        recommendations.statinChange = 'Intensify current statin therapy';
-        recommendations.statinRationale = 'Intensifying statin therapy can provide additional LDL-C reduction to help reach target';
-        recommendations.summary.push(`Increase ${data.statin} dose to achieve greater LDL-C reduction`);
-    } else if (assessment.statinIntolerance && data['statin-intolerance'] === 'complete') {
-        // Complete statin intolerance
-        recommendations.statinChange = 'Statin therapy not feasible due to documented intolerance';
-        recommendations.statinRationale = 'Alternative lipid-lowering strategies are required for patients with complete statin intolerance';
-        recommendations.summary.push('Statin-independent therapy required due to documented statin intolerance');
-    } else if (assessment.statinIntolerance && data['statin-intolerance'] === 'partial') {
-        // Partial statin intolerance
-        recommendations.statinChange = 'Continue maximum tolerated statin dose';
-        recommendations.statinRationale = 'Maintain the highest tolerated statin dose to achieve as much LDL-C reduction as possible';
-        recommendations.summary.push('Maintain current tolerated statin dose');
-    } else if (assessment.atLDLTarget) {
-        // At LDL target
-        recommendations.statinChange = 'Continue current statin therapy';
-        recommendations.statinRationale = 'Current therapy is effectively reaching the target LDL-C level';
-        recommendations.summary.push('Continue current statin therapy');
-    } else {
-        // On maximum statin, not at target
-        recommendations.statinChange = 'Continue maximum statin therapy';
-        recommendations.statinRationale = 'Maximum statin therapy should be maintained while considering add-on therapies';
-        recommendations.summary.push('Continue maximum statin therapy');
-    }
-    
-    // Determine ezetimibe recommendations
-    if (!assessment.onEzetimibe && !assessment.atLDLTarget && 
-        (data.statin !== 'none' || assessment.statinIntolerance)) {
-        // Not on ezetimibe, not at target, and either on statin or statin intolerant
-        recommendations.ezetimibeChange = 'Add ezetimibe therapy';
-        recommendations.ezetimibeRationale = 'Ezetimibe can provide an additional 15-25% LDL-C reduction';
-        recommendations.summary.push('Add ezetimibe 10 mg daily');
-    } else if (assessment.onEzetimibe && assessment.atLDLTarget) {
-        // On ezetimibe and at target
-        recommendations.ezetimibeChange = 'Continue ezetimibe therapy';
-        recommendations.ezetimibeRationale = 'Current combination therapy is effectively reaching the target LDL-C level';
-    } else if (assessment.onEzetimibe && !assessment.atLDLTarget) {
-        // On ezetimibe, not at target
-        recommendations.ezetimibeChange = 'Continue ezetimibe therapy';
-        recommendations.ezetimibeRationale = 'Ezetimibe should be continued while considering additional lipid-lowering options';
-    }
-
-    // Determine PCSK9 inhibitor recommendations
-    const highRiskCategories = ['High Risk', 'Very High Risk', 'Extreme Risk'];
-    if (!assessment.onPCSK9 && !assessment.atLDLTarget && 
-        assessment.onEzetimibe && (data.statin !== 'none' || assessment.statinIntolerance) &&
-        highRiskCategories.includes(riskCategory)) {
-        // Not on PCSK9, not at target, on ezetimibe, and either on statin or statin intolerant
-        if (data.preventionCategory === 'secondary' && data.ldl >= 2.5) {
-            recommendations.pcsk9Change = 'Consider PCSK9 inhibitor therapy';
-            recommendations.pcsk9Rationale = 'PCSK9 inhibitors can provide an additional 50-60% LDL-C reduction in patients with established ASCVD not at target despite maximum tolerated statin plus ezetimibe';
-            recommendations.summary.push('Consider PCSK9 inhibitor for secondary prevention');
-        } else if (data.preventionCategory === 'primary' && data.ldl >= 3.5) {
-            recommendations.pcsk9Change = 'Consider PCSK9 inhibitor therapy if familial hypercholesterolemia is confirmed';
-            recommendations.pcsk9Rationale = 'PCSK9 inhibitors may be considered for primary prevention in patients with confirmed FH and LDL-C ≥3.5 mmol/L despite maximum tolerated statin plus ezetimibe';
-            recommendations.summary.push('Consider PCSK9 inhibitor if FH is confirmed');
-        }
-    } else if (assessment.onPCSK9) {
-        // Already on PCSK9 inhibitor
-        recommendations.pcsk9Change = 'Continue PCSK9 inhibitor therapy';
-        recommendations.pcsk9Rationale = 'Continue current therapy and reassess lipid levels at next follow-up';
-    }
-    
-    // Recommendations for hypertriglyceridemia
-    if (assessment.severeTriglycerides) {
-        recommendations.otherTherapies.push({
-            therapy: 'Consider fibrate therapy',
-            rationale: 'Severe hypertriglyceridemia (>5.0 mmol/L) increases risk of pancreatitis and may benefit from fibrate therapy',
-            intensityClass: 'warning'
-        });
-        recommendations.summary.push('Fibrate therapy for severe hypertriglyceridemia');
-    } else if (assessment.hypertriglyceridemia && assessment.mixedDyslipidemia) {
-        recommendations.otherTherapies.push({
-            therapy: 'Consider fenofibrate as add-on therapy',
-            rationale: 'Mixed dyslipidemia with elevated triglycerides and low HDL-C may benefit from add-on fenofibrate therapy after statin optimization',
-            intensityClass: 'info'
-        });
-    }
-    
-    // Additional recommendations for elevated Lp(a)
-    if (targets.hasElevatedLpa) {
-        recommendations.otherTherapies.push({
-            therapy: 'More aggressive LDL-C targets recommended',
-            rationale: 'Elevated Lp(a) is an independent risk factor that warrants more aggressive LDL-C reduction',
-            intensityClass: 'warning'
-        });
-        recommendations.summary.push('More aggressive LDL-C targets due to elevated Lp(a)');
-        
-        recommendations.otherTherapies.push({
-            therapy: 'Consider family screening for Lp(a)',
-            rationale: 'Elevated Lp(a) is largely genetically determined and first-degree relatives should be screened',
-            intensityClass: 'info'
-        });
-    }
-    
-    return recommendations;
-}
-
-/**
- * Assess PCSK9 inhibitor coverage eligibility
- * @param {Object} data - Standardized patient data
- * @param {Object} assessment - Current therapy assessment
- * @returns {Object} - Coverage assessment
- */
-function assessPCSK9Coverage(data, assessment) {
-    const coverage = {
-        eligible: false,
-        criteria: [],
-        notMet: [],
-        notes: []
-    };
-    
-    // Check if already on PCSK9
-    if (data.pcsk9) {
-        coverage.notes.push('Patient is currently on PCSK9 inhibitor therapy');
-    }
-    
-    // Check for secondary prevention
-    if (data.preventionCategory === 'secondary') {
-        coverage.criteria.push('Secondary prevention');
-        
-        // Check LDL criterion
-        if (data.ldl >= 2.0) {
-            coverage.criteria.push('LDL-C ≥2.0 mmol/L');
-        } else {
-            coverage.notMet.push('LDL-C must be ≥2.0 mmol/L for secondary prevention coverage');
-        }
-        
-        // Check for recent event
-        if (data.secondaryDetails === 'mi') {
-            coverage.criteria.push('Recent MI/ACS (higher priority for coverage)');
-        }
-        
-        // Check for multi-vessel disease
-        if (data.secondaryDetails === 'multi') {
-            coverage.criteria.push('Multi-vessel disease (higher priority for coverage)');
-        }
-    } 
-    // Check for primary prevention with very high LDL
-    else if (data.preventionCategory === 'primary' && data.ldl >= 3.5) {
-        coverage.criteria.push('Primary prevention with very high LDL-C');
-        coverage.notes.push('Documentation of familial hypercholesterolemia with DLCN score ≥6 would be required');
-    } else {
-        coverage.notMet.push('Does not meet primary coverage criteria (secondary prevention or primary prevention with LDL-C ≥3.5 mmol/L and documented FH)');
-    }
-    
-    // Check for maximum tolerated therapy
-    if (assessment.onMaximumTherapy) {
-        coverage.criteria.push('On maximum tolerated lipid-lowering therapy');
-    } else {
-        if (!assessment.statinIntolerance) {
-            coverage.notMet.push('Must be on maximum tolerated statin therapy');
-        }
-        
-        if (!data.ezetimibe) {
-            coverage.notMet.push('Must be on ezetimibe in addition to maximum tolerated statin');
-        }
-    }
-    
-    // Check duration on maximum therapy
-    if (data['max-therapy-duration'] === '>6' || data['max-therapy-duration'] === '3-6') {
-        coverage.criteria.push('≥3 months on maximum tolerated therapy');
-    } else {
-        coverage.notMet.push('Must be on maximum tolerated therapy for at least 3 months');
-    }
-    
-    // Check for documented statin intolerance if applicable
-    if (assessment.statinIntolerance) {
-        if (data['intolerance-type'] && data['intolerance-type'] !== '') {
-            coverage.criteria.push('Documented statin intolerance');
-        } else {
-            coverage.notMet.push('Statin intolerance must be properly documented');
-        }
-    }
-    
-    // Determine overall eligibility
-    coverage.eligible = coverage.notMet.length === 0 && (
-        (data.preventionCategory === 'secondary' && data.ldl >= 2.0 && assessment.onMaximumTherapy) ||
-        (data.preventionCategory === 'primary' && data.ldl >= 3.5 && assessment.onMaximumTherapy)
-    );
-    
-    return coverage;
-}
-
-/**
- * Display medication evaluation results
- * @param {Object} data - Standardized patient data
- * @param {Object} assessment - Current therapy assessment
- * @param {Object} targets - Target levels
- * @param {Object} recommendations - Recommendations object
- * @param {Object} pcsk9Coverage - PCSK9 coverage assessment
- */
-function displayMedicationResults(data, assessment, targets, recommendations, pcsk9Coverage) {
-    const resultsContainer = document.getElementById('results-container');
-    const resultsDiv = document.getElementById('risk-results');
-    
-    if (!resultsContainer || !resultsDiv) {
-        console.error('Results container not found');
-        return;
-    }
-    
-    // Clear previous results
-    resultsDiv.innerHTML = '';
-    
-    // Create results card
-    const resultCard = document.createElement('div');
-    resultCard.className = 'results-card';
-    
-    // Add header
-    resultCard.innerHTML = `
-        <div class="risk-header">
-            <h3 class="risk-title">Lipid-Lowering Therapy Assessment</h3>
-            <div class="risk-badge ${assessment.atLDLTarget ? 'low' : 'high'}">
-                ${assessment.atLDLTarget ? 'At Target' : 'Not At Target'}
-            </div>
-        </div>
-    `;
-    
-    // Current lipid profile and targets section
-    const lipidProfile = document.createElement('div');
-    lipidProfile.className = 'lipid-profile-section';
-    lipidProfile.innerHTML = `
-        <h4>Current Lipid Profile vs. Targets</h4>
-        <div class="lipid-table">
-            <div class="table-header">
-                <div class="table-cell">Parameter</div>
-                <div class="table-cell">Current Value</div>
-                <div class="table-cell">Target</div>
-                <div class="table-cell">Status</div>
-            </div>
-            <div class="table-row">
-                <div class="table-cell">LDL Cholesterol</div>
-                <div class="table-cell">${data.ldl.toFixed(2)} mmol/L</div>
-                <div class="table-cell">${targets.ldl.value} mmol/L</div>
-                <div class="table-cell ${assessment.atLDLTarget ? 'target-met' : 'target-not-met'}">
-                    ${assessment.atLDLTarget ? 'At Target' : 'Not At Target'}
-                </div>
-            </div>
-            <div class="table-row">
-                <div class="table-cell">Non-HDL Cholesterol</div>
-                <div class="table-cell">${data['non-hdl'].toFixed(2)} mmol/L</div>
-                <div class="table-cell">${targets.nonHDL.value} mmol/L</div>
-                <div class="table-cell ${assessment.atNonHDLTarget ? 'target-met' : 'target-not-met'}">
-                    ${assessment.atNonHDLTarget ? 'At Target' : 'Not At Target'}
-                </div>
-            </div>
-            ${data.apob ? `
-            <div class="table-row">
-                <div class="table-cell">ApoB</div>
-                <div class="table-cell">${data.apob.toFixed(2)} g/L</div>
-                <div class="table-cell">${targets.apoB.value} g/L</div>
-                <div class="table-cell ${assessment.atApoBTarget ? 'target-met' : 'target-not-met'}">
-                    ${assessment.atApoBTarget ? 'At Target' : 'Not At Target'}
-                </div>
-            </div>
-            ` : ''}
-            <div class="table-row">
-                <div class="table-cell">Triglycerides</div>
-                <div class="table-cell">${data.trig.toFixed(2)} mmol/L</div>
-                <div class="table-cell">&lt;1.7 mmol/L</div>
-                <div class="table-cell ${data.trig < 1.7 ? 'target-met' : 'target-not-met'}">
-                    ${data.trig < 1.7 ? 'Normal' : (data.trig > 5.0 ? 'Severely Elevated' : 'Elevated')}
-                </div>
-            </div>
-            ${data.lpa ? `
-            <div class="table-row">
-                <div class="table-cell">Lp(a)</div>
-                <div class="table-cell">${data.lpa} mg/dL</div>
-                <div class="table-cell">&lt;50 mg/dL</div>
-                <div class="table-cell ${data.lpa < 50 ? 'target-met' : 'target-not-met'}">
-                    ${data.lpa < 50 ? 'Normal' : 'Elevated'}
-                </div>
-            </div>
-            ` : ''}
-        </div>
-        <div class="risk-category-info">
-            <p><strong>Risk Category:</strong> ${targets.riskCategory}</p>
-            <p><strong>Current Therapy Intensity:</strong> ${assessment.currentTherapyIntensity}</p>
-            ${assessment.gapToLDLTarget > 0 ? 
-            `<p><strong>Additional LDL-C Reduction Needed:</strong> ${assessment.estimatedAdditionalLDLReduction.toFixed(0)}%</p>` : ''}
-        </div>
-    `;
-    
-    resultCard.appendChild(lipidProfile);
-    
-    // Treatment recommendations section
-    const recommendationsSection = document.createElement('div');
-    recommendationsSection.className = 'recommendations-section';
-    recommendationsSection.innerHTML = `
-        <h4>Treatment Recommendations</h4>
-        <div class="recommendations-summary">
-            <ul>
-                ${recommendations.summary.map(item => `<li>${item}</li>`).join('')}
-            </ul>
-        </div>
-        
-        <div class="detailed-recommendations">
-            ${recommendations.statinChange ? `
-            <div class="recommendation-item">
-                <h5>Statin Therapy</h5>
-                <p>${recommendations.statinChange}</p>
-                <div class="rationale">
-                    <p><strong>Rationale:</strong> ${recommendations.statinRationale}</p>
-                </div>
-            </div>
-            ` : ''}
-            
-            ${recommendations.ezetimibeChange ? `
-            <div class="recommendation-item">
-                <h5>Ezetimibe</h5>
-                <p>${recommendations.ezetimibeChange}</p>
-                <div class="rationale">
-                    <p><strong>Rationale:</strong> ${recommendations.ezetimibeRationale}</p>
-                </div>
-            </div>
-            ` : ''}
-            
-            ${recommendations.pcsk9Change ? `
-            <div class="recommendation-item">
-                <h5>PCSK9 Inhibitor</h5>
-                <p>${recommendations.pcsk9Change}</p>
-                <div class="rationale">
-                    <p><strong>Rationale:</strong> ${recommendations.pcsk9Rationale}</p>
-                </div>
-            </div>
-            ` : ''}
-            
-            ${recommendations.otherTherapies.length > 0 ? `
-            <div class="recommendation-item">
-                <h5>Additional Considerations</h5>
-                ${recommendations.otherTherapies.map(therapy => `
-                    <div class="other-therapy ${therapy.intensityClass}">
-                        <p>${therapy.therapy}</p>
-                        <div class="rationale">
-                            <p><strong>Rationale:</strong> ${therapy.rationale}</p>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-            ` : ''}
-            
-            <div class="recommendation-item">
-                <h5>Non-Pharmacological Therapy</h5>
-                <ul>
-                    ${recommendations.nonPharmacological.map(item => `<li>${item}</li>`).join('')}
-                </ul>
-            </div>
-        </div>
-    `;
-    
-    resultCard.appendChild(recommendationsSection);
-    
-    // PCSK9 coverage section if applicable
-    if (recommendations.pcsk9Change || data.pcsk9) {
-        const pcsk9Section = document.createElement('div');
-        pcsk9Section.className = 'pcsk9-coverage-assessment';
-        pcsk9Section.innerHTML = `
-            <h4>PCSK9 Inhibitor Coverage Assessment</h4>
-            <div class="coverage-status ${pcsk9Coverage.eligible ? 'eligible' : 'not-eligible'}">
-                <p><strong>Coverage Status:</strong> ${pcsk9Coverage.eligible ? 'Likely Eligible' : 'Currently Not Eligible'}</p>
-            </div>
-            
-            ${pcsk9Coverage.criteria.length > 0 ? `
-            <div class="criteria-met">
-                <p><strong>Criteria Met:</strong></p>
-                <ul>
-                    ${pcsk9Coverage.criteria.map(criterion => `<li>${criterion}</li>`).join('')}
-                </ul>
-            </div>
-            ` : ''}
-            
-            ${pcsk9Coverage.notMet.length > 0 ? `
-            <div class="criteria-not-met">
-                <p><strong>Criteria Not Met:</strong></p>
-                <ul>
-                    ${pcsk9Coverage.notMet.map(criterion => `<li>${criterion}</li>`).join('')}
-                </ul>
-            </div>
-            ` : ''}
-            
-            ${pcsk9Coverage.notes.length > 0 ? `
-            <div class="coverage-notes">
-                <p><strong>Notes:</strong></p>
-                <ul>
-                    ${pcsk9Coverage.notes.map(note => `<li>${note}</li>`).join('')}
-                </ul>
-            </div>
-            ` : ''}
-            
-            <div class="coverage-info">
-                <p><strong>Documentation Required for Special Authority:</strong></p>
-                <ul>
-                    <li>Current and baseline lipid values</li>
-                    <li>Details of current and previous lipid-lowering therapies</li>
-                    <li>Documentation of statin intolerance if applicable</li>
-                    <li>For primary prevention: documentation of familial hypercholesterolemia diagnosis</li>
-                </ul>
-            </div>
-        `;
-        
-        resultCard.appendChild(pcsk9Section);
-    }
-    
-    // Add card to results
-    resultsDiv.appendChild(resultCard);
-    
-    // Show results container
-    document.querySelector('#results-date span').textContent = new Date().toLocaleDateString();
-    resultsContainer.style.display = 'block';
-    
-    // Scroll to results
-    resultsContainer.scrollIntoView({ behavior: 'smooth' });
-}
-
-
-// === ui.js ===
-/**
- * UI functionality for CVD Risk Toolkit
- */
-
-/**
- * Opens the specified tab and handles tab switching
- * @param {Event} evt - The click event
- * @param {string} tabId - The ID of the tab to open
- */
-function openTab(evt, tabId) {
-    // Hide all tab content
-    const tabContents = document.getElementsByClassName("tab-content");
-    for (let i = 0; i < tabContents.length; i++) {
-        tabContents[i].classList.remove("active");
-    }
-    
-    // Remove active class from all tabs
-    const tabs = document.getElementsByClassName("tab");
-    for (let i = 0; i < tabs.length; i++) {
-        tabs[i].classList.remove("active");
-    }
-    
-    // Show the selected tab content and mark the button as active
-    document.getElementById(tabId).classList.add("active");
-    evt.currentTarget.classList.add("active");
-}
-
-/**
- * Initialize the application
- * This function sets up event listeners and initializes the UI
- */
-function initializeApp() {
-    console.log("Initializing CVD Risk Toolkit...");
-    
-    // Setup event listeners for tabs
-    setupTabEventListeners();
-    
-    // Setup card headers
-    setupCardHeaders();
-    
-    // Initialize tooltips and other UI elements
-    initializeTooltips();
-    setupModalClose();
-    setupHelpModal();
-    addClinicalValidation();
-    
-    // Set up cross-tab data sharing
-    setupCrossTabDataSharing();
-    
-    // Setup height toggle event listeners
-    setupHeightToggleListeners();
-    
-    // Setup SBP readings toggle
-    setupSBPReadingsToggle();
-    
-    // Setup theme toggle
-    setupThemeToggle();
-    
-    // Set current date
-    document.querySelector('#results-date span').textContent = new Date().toLocaleDateString();
-    
-    console.log("CVD Risk Toolkit initialization complete");
-}
-
-/**
- * Set up event listeners for tabs
- */
-function setupTabEventListeners() {
-    const tabs = document.querySelectorAll(".tab");
-    tabs.forEach(tab => {
-        tab.addEventListener('click', function(event) {
-            event.preventDefault();
-            const tabId = this.getAttribute('data-tab');
-            openTab(event, tabId);
-        });
-    });
-}
-
-/**
- * Set up expandable/collapsible card headers
- */
-function setupCardHeaders() {
-    const cardHeaders = document.querySelectorAll('.card-header');
-    
-    cardHeaders.forEach(header => {
-        header.addEventListener('click', function() {
-            // Toggle active class for header
-            this.classList.toggle('active');
-            
-            // Toggle the display of card body
-            const body = this.nextElementSibling;
-            if (body.classList.contains('active')) {
-                body.classList.remove('active');
-                this.querySelector('.toggle-icon').textContent = '▲';
-            } else {
-                body.classList.add('active');
-                this.querySelector('.toggle-icon').textContent = '▼';
-            }
-        });
-    });
-}
-
-/**
- * Initialize tooltips for informational icons
- */
-function initializeTooltips() {
-    const tooltipContainers = document.querySelectorAll('.tooltip-container');
-    
-    tooltipContainers.forEach(function(container) {
-        const infoIcon = container.querySelector('.info-icon');
-        const tooltipText = container.querySelector('.tooltip-text');
-        
-        if (infoIcon && tooltipText) {
-            infoIcon.addEventListener('click', function(event) {
-                event.stopPropagation();
-                tooltipText.style.visibility = tooltipText.style.visibility === 'visible' ? 'hidden' : 'visible';
-                tooltipText.style.opacity = tooltipText.style.opacity === '1' ? '0' : '1';
-            });
-            
-            document.addEventListener('click', function() {
-                tooltipText.style.visibility = 'hidden';
-                tooltipText.style.opacity = '0';
-            });
-        }
-    });
-}
-
-/**
- * Setup modal close functionality
- */
-function setupModalClose() {
-    // Close modal when close button is clicked
-    const closeButtons = document.querySelectorAll('.close-btn, .modal-close');
-    closeButtons.forEach(function(button) {
-        button.addEventListener('click', function() {
-            const modal = this.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-            }
-        });
-    });
-    
-    // Close modal when clicking outside of it
-    window.addEventListener('click', function(event) {
-        const modals = document.querySelectorAll('.modal');
-        modals.forEach(function(modal) {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-    });
-}
-
-/**
- * Setup the help modal tabs
- */
-function setupHelpModal() {
-    // Set up help tab navigation
-    const helpTabs = document.querySelectorAll('.help-tab');
-    helpTabs.forEach(tab => {
-        tab.addEventListener('click', function() {
-            // Remove active class from all tabs and content
-            document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.help-content').forEach(c => c.classList.remove('active'));
-            
-            // Add active class to clicked tab
-            this.classList.add('active');
-            
-            // Show corresponding content
-            const tabId = this.getAttribute('data-tab');
-            document.getElementById(tabId).classList.add('active');
-        });
-    });
-}
-
-/**
- * Set up cross-tab data sharing to allow calculated risk scores
- * to impact medication recommendations
- */
-function setupCrossTabDataSharing() {
-    // Listen for risk calculation events
-    document.addEventListener('risk-calculated', function(e) {
-        // Update medication tab with risk information if available
-        if (e.detail && e.detail.riskScore !== undefined) {
-            // Store risk information in session storage for tab persistence
-            sessionStorage.setItem('last-risk-score', e.detail.riskScore);
-            sessionStorage.setItem('risk-calculator-used', e.detail.calculator || 'unknown');
-            
-            // Update comparison tab status
-            updateComparisonTabStatus(e.detail.calculator.toLowerCase(), true);
-        }
-    });
-    
-    // Check if we have stored risk information on page load
-    const storedRisk = sessionStorage.getItem('last-risk-score');
-    const storedCalculator = sessionStorage.getItem('risk-calculator-used');
-    
-    if (storedRisk && storedCalculator) {
-        // Update comparison tab status based on stored information
-        if (storedCalculator === 'FRS') {
-            updateComparisonTabStatus('frs', true);
-        } else if (storedCalculator === 'QRISK3') {
-            updateComparisonTabStatus('qrisk', true);
-        } else if (storedCalculator === 'Combined') {
-            updateComparisonTabStatus('frs', true);
-            updateComparisonTabStatus('qrisk', true);
-        }
-    }
-}
-
-/**
- * Setup height toggle event listeners
- */
-function setupHeightToggleListeners() {
-    const heightUnit = document.getElementById('qrisk-height-unit');
-    if (heightUnit) {
-        heightUnit.addEventListener('change', function() {
-            toggleHeightInputs('qrisk');
-        });
-    }
-}
-
-/**
- * Toggle height inputs between cm and ft/in
- * @param {string} prefix - Form prefix ('qrisk')
- */
-function toggleHeightInputs(prefix) {
-    const heightUnit = document.getElementById(`${prefix}-height-unit`).value;
-    const heightInput = document.getElementById(`${prefix}-height`);
-    const heightFtContainer = document.getElementById(`${prefix}-height-ft-container`);
-    
-    if (heightUnit === 'cm') {
-        heightInput.style.display = 'block';
-        heightFtContainer.style.display = 'none';
-        
-        // If feet/inches values exist, convert to cm
-        const feetInput = document.getElementById(`${prefix}-height-feet`);
-        const inchesInput = document.getElementById(`${prefix}-height-inches`);
-        
-        if (feetInput.value && feetInput.value.trim() !== '') {
-            const feet = parseFloat(feetInput.value) || 0;
-            const inches = parseFloat(inchesInput.value) || 0;
-            const cm = convertHeightToCm(feet, inches);
-            heightInput.value = cm.toFixed(1);
-        }
-    } else {
-        heightInput.style.display = 'none';
-        heightFtContainer.style.display = 'flex';
-        
-        // If cm value exists, convert to feet/inches
-        if (heightInput.value && heightInput.value.trim() !== '') {
-            const cm = parseFloat(heightInput.value);
-            const totalInches = cm / 2.54;
-            const feet = Math.floor(totalInches / 12);
-            const inches = Math.round(totalInches % 12);
-            
-            document.getElementById(`${prefix}-height-feet`).value = feet;
-            document.getElementById(`${prefix}-height-inches`).value = inches;
-        }
-    }
-}
-
-/**
- * Setup SBP readings toggle
- */
-function setupSBPReadingsToggle() {
-    const qriskToggle = document.getElementById('qrisk-toggle-sbp-readings');
-    if (qriskToggle) {
-        qriskToggle.addEventListener('click', function() {
-            const readingsDiv = document.getElementById('qrisk-sbp-readings');
-            if (readingsDiv.style.display === 'none') {
-                readingsDiv.style.display = 'block';
-                this.textContent = 'Hide readings form';
-            } else {
-                readingsDiv.style.display = 'none';
-                this.textContent = 'Calculate from multiple readings';
-            }
-        });
-    }
-}
-
-/**
- * Setup dark/light theme toggle
- */
-function setupThemeToggle() {
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        // Check if theme preference is stored
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.body.classList.toggle('dark-theme', currentTheme === 'dark');
-        
-        // Update icon based on current theme
-        updateThemeIcon(currentTheme === 'dark');
-        
-        // Add click event
-        themeToggle.addEventListener('click', function() {
-            // Toggle theme
-            const isDarkTheme = document.body.classList.toggle('dark-theme');
-            
-            // Save preference
-            localStorage.setItem('theme', isDarkTheme ? 'dark' : 'light');
-            
-            // Update icon
-            updateThemeIcon(isDarkTheme);
-        });
-    }
-}
-
-/**
- * Update theme toggle icon based on current theme
- * @param {boolean} isDarkTheme - Whether dark theme is active
- */
-function updateThemeIcon(isDarkTheme) {
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        if (isDarkTheme) {
-            themeToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"></path></svg>';
-            themeToggle.setAttribute('aria-label', 'Switch to light mode');
-        } else {
-            themeToggle.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
-            themeToggle.setAttribute('aria-label', 'Switch to dark mode');
-        }
-    }
-}
-
-/**
- * Handle "Reset Form" button clicks
- * @param {string} formId - ID of the form to reset
- */
-function resetForm(formId) {
-    const form = document.getElementById(formId);
-    if (!form) {
-        return;
-    }
-    
-    // Reset all inputs to default values
-    form.reset();
-    
-    // Clear any error styling
-    const errorFields = form.querySelectorAll('.error');
-    errorFields.forEach(field => field.classList.remove('error'));
-    
-    // Hide error messages
-    const errorMessages = form.querySelectorAll('.error-message');
-    errorMessages.forEach(message => message.style.display = 'none');
-    
-    // Clear any calculated values or results
-    const nonHDLInput = form.querySelector('#med-non-hdl');
-    if (nonHDLInput) {
-        nonHDLInput.value = '';
-        nonHDLInput.disabled = true;
-        const toggleLink = document.getElementById('toggle-manual-non-hdl');
-        if (toggleLink) toggleLink.textContent = 'Enter manually';
-    }
-    
-    // Reset PCSK9 details if present
-    const pcsk9Details = document.getElementById('pcsk9-details');
-    if (pcsk9Details) pcsk9Details.style.display = 'none';
-    
-    // Reset any dependent selects or fields
-    const statinDoseSelect = form.querySelector('#med-statin-dose');
-    if (statinDoseSelect) {
-        statinDoseSelect.innerHTML = '<option value="" selected>Select dose</option>';
-        statinDoseSelect.disabled = true;
-    }
-    
-    const secondaryDetails = form.querySelector('#secondary-details');
-    if (secondaryDetails) secondaryDetails.disabled = true;
-    
-    const intoleranceType = form.querySelector('#med-intolerance-type');
-    if (intoleranceType) intoleranceType.disabled = true;
-    
-    // Clear SBP readings if present
-    for (let i = 1; i <= 6; i++) {
-        const reading = form.querySelector(`#${formId.split('-')[0]}-sbp-reading-${i}`);
-        if (reading) reading.value = '';
-    }
-    
-    const sbpResult = document.getElementById(`${formId.split('-')[0]}-sbp-sd-result`);
-    if (sbpResult) sbpResult.style.display = 'none';
-    
-    // Reset height/feet view if applicable
-    const heightUnit = form.querySelector(`#${formId.split('-')[0]}-height-unit`);
-    if (heightUnit && heightUnit.value === 'ft/in') {
-        heightUnit.value = 'cm';
-        toggleHeightInputs(formId.split('-')[0]);
-    }
-    
-    // Update comparison tab status if applicable
-    if (formId === 'frs-form') {
-        updateComparisonTabStatus('frs', false);
-    } else if (formId === 'qrisk-form') {
-        updateComparisonTabStatus('qrisk', false);
-    }
-    
-    // Hide results display
-    document.getElementById('results-container').style.display = 'none';
-}
-
-/**
- * Export results to CSV or PDF
- * @param {string} format - 'csv' or 'pdf'
- */
-function exportResults(format) {
-    const resultsContainer = document.getElementById('results-container');
-    if (!resultsContainer || resultsContainer.style.display === 'none') {
-        showModal('No results to export. Please calculate risk scores first.');
-        return;
-    }
-    
-    if (format === 'csv') {
-        exportToCSV();
-    } else if (format === 'pdf') {
-        showPdfPreview();
-    }
-}
-
-/**
- * Export results to CSV file
- */
-function exportToCSV() {
-    // Get data from results
-    const riskTitle = document.querySelector('.risk-title')?.textContent || 'CVD Risk Assessment';
-    const baseRisk = document.querySelector('.base-risk')?.textContent || 'N/A';
-    const lpaModifier = document.querySelector('.lpa-modifier')?.textContent || 'N/A';
-    const adjustedRisk = document.querySelector('.adjusted-risk')?.textContent || 'N/A';
-    const riskCategory = document.querySelector('.risk-category')?.textContent || 'N/A';
-    const date = document.querySelector('#results-date span')?.textContent || new Date().toLocaleDateString();
-    
-    // Create CSV content
-    let csvContent = 'data:text/csv;charset=utf-8,';
-    csvContent += 'CVD Risk Assessment Results,\r\n';
-    csvContent += 'Date,' + date + '\r\n\r\n';
-    csvContent += 'Assessment Type,' + riskTitle + '\r\n';
-    csvContent += 'Base Risk,' + baseRisk + '\r\n';
-    csvContent += 'Lp(a) Modifier,' + lpaModifier + '\r\n';
-    csvContent += 'Adjusted Risk,' + adjustedRisk + '\r\n';
-    csvContent += 'Risk Category,' + riskCategory + '\r\n\r\n';
-    
-    // Add recommendations (cleaned of HTML)
-    const recommendations = document.getElementById('recommendations-content');
-    if (recommendations) {
-        const recItems = recommendations.querySelectorAll('.recommendation-item');
-        if (recItems.length > 0) {
-            csvContent += 'Treatment Recommendations,\r\n';
-            
-            recItems.forEach(item => {
-                const title = item.querySelector('strong')?.textContent || '';
-                const content = item.textContent.replace(title, '').trim();
-                csvContent += title + ',' + content.replace(/,/g, ';') + '\r\n';
-            });
-        }
-    }
-    
-    // Create download link
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'cvd_risk_assessment_' + new Date().toISOString().slice(0, 10) + '.csv');
-    document.body.appendChild(link);
-    
-    // Trigger download
-    link.click();
-    document.body.removeChild(link);
-}
-
-/**
- * Show PDF preview before export
- */
-function showPdfPreview() {
-    const previewModal = document.getElementById('pdf-preview-modal');
-    const previewContent = document.getElementById('pdf-preview-content');
-    
-    if (!previewModal || !previewContent) {
-        showModal('PDF preview functionality is not available. Please try again later.');
-        return;
-    }
-    
-    // Clone the results section for preview
-    const resultsContainer = document.getElementById('results-container');
-    previewContent.innerHTML = '';
-    previewContent.appendChild(resultsContainer.cloneNode(true));
-    
-    // Add preview styling
-    previewContent.querySelector('.export-section').style.display = 'none';
-    
-    // Show the preview modal
-    previewModal.style.display = 'block';
-    
-    // Setup download button
-    document.getElementById('download-pdf-btn').addEventListener('click', function() {
-        // In a real implementation, this would use a library like jsPDF or html2pdf
-        // For this demo, we'll just show a message
-        showModal('PDF generation would be implemented here with a library like jsPDF or html2pdf.');
-        previewModal.style.display = 'none';
-    });
-}
-
-// Initialize the application when the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', initializeApp);
-
-
-// === form-handler.js ===
-/**
- * Form Handler Module
- * Provides comprehensive form handling functionality including validation,
- * submission, state management, and accessibility features
- */
-const formHandler = (function() {
-    // Configuration
-    const config = {
-        debounceDelay: 300,
-        validationRealtime: true,
-        scrollToError: true,
-        scrollOffset: 20,
-        saveFormState: true,
-        storageKey: 'formState_',
-        maxAutoSaveInterval: 30000, // 30 seconds
-        disableSubmitOnValidation: true
-    };
-    
-    // State tracking
-    const formStates = new Map();
-    const autoSaveTimers = new Map();
-    
-    /**
-     * Initialize form with event handlers and validation
-     * @param {string} formId - ID of the form element
-     * @param {Object} options - Configuration options
-     */
-    function initializeForm(formId, options = {}) {
-        const form = document.getElementById(formId);
-        if (!form) {
-            console.error(`Form with ID ${formId} not found`);
-            return;
-        }
-        
-        // Merge options with defaults
-        const formConfig = { ...config, ...options };
-        
-        // Initialize form state
-        formStates.set(formId, {
-            isValid: false,
-            isDirty: false,
-            fields: new Map(),
-            config: formConfig
-        });
-        
-        // Setup event listeners
-        setupFormListeners(form, formConfig);
-        
-        // Setup field validators
-        setupFieldValidators(form, formConfig);
-        
-        // Restore saved state if enabled
-        if (formConfig.saveFormState) {
-            restoreFormState(form, formConfig);
-            setupAutoSave(form, formConfig);
-        }
-        
-        // Setup keyboard navigation
-        setupKeyboardNavigation(form);
-        
-        // Initialize accessibility features
-        initializeAccessibility(form);
-    }
-    
-    /**
-     * Setup form event listeners
-     * @private
-     */
-    function setupFormListeners(form, config) {
-        // Prevent default form submission
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleFormSubmit(form, config);
-        });
-        
-        // Track form changes
-        form.addEventListener('change', (e) => {
-            handleFieldChange(form, e.target, config);
-        });
-        
-        // Real-time validation
-        if (config.validationRealtime) {
-            form.addEventListener('input', debounce((e) => {
-                handleFieldInput(form, e.target, config);
-            }, config.debounceDelay));
-        }
-        
-        // Handle form reset
-        form.addEventListener('reset', (e) => {
-            handleFormReset(form, config);
-        });
-    }
-    
-    /**
-     * Setup individual field validators
-     * @private
-     */
-    function setupFieldValidators(form, config) {
-        const fields = form.querySelectorAll('input, select, textarea');
-        fields.forEach(field => {
-            // Add validation attributes if not present
-            enhanceFieldValidation(field);
-            
-            // Setup blur validation
-            field.addEventListener('blur', () => {
-                validateField(field, config);
-            });
-        });
-    }
-    
-    /**
-     * Enhance field validation attributes
-     * @private
-     */
-    function enhanceFieldValidation(field) {
-        // Add aria-required for required fields
-        if (field.required) {
-            field.setAttribute('aria-required', 'true');
-        }
-        
-        // Add pattern for specific input types
-        if (field.type === 'email' && !field.pattern) {
-            field.pattern = '[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$';
-        }
-        
-        if (field.type === 'tel' && !field.pattern) {
-            field.pattern = '[0-9]{3}-[0-9]{3}-[0-9]{4}';
-        }
-        
-        // Add inputmode for better mobile experience
-        if (field.type === 'number') {
-            field.setAttribute('inputmode', 'numeric');
-        }
-    }
-    
-    /**
-     * Handle form submission
-     * @private
-     */
-    async function handleFormSubmit(form, config) {
-        const formState = formStates.get(form.id);
-        
-        // Show loading indicator if available
-        if (window.loadingIndicator) {
-            window.loadingIndicator.show('Processing...');
-        }
-        
-        try {
-            // Validate entire form
-            const isValid = validateForm(form, config);
-            
-            if (!isValid) {
-                // Show validation errors
-                if (window.enhancedDisplay) {
-                    window.enhancedDisplay.showError('Please correct the errors in the form');
-                }
-                
-                // Scroll to first error if enabled
-                if (config.scrollToError) {
-                    scrollToFirstError(form, config);
-                }
-                
-                return;
-            }
-            
-            // Get form data
-            const formData = getFormData(form);
-            
-            // Call submit handler if provided
-            if (config.onSubmit) {
-                await config.onSubmit(formData, form);
-            }
-            
-            // Clear form state if successful
-            if (config.clearOnSuccess) {
-                clearFormState(form.id);
-            }
-            
-            // Show success message
-            if (window.enhancedDisplay) {
-                window.enhancedDisplay.showSuccess('Form submitted successfully');
-            }
-            
-        } catch (error) {
-            console.error('Form submission error:', error);
-            
-            if (window.enhancedDisplay) {
-                window.enhancedDisplay.showError('An error occurred while submitting the form');
-            }
-        } finally {
-            // Hide loading indicator
-            if (window.loadingIndicator) {
-                window.loadingIndicator.hide();
-            }
-        }
-    }
-    
-    /**
-     * Validate entire form
-     * @private
-     */
-    function validateForm(form, config) {
-        let isValid = true;
-        const fields = form.querySelectorAll('input, select, textarea');
-        
-        fields.forEach(field => {
-            if (!validateField(field, config)) {
-                isValid = false;
-            }
-        });
-        
-        // Update form state
-        const formState = formStates.get(form.id);
-        if (formState) {
-            formState.isValid = isValid;
-        }
-        
-        // Update submit button state
-        if (config.disableSubmitOnValidation) {
-            const submitButton = form.querySelector('button[type="submit"]');
-            if (submitButton) {
-                submitButton.disabled = !isValid;
-            }
-        }
-        
-        return isValid;
-    }
-    
-    /**
-     * Validate individual field
-     * @private
-     */
-    function validateField(field, config) {
-        let isValid = true;
-        let errorMessage = '';
-        
-        // Required field validation
-        if (field.required && !field.value.trim()) {
-            isValid = false;
-            errorMessage = `${getFieldLabel(field)} is required`;
-        }
-        
-        // Pattern validation
-        if (field.pattern && field.value) {
-            const pattern = new RegExp(field.pattern);
-            if (!pattern.test(field.value)) {
-                isValid = false;
-                errorMessage = `Please enter a valid ${getFieldLabel(field).toLowerCase()}`;
-            }
-        }
-        
-        // Min/max validation for numbers
-        if (field.type === 'number' && field.value) {
-            const value = parseFloat(field.value);
-            if (field.min && value < parseFloat(field.min)) {
-                isValid = false;
-                errorMessage = `${getFieldLabel(field)} must be at least ${field.min}`;
-            }
-            if (field.max && value > parseFloat(field.max)) {
-                isValid = false;
-                errorMessage = `${getFieldLabel(field)} must be at most ${field.max}`;
-            }
-        }
-        
-        // Custom validation function
-        if (config.validators && config.validators[field.name]) {
-            const customResult = config.validators[field.name](field.value, field);
-            if (customResult !== true) {
-                isValid = false;
-                errorMessage = typeof customResult === 'string' ? customResult : errorMessage;
-            }
-        }
-        
-        // Update field state
-        updateFieldState(field, isValid, errorMessage);
-        
-        return isValid;
-    }
-    
-    /**
-     * Update field state and display feedback
-     * @private
-     */
-    function updateFieldState(field, isValid, errorMessage) {
-        const fieldState = {
-            isValid,
-            errorMessage,
-            value: field.value
-        };
-        
-        // Update form state
-        const form = field.closest('form');
-        if (form) {
-            const formState = formStates.get(form.id);
-            if (formState) {
-                formState.fields.set(field.name || field.id, fieldState);
-            }
-        }
-        
-        // Display feedback
-        if (window.enhancedDisplay) {
-            if (!isValid) {
-                window.enhancedDisplay.showFieldFeedback(field, errorMessage, 'error');
-                field.classList.add('error');
-            } else {
-                window.enhancedDisplay.clearFieldFeedback(field);
-                field.classList.remove('error');
-            }
-        }
-    }
-    
-    /**
-     * Handle field input (real-time validation)
-     * @private
-     */
-    function handleFieldInput(form, field, config) {
-        if (config.validationRealtime) {
-            validateField(field, config);
-        }
-        
-        // Mark form as dirty
-        const formState = formStates.get(form.id);
-        if (formState) {
-            formState.isDirty = true;
-        }
-    }
-    
-    /**
-     * Handle field change
-     * @private
-     */
-    function handleFieldChange(form, field, config) {
-        validateField(field, config);
-        
-        // Update form state
-        const formState = formStates.get(form.id);
-        if (formState) {
-            formState.isDirty = true;
-        }
-        
-        // Save form state if enabled
-        if (config.saveFormState) {
-            saveFormState(form, config);
-        }
-    }
-    
-    /**
-     * Handle form reset
-     * @private
-     */
-    function handleFormReset(form, config) {
-        // Clear all field states
-        const fields = form.querySelectorAll('input, select, textarea');
-        fields.forEach(field => {
-            updateFieldState(field, true, '');
-        });
-        
-        // Reset form state
-        const formState = formStates.get(form.id);
-        if (formState) {
-            formState.isValid = false;
-            formState.isDirty = false;
-            formState.fields.clear();
-        }
-        
-        // Clear saved state
-        if (config.saveFormState) {
-            clearFormState(form.id);
-        }
-    }
-    
-    /**
-     * Save form state to storage
-     * @private
-     */
-    function saveFormState(form, config) {
-        const formData = getFormData(form);
-        const storageKey = config.storageKey + form.id;
-        
-        try {
-            if (window.secureStorage) {
-                window.secureStorage.setItem(storageKey, formData);
-            } else {
-                localStorage.setItem(storageKey, JSON.stringify(formData));
-            }
-        } catch (error) {
-            console.warn('Failed to save form state:', error);
-        }
-    }
-    
-    /**
-     * Restore form state from storage
-     * @private
-     */
-    function restoreFormState(form, config) {
-        const storageKey = config.storageKey + form.id;
-        let savedData = null;
-        
-        try {
-            if (window.secureStorage) {
-                savedData = window.secureStorage.getItem(storageKey);
-            } else {
-                const data = localStorage.getItem(storageKey);
-                savedData = data ? JSON.parse(data) : null;
-            }
-        } catch (error) {
-            console.warn('Failed to restore form state:', error);
-        }
-        
-        if (savedData) {
-            setFormData(form, savedData);
-        }
-    }
-    
-    /**
-     * Clear saved form state
-     * @private
-     */
-    function clearFormState(formId) {
-        const storageKey = config.storageKey + formId;
-        
-        try {
-            if (window.secureStorage) {
-                window.secureStorage.removeItem(storageKey);
-            } else {
-                localStorage.removeItem(storageKey);
-            }
-        } catch (error) {
-            console.warn('Failed to clear form state:', error);
-        }
-    }
-    
-    /**
-     * Setup auto-save functionality
-     * @private
-     */
-    function setupAutoSave(form, config) {
-        // Clear existing timer
-        if (autoSaveTimers.has(form.id)) {
-            clearInterval(autoSaveTimers.get(form.id));
-        }
-        
-        // Set up new timer
-        const timer = setInterval(() => {
-            const formState = formStates.get(form.id);
-            if (formState && formState.isDirty) {
-                saveFormState(form, config);
-                formState.isDirty = false;
-            }
-        }, config.maxAutoSaveInterval);
-        
-        autoSaveTimers.set(form.id, timer);
-    }
-    
-    /**
-     * Get form data as object
-     * @private
-     */
-    function getFormData(form) {
-        const formData = new FormData(form);
-        const data = {};
-        
-        for (let [key, value] of formData.entries()) {
-            // Handle multiple values (checkboxes, multi-selects)
-            if (data[key]) {
-                if (Array.isArray(data[key])) {
-                    data[key].push(value);
-                } else {
-                    data[key] = [data[key], value];
-                }
-            } else {
-                data[key] = value;
-            }
-        }
-        
-        return data;
-    }
-    
-    /**
-     * Set form data from object
-     * @private
-     */
-    function setFormData(form, data) {
-        Object.keys(data).forEach(key => {
-            const field = form.elements[key];
-            if (field) {
-                if (field.type === 'checkbox' || field.type === 'radio') {
-                    field.checked = (field.value === data[key]) || (Array.isArray(data[key]) && data[key].includes(field.value));
-                } else {
-                    field.value = data[key];
-                }
-            }
-        });
-    }
-    
-    /**
-     * Get field label
-     * @private
-     */
-    function getFieldLabel(field) {
-        // Try to find associated label
-        const label = document.querySelector(`label[for="${field.id}"]`);
-        if (label) {
-            return label.textContent.trim();
-        }
-        
-        // Use placeholder or name as fallback
-        return field.placeholder || field.name || field.id || 'Field';
-    }
-    
-    /**
-     * Scroll to first error field
-     * @private
-     */
-    function scrollToFirstError(form, config) {
-        const errorField = form.querySelector('.error');
-        if (errorField && window.enhancedDisplay) {
-            window.enhancedDisplay.scrollToElement(errorField, {
-                offset: config.scrollOffset
-            });
-        }
-    }
-    
-    /**
-     * Setup keyboard navigation
-     * @private
-     */
-    function setupKeyboardNavigation(form) {
-        form.addEventListener('keydown', (e) => {
-            // Enter key moves to next field
-            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
-                e.preventDefault();
-                focusNextField(form, e.target);
-            }
-            
-            // Escape key clears current field
-            if (e.key === 'Escape') {
-                e.target.value = '';
-                e.target.dispatchEvent(new Event('input'));
-            }
-        });
-    }
-    
-    /**
-     * Focus next field in form
-     * @private
-     */
-    function focusNextField(form, currentField) {
-        const fields = Array.from(form.querySelectorAll('input, select, textarea, button'));
-        const currentIndex = fields.indexOf(currentField);
-        
-        if (currentIndex > -1 && currentIndex < fields.length - 1) {
-            fields[currentIndex + 1].focus();
-        }
-    }
-    
-    /**
-     * Initialize accessibility features
-     * @private
-     */
-    function initializeAccessibility(form) {
-        // Add form role
-        form.setAttribute('role', 'form');
-        
-        // Add aria-labels to fields without labels
-        const fields = form.querySelectorAll('input, select, textarea');
-        fields.forEach(field => {
-            if (!field.getAttribute('aria-label') && !document.querySelector(`label[for="${field.id}"]`)) {
-                field.setAttribute('aria-label', getFieldLabel(field));
-            }
-        });
-    }
-    
-    /**
-     * Debounce function
-     * @private
-     */
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-    
-    // Public API
-    return {
-        initializeForm,
-        validateForm,
-        validateField,
-        getFormData,
-        setFormData,
-        clearFormState,
-        handleFormSubmit: (formId, options, callback) => {
-            const form = document.getElementById(formId);
-            if (form) {
-                options.onSubmit = callback;
-                initializeForm(formId, options);
-            }
-        }
-    };
+  return {
+    sanitizeString,
+    sanitizeHTML,
+    sanitizeNumber,
+    sanitizeURL,
+    validateInput,
+    validateNumericInput
+  };
 })();
 
-// Export for module usage if supported
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-    module.exports = formHandler;
-} else {
-    window.formHandler = formHandler;
+/**
+ * Physiological Validation Module
+ * Provides additional medical/physiological validation for health data
+ */
+export const physiologicalValidation = (() => {
+  // Normal ranges for physiological values
+  const NORMAL_RANGES = {
+    // Basic vitals
+    age: { min: 18, max: 110, unit: 'years' },
+    height: { min: 100, max: 250, unit: 'cm' },
+    weight: { min: 30, max: 200, unit: 'kg' },
+    sbp: { min: 70, max: 210, unit: 'mmHg' },
+    dbp: { min: 40, max: 130, unit: 'mmHg' },
+    
+    // Lipid panel (in mmol/L)
+    totalChol: { min: 1.0, max: 15.0, unit: 'mmol/L' },
+    ldl: { min: 0.5, max: 10.0, unit: 'mmol/L' },
+    hdl: { min: 0.5, max: 4.0, unit: 'mmol/L' },
+    triglycerides: { min: 0.2, max: 10.0, unit: 'mmol/L' },
+    lpa: { min: 0, max: 300, unit: 'mg/dL' }
+  };
+  
+  // List of active warnings to track
+  const activeWarnings = new Set();
+  
+  /**
+   * Validate a physiological value against normal ranges
+   * @param {string} fieldId - Field ID to validate
+   * @param {string} physiologicalType - Type of value (e.g., 'age', 'sbp')
+   * @returns {boolean} - Whether the value is within normal range
+   */
+  function validatePhysiologicalValue(fieldId, physiologicalType) {
+    const field = document.getElementById(fieldId);
+    if (!field) return true; // Can't validate missing field
+    
+    const value = parseFloat(field.value);
+    if (isNaN(value)) return true; // Can't validate non-numeric value
+    
+    const normalRange = NORMAL_RANGES[physiologicalType];
+    if (!normalRange) return true; // No defined range for this type
+    
+    // Check against normal range
+    const isNormal = value >= normalRange.min && value <= normalRange.max;
+    
+    // Create or clear warning
+    if (!isNormal) {
+      createPhysiologicalWarning(fieldId, physiologicalType, value, normalRange);
+      activeWarnings.add(fieldId);
+    } else {
+      clearPhysiologicalWarning(fieldId);
+      activeWarnings.delete(fieldId);
+    }
+    
+    return isNormal;
+  }
+  
+  /**
+   * Create a warning message for abnormal physiological value
+   * @param {string} fieldId - Field ID with abnormal value
+   * @param {string} physiologicalType - Type of value
+   * @param {number} value - Actual value
+   * @param {Object} normalRange - Normal range for this type
+   */
+  function createPhysiologicalWarning(fieldId, physiologicalType, value, normalRange) {
+    // Check if warning already exists
+    let warningEl = document.getElementById(`${fieldId}-warning`);
+    
+    if (!warningEl) {
+      // Create warning element
+      warningEl = document.createElement('div');
+      warningEl.id = `${fieldId}-warning`;
+      warningEl.className = 'physiological-warning';
+      
+      // Insert after the field or its parent form group
+      const field = document.getElementById(fieldId);
+      const formGroup = field.closest('.form-group');
+      const parentEl = formGroup || field.parentElement;
+      
+      parentEl.appendChild(warningEl);
+    }
+    
+    // Set warning message
+    const humanReadableType = physiologicalType
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase());
+    
+    const lowOrHigh = value < normalRange.min ? 'low' : 'high';
+    
+    warningEl.innerHTML = `
+      <div class="physiological-warning-icon">⚠️</div>
+      <div class="physiological-warning-message">
+        <strong>Unusual ${humanReadableType}:</strong> ${value} ${normalRange.unit} seems ${lowOrHigh}.
+        <br>Normal range is ${normalRange.min} - ${normalRange.max} ${normalRange.unit}.
+        <div class="physiological-warning-note">
+          <small>*Please double-check this value. If correct, proceed.</small>
+        </div>
+      </div>
+    `;
+    
+    // Add CSS for warning styling
+    if (!document.getElementById('physiological-warning-styles')) {
+      const style = document.createElement('style');
+      style.id = 'physiological-warning-styles';
+      style.textContent = `
+        .physiological-warning {
+          margin-top: var(--space-sm, 0.5rem);
+          padding: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+          border-radius: var(--radius-md, 0.375rem);
+          background-color: rgba(237, 137, 54, 0.1);
+          border-left: 3px solid var(--warning-color, #dd6b20);
+          display: flex;
+          align-items: flex-start;
+          gap: var(--space-sm, 0.5rem);
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .physiological-warning-icon {
+          font-size: 1.25rem;
+          line-height: 1;
+        }
+        
+        .physiological-warning-message {
+          font-size: var(--font-size-sm, 0.875rem);
+          color: var(--text-color, #2d3748);
+        }
+        
+        .physiological-warning-note {
+          margin-top: var(--space-xs, 0.25rem);
+          color: var(--text-light, #718096);
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-5px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  
+  /**
+   * Clear a physiological warning for a field
+   * @param {string} fieldId - Field ID to clear warning for
+   */
+  function clearPhysiologicalWarning(fieldId) {
+    const warningEl = document.getElementById(`${fieldId}-warning`);
+    if (warningEl) {
+      warningEl.remove();
+      activeWarnings.delete(fieldId);
+    }
+  }
+  
+  /**
+   * Clear all physiological warnings
+   */
+  function clearAllWarnings() {
+    activeWarnings.forEach(fieldId => {
+      clearPhysiologicalWarning(fieldId);
+    });
+    activeWarnings.clear();
+  }
+  
+  /**
+   * Validate an entire form for physiological plausibility
+   * @param {string} formId - Form ID to validate
+   * @returns {boolean} - Whether all values are physiologically plausible
+   */
+  function validatePhysiologicalForm(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return true;
+    
+    // Find form inputs and validate them against physiological ranges
+    const numericInputs = form.querySelectorAll('input[type="number"]');
+    let allValid = true;
+    
+    numericInputs.forEach(input => {
+      const fieldId = input.id;
+      
+      // Extract physiological type from field ID
+      // Assumption: field IDs follow pattern like 'form-type' or 'form-type-sub'
+      const parts = fieldId.split('-');
+      if (parts.length < 2) return;
+      
+      const typeMatch = parts.slice(1).join('-');
+      
+      // Try to find a matching physiological type
+      let matchedType = null;
+      for (const type in NORMAL_RANGES) {
+        if (typeMatch.includes(type)) {
+          matchedType = type;
+          break;
+        }
+      }
+      
+      if (matchedType) {
+        const isValid = validatePhysiologicalValue(fieldId, matchedType);
+        if (!isValid) allValid = false;
+      }
+    });
+    
+    // Check for combination warnings (multiple values that together are concerning)
+    validateCombinations(formId);
+    
+    return allValid;
+  }
+  
+  /**
+   * Validate combinations of values that together might be concerning
+   * @param {string} formId - Form ID to validate combinations for
+   */
+  function validateCombinations(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    
+    const warnings = [];
+    
+    // Check for low HDL and high LDL
+    const hdlField = form.querySelector('input[id*="hdl"]');
+    const ldlField = form.querySelector('input[id*="ldl"]');
+    
+    if (hdlField && ldlField) {
+      const hdl = parseFloat(hdlField.value);
+      const ldl = parseFloat(ldlField.value);
+      
+      if (!isNaN(hdl) && !isNaN(ldl) && hdl < 1.0 && ldl > 4.5) {
+        warnings.push(`Low HDL (${hdl} mmol/L) combined with high LDL (${ldl} mmol/L) indicates very high cardiovascular risk.`);
+      }
+    }
+    
+    // Check for high systolic with normal diastolic (isolated systolic hypertension)
+    const sbpField = form.querySelector('input[id*="sbp"]');
+    const dbpField = form.querySelector('input[id*="dbp"]');
+    
+    if (sbpField && dbpField) {
+      const sbp = parseFloat(sbpField.value);
+      const dbp = parseFloat(dbpField.value);
+      
+      if (!isNaN(sbp) && !isNaN(dbp) && sbp > 160 && dbp < 90) {
+        warnings.push(`Isolated systolic hypertension detected (SBP ${sbp} mmHg with DBP ${dbp} mmHg). This pattern is common in older adults.`);
+      }
+    }
+    
+    // Add combination warnings to the form
+    if (warnings.length > 0) {
+      displayCombinationWarnings(formId, warnings);
+    } else {
+      clearCombinationWarnings(formId);
+    }
+  }
+  
+  /**
+   * Display warnings for concerning combinations of values
+   * @param {string} formId - Form ID to display warnings for
+   * @param {Array} warnings - Array of warning messages
+   */
+  function displayCombinationWarnings(formId, warnings) {
+    let warningsContainer = document.getElementById(`${formId}-combination-warnings`);
+    
+    if (!warningsContainer) {
+      warningsContainer = document.createElement('div');
+      warningsContainer.id = `${formId}-combination-warnings`;
+      warningsContainer.className = 'combination-warnings';
+      
+      const form = document.getElementById(formId);
+      const submitButton = form.querySelector('button[type="submit"]');
+      
+      if (submitButton) {
+        submitButton.parentElement.insertBefore(warningsContainer, submitButton);
+      } else {
+        form.appendChild(warningsContainer);
+      }
+    }
+    
+    let warningsHTML = '<div class="warning-header">Clinical Observations:</div><ul>';
+    warnings.forEach(warning => {
+      warningsHTML += `<li>${warning}</li>`;
+    });
+    warningsHTML += '</ul>';
+    
+    warningsContainer.innerHTML = warningsHTML;
+    warningsContainer.style.display = 'block';
+    
+    // Add CSS if not already added
+    if (!document.getElementById('combination-warnings-styles')) {
+      const style = document.createElement('style');
+      style.id = 'combination-warnings-styles';
+      style.textContent = `
+        .combination-warnings {
+          margin: var(--space-lg, 1.5rem) 0;
+          padding: var(--space-md, 1rem);
+          border-radius: var(--radius-md, 0.375rem);
+          background-color: rgba(49, 130, 206, 0.1);
+          border-left: 3px solid var(--info-color, #3182ce);
+        }
+        
+        .combination-warnings .warning-header {
+          font-weight: var(--font-weight-semibold, 600);
+          margin-bottom: var(--space-sm, 0.5rem);
+          color: var(--info-color, #3182ce);
+        }
+        
+        .combination-warnings ul {
+          margin-bottom: 0;
+          padding-left: var(--space-lg, 1.5rem);
+        }
+        
+        .combination-warnings li {
+          margin-bottom: var(--space-xs, 0.25rem);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }
+  
+  /**
+   * Clear combination warnings
+   * @param {string} formId - Form ID to clear warnings for
+   */
+  function clearCombinationWarnings(formId) {
+    const warningsContainer = document.getElementById(`${formId}-combination-warnings`);
+    if (warningsContainer) {
+      warningsContainer.style.display = 'none';
+    }
+  }
+  
+  return {
+    validatePhysiologicalValue,
+    createPhysiologicalWarning,
+    clearPhysiologicalWarning,
+    clearAllWarnings,
+    validatePhysiologicalForm,
+    validateCombinations
+  };
+})();
+
+// =============================================================================
+// RISK CALCULATION FUNCTIONS
+// =============================================================================
+
+/**
+ * Calculate treatment recommendations based on risk score and lipid levels
+ * @param {Object} data - Patient data including risk score and lipid levels
+ * @returns {Object} - Treatment recommendations
+ */
+export function calculateTreatmentRecommendations(data) {
+  // Validate input
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid data object provided');
+  }
+  
+  if (data.adjustedRisk === undefined && data.risk === undefined) {
+    throw new Error('Missing risk score data');
+  }
+
+  // Default recommendations object
+  const recommendations = {
+    riskCategory: '',
+    statinRecommended: false,
+    statinIntensity: '',
+    statinOptions: [],
+    ldlTarget: null,
+    nonHDLTarget: null,
+    followUp: '',
+    additionalTests: [],
+    lifestyleAdvice: []
+  };
+  
+  // Get risk category
+  const riskPercentage = data.adjustedRisk !== undefined ? data.adjustedRisk : data.risk;
+  recommendations.riskCategory = getRiskCategory(riskPercentage);
+  
+  // Convert LDL to mmol/L if needed for consistent comparison
+  let ldl = data.ldl;
+  if (ldl !== undefined) {
+    if (data.ldlUnit === 'mg/dL') {
+      ldl = convertCholesterol(ldl, 'mg/dL', 'mmol/L');
+    }
+  } else {
+    ldl = 0; // Default if not provided
+  }
+  
+  // Check if family history present or other high-risk factors
+  const hasHighRiskFactors = data.familyHistory || 
+                            (ldl >= 4.9) || 
+                            (data.lpa && data.lpa >= 50 && data.lpaUnit === 'mg/dL') ||
+                            (data.lpa && data.lpa >= 125 && data.lpaUnit === 'nmol/L');
+  
+  // Determine statin recommendation based on risk category and LDL
+  if (recommendations.riskCategory === 'high' || hasHighRiskFactors) {
+    recommendations.statinRecommended = true;
+    recommendations.statinIntensity = 'high';
+    recommendations.ldlTarget = 1.8; // mmol/L
+    recommendations.nonHDLTarget = 2.6; // mmol/L
+    recommendations.statinOptions = [
+      { name: 'Atorvastatin', dose: '40-80 mg daily', intensity: 'high' },
+      { name: 'Rosuvastatin', dose: '20-40 mg daily', intensity: 'high' }
+    ];
+    recommendations.followUp = '4-12 weeks after initiating therapy';
+    recommendations.additionalTests = [
+      'Liver function tests at baseline, 8-12 weeks after starting therapy, and annually thereafter',
+      'HbA1c or fasting glucose at baseline and after 3 months'
+    ];
+  } else if (recommendations.riskCategory === 'moderate') {
+    recommendations.statinRecommended = true;
+    recommendations.statinIntensity = 'moderate';
+    recommendations.ldlTarget = 2.6; // mmol/L
+    recommendations.nonHDLTarget = 3.4; // mmol/L
+    recommendations.statinOptions = [
+      { name: 'Atorvastatin', dose: '10-20 mg daily', intensity: 'moderate' },
+      { name: 'Rosuvastatin', dose: '5-10 mg daily', intensity: 'moderate' },
+      { name: 'Simvastatin', dose: '20-40 mg daily', intensity: 'moderate' }
+    ];
+    recommendations.followUp = '4-12 weeks after initiating therapy';
+    recommendations.additionalTests = [
+      'Liver function tests at baseline, 8-12 weeks after starting therapy, and annually thereafter'
+    ];
+  } else {
+    // Low risk
+    recommendations.statinRecommended = false;
+    recommendations.statinIntensity = 'none';
+    recommendations.ldlTarget = 3.4; // mmol/L
+    recommendations.nonHDLTarget = 4.1; // mmol/L
+    recommendations.followUp = 'Reassess cardiovascular risk in 5 years';
+    recommendations.additionalTests = [];
+  }
+  
+  // Add lifestyle advice for all patients
+  recommendations.lifestyleAdvice = [
+    'Mediterranean diet rich in fruits, vegetables, whole grains, and fish',
+    'Regular physical activity (150+ minutes moderate or 75+ minutes vigorous per week)',
+    'Smoking cessation if applicable',
+    'Maintain healthy weight (BMI 18.5-24.9)',
+    'Limit alcohol consumption',
+    'Reduce dietary saturated and trans fats'
+  ];
+  
+  // Special recommendations for elevated Lp(a)
+  if (data.lpa) {
+    let lpaValue = data.lpa;
+    let lpaUnit = data.lpaUnit || 'mg/dL';
+    
+    // Convert to mg/dL for assessment if needed
+    if (lpaUnit === 'nmol/L') {
+      lpaValue = convertLpa(lpaValue, 'nmol/L', 'mg/dL');
+      lpaUnit = 'mg/dL';
+    }
+    
+    if (lpaValue >= 50) {
+      // Add Lp(a)-specific recommendations
+      recommendations.additionalTests.push('Consider repeat Lp(a) measurement to confirm elevation');
+      recommendations.additionalTests.push('Consider cascade screening for first-degree relatives');
+      
+      // More intensive goals for very high Lp(a)
+      if (lpaValue >= 100) {
+        recommendations.ldlTarget = Math.min(recommendations.ldlTarget, 1.4); // Lower LDL target
+        recommendations.nonHDLTarget = Math.min(recommendations.nonHDLTarget, 2.2);
+        recommendations.statinIntensity = 'high';
+        recommendations.statinRecommended = true;
+        recommendations.followUp = '4-8 weeks after initiating therapy';
+        
+        // Update statin options for high intensity
+        recommendations.statinOptions = [
+          { name: 'Atorvastatin', dose: '40-80 mg daily', intensity: 'high' },
+          { name: 'Rosuvastatin', dose: '20-40 mg daily', intensity: 'high' }
+        ];
+        
+        // Consider additional therapy
+        recommendations.additionalTests.push('Consider referral to lipid specialist for additional therapy beyond statins');
+      }
+    }
+  }
+  
+  return recommendations;
 }
 
-
-// === secure-storage.js ===
 /**
- * Secure Storage Utility (Basic version)
+ * Calculate Framingham Risk Score
+ * @param {Object} data - Form data
+ * @returns {Object} - Risk calculation results
  */
-const secureStorage = (function() {
-  // Generate or retrieve encryption key from sessionStorage
-  let encryptionKey = sessionStorage.getItem('encryptionKey');
-  if (!encryptionKey) {
-    const array = new Uint8Array(16);
-    window.crypto.getRandomValues(array);
-    encryptionKey = Array.from(array, byte => ('0' + byte.toString(16)).slice(-2)).join('');
-    sessionStorage.setItem('encryptionKey', encryptionKey);
+export function calculateFraminghamRiskScore(data) {
+  // Input validation
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid data object provided to risk calculator');
+  }
+  
+  if (!data.age || !data.sex || !data.totalChol || !data.hdl || !data.sbp) {
+    throw new Error('Missing required parameters for risk calculation');
+  }
+  
+  // Constants for FRS calculation
+  const COEFFICIENTS = {
+    male: {
+      age: 3.06117,
+      totalChol: 1.12370,
+      hdl: -0.93263,
+      sbp_untreated: 1.93303,
+      sbp_treated: 1.99881,
+      smoker: 0.65451,
+      diabetes: 0.57367
+    },
+    female: {
+      age: 2.32888,
+      totalChol: 1.20904,
+      hdl: -0.70833,
+      sbp_untreated: 2.76157,
+      sbp_treated: 2.82263,
+      smoker: 0.52873,
+      diabetes: 0.69154
+    }
+  };
+
+  const AVERAGES = {
+    male: {
+      age: 49.9, // years
+      totalChol: 5.04, // mmol/L
+      hdl: 1.24, // mmol/L
+      sbp: 129.7, // mmHg
+      smoker: 0.5, // 50% prevalence
+      diabetes: 0.06 // 6% prevalence
+    },
+    female: {
+      age: 49.1, // years
+      totalChol: 5.20, // mmol/L
+      hdl: 1.53, // mmol/L
+      sbp: 125.8, // mmHg
+      smoker: 0.4, // 40% prevalence
+      diabetes: 0.04 // 4% prevalence
+    }
+  };
+
+  const BASELINE_SURVIVAL = {
+    male: 0.88936,   // 10-year survival rate
+    female: 0.95012  // 10-year survival rate
+  };
+
+  try {
+    // Extract data and prepare variables
+    const sex = data.sex;
+    if (sex !== 'male' && sex !== 'female') {
+      throw new Error('Sex must be either "male" or "female"');
+    }
+    
+    const smoker = data.smoker ? 1 : 0;
+    const diabetes = data.diabetes ? 1 : 0;
+    const bpTreated = data.bpTreatment ? 1 : 0;
+    
+    // Convert cholesterol to mmol/L if needed
+    let totalChol = data.totalChol;
+    let hdl = data.hdl;
+    
+    if (data.totalCholUnit === 'mg/dL') {
+      totalChol = convertCholesterol(totalChol, 'mg/dL', 'mmol/L');
+    }
+    
+    if (data.hdlUnit === 'mg/dL') {
+      hdl = convertCholesterol(hdl, 'mg/dL', 'mmol/L');
+    }
+    
+    // Validate lab values
+    if (totalChol <= 0 || hdl <= 0) {
+      throw new Error('Cholesterol values must be greater than zero');
+    }
+    
+    if (hdl > totalChol) {
+      throw new Error('HDL cholesterol cannot be greater than total cholesterol');
+    }
+    
+    // Validate age (FRS is valid for ages 30-74)
+    if (data.age < 30 || data.age > 74) {
+      console.warn('Framingham risk score is validated for ages 30-74. Results may be less accurate.');
+    }
+    
+    // Calculate the sum based on coefficients
+    let sum = 0;
+    
+    // Age
+    sum += COEFFICIENTS[sex].age * Math.log(data.age);
+    
+    // Total Cholesterol
+    sum += COEFFICIENTS[sex].totalChol * Math.log(totalChol);
+    
+    // HDL Cholesterol
+    sum += COEFFICIENTS[sex].hdl * Math.log(hdl);
+    
+    // Systolic Blood Pressure
+    if (bpTreated) {
+      sum += COEFFICIENTS[sex].sbp_treated * Math.log(data.sbp);
+    } else {
+      sum += COEFFICIENTS[sex].sbp_untreated * Math.log(data.sbp);
+    }
+    
+    // Smoking
+    if (smoker) {
+      sum += COEFFICIENTS[sex].smoker;
+    }
+    
+    // Diabetes
+    if (diabetes) {
+      sum += COEFFICIENTS[sex].diabetes;
+    }
+    
+    // Calculate risk
+    const survival = BASELINE_SURVIVAL[sex];
+    if (!survival || survival <= 0 || survival >= 1) {
+      throw new Error('Invalid baseline survival rate');
+    }
+    
+    const risk = 1 - Math.pow(survival, Math.exp(sum));
+    if (isNaN(risk)) {
+      throw new Error('Error calculating risk score. Check input values.');
+    }
+    
+    const risk_percentage = risk * 100;
+    
+    // Calculate relative risk compared to average person
+    let averageSum = 0;
+    averageSum += COEFFICIENTS[sex].age * Math.log(AVERAGES[sex].age);
+    averageSum += COEFFICIENTS[sex].totalChol * Math.log(AVERAGES[sex].totalChol);
+    averageSum += COEFFICIENTS[sex].hdl * Math.log(AVERAGES[sex].hdl);
+    averageSum += COEFFICIENTS[sex].sbp_untreated * Math.log(AVERAGES[sex].sbp);
+    averageSum += COEFFICIENTS[sex].smoker * AVERAGES[sex].smoker;
+    averageSum += COEFFICIENTS[sex].diabetes * AVERAGES[sex].diabetes;
+    
+    const averageRisk = 1 - Math.pow(survival, Math.exp(averageSum));
+    const relativeRisk = risk / averageRisk;
+    
+    // Apply Lp(a) modifier if available
+    let lpaModifier = 1.0;
+    if (data.lpa && data.lpa > 0) {
+      // Convert Lp(a) to mg/dL if in nmol/L
+      let lpaValue = data.lpa;
+      if (data.lpaUnit === 'nmol/L') {
+        lpaValue = convertLpa(lpaValue, 'nmol/L', 'mg/dL');
+      }
+      
+      // Calculate modifier
+      lpaModifier = calculateLpaModifier(lpaValue);
+    }
+    
+    // Adjusted risk with Lp(a)
+    const adjustedRisk = Math.min(risk_percentage * lpaModifier, 99.9);
+    
+    return {
+      risk: risk_percentage,
+      adjustedRisk: adjustedRisk, 
+      relativeRisk: relativeRisk,
+      category: getRiskCategory(adjustedRisk),
+      lpaModifier: lpaModifier
+    };
+  } catch (error) {
+    console.error('Error calculating Framingham risk score:', error);
+    throw new Error('Failed to calculate risk score: ' + error.message);
+  }
+}
+
+/**
+ * Calculate QRISK3 risk score
+ * @param {Object} data - Form data
+ * @returns {Object} - Risk calculation results
+ */
+export async function calculateQRISK3(data) {
+  // Input validation
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid data object provided to risk calculator');
+  }
+  
+  if (!data.age || !data.sex || !data.sbp) {
+    throw new Error('Missing required parameters for QRISK3 calculation');
+  }
+  
+  // Load QRISK3 algorithm if not already loaded
+  if (!QRISK3) {
+    const loaded = await loadQRISK3();
+    if (!loaded) {
+      throw new Error('QRISK3 algorithm could not be loaded');
+    }
+  }
+
+  try {
+    // Prepare input data
+    const input = {};
+    
+    // Required fields
+    input.age = data.age;
+    input.gender = data.sex === 'male' ? 1 : 0;
+    
+    // Map ethnicity to the QRISK3 codes
+    const ethnicityMap = {
+      'white': 0,
+      'white-british': 1,
+      'white-irish': 2,
+      'white-other': 3,
+      'indian': 4,
+      'pakistani': 5,
+      'bangladeshi': 6,
+      'other-asian': 7,
+      'black-caribbean': 8,
+      'black-african': 9,
+      'black-other': 10,
+      'chinese': 11,
+      'other': 12
+    };
+    
+    input.ethnicity = ethnicityMap[data.ethnicity] || 0;
+    
+    // Physical measurements
+    input.height = data.height; // in cm
+    input.weight = data.weight; // in kg
+    
+    // Calculate BMI if not provided
+    if (!data.bmi && data.height && data.weight) {
+      input.bmi = calculateBMI(data.height, data.weight);
+    } else {
+      input.bmi = data.bmi;
+    }
+    
+    // Blood pressure
+    input.sbp = data.sbp;
+    input.sbp_std = data.sbpSD || 0; // Default to 0 if not provided
+    
+    // Cholesterol
+    let cholRatio = 0;
+    
+    // Convert cholesterol to mmol/L if needed and calculate ratio
+    if (data.totalChol && data.hdl) {
+      let totalChol = data.totalChol;
+      let hdl = data.hdl;
+      
+      if (data.totalCholUnit === 'mg/dL') {
+        totalChol = convertCholesterol(totalChol, 'mg/dL', 'mmol/L');
+      }
+      
+      if (data.hdlUnit === 'mg/dL') {
+        hdl = convertCholesterol(hdl, 'mg/dL', 'mmol/L');
+      }
+      
+      // Validate lab values
+      if (hdl > totalChol) {
+        throw new Error('HDL cholesterol cannot be greater than total cholesterol');
+      }
+      
+      // Calculate cholesterol ratio
+      if (hdl > 0) {
+        cholRatio = totalChol / hdl;
+      }
+    }
+    
+    input.ratio = cholRatio;
+    
+    // Risk factors
+    input.smoker = data.smokingStatus === 'non' ? 0 : 
+                  (data.smokingStatus === 'ex' ? 1 : 
+                  (data.smokingStatus === 'light' ? 2 : 
+                  (data.smokingStatus === 'moderate' ? 3 : 4)));
+                  
+    input.diabetes = data.type1Diabetes ? 1 : (data.type2Diabetes ? 2 : 0);
+    input.famhist = data.familyHistory ? 1 : 0;
+    input.atrial_fib = data.atrialFibrillation ? 1 : 0;
+    input.renal = data.ckd ? 1 : 0;
+    input.bp_med = data.onBloodPressureTreatment ? 1 : 0;
+    input.migraine = data.migraine ? 1 : 0;
+    input.rheumatoid_arthritis = data.rheumatoidArthritis ? 1 : 0;
+    input.sle = data.sle ? 1 : 0;
+    input.severe_mental_illness = data.mentalIllness ? 1 : 0;
+    input.antipsychotics = data.atypicalAntipsychotics ? 1 : 0;
+    input.corticosteroids = data.corticosteroids ? 1 : 0;
+    
+    // Erectile dysfunction (only for males)
+    input.erectile_dysfunction = data.sex === 'male' && data.erectileDysfunction ? 1 : 0;
+    
+    // Townsend score (deprivation) - defaults to average (0)
+    input.townsend = data.townsend || 0;
+    
+    // Validate age (QRISK3 is valid for ages 25-84)
+    if (data.age < 25 || data.age > 84) {
+      console.warn('QRISK3 is validated for ages 25-84. Results may be less accurate.');
+    }
+    
+    // Calculate risk using QRISK3 algorithm
+    const result = QRISK3.calculate_risk(input);
+    
+    if (!result || typeof result !== 'object') {
+      throw new Error('QRISK3 calculation failed to return valid results');
+    }
+    
+    // Calculate relative risk compared to a "healthy" person
+    const healthyInput = {...input};
+    
+    // A "healthy" person has:
+    healthyInput.smoker = 0; // non-smoker
+    healthyInput.bmi = 25; // normal BMI
+    healthyInput.ethnicity = 1; // white British
+    healthyInput.townsend = 0; // average deprivation
+    healthyInput.sbp = 125; // normal blood pressure
+    healthyInput.sbp_std = 0; // no variability
+    healthyInput.ratio = 4; // normal cholesterol ratio
+    
+    // No health conditions
+    healthyInput.diabetes = 0;
+    healthyInput.famhist = 0;
+    healthyInput.atrial_fib = 0;
+    healthyInput.renal = 0;
+    healthyInput.bp_med = 0;
+    healthyInput.migraine = 0;
+    healthyInput.rheumatoid_arthritis = 0;
+    healthyInput.sle = 0;
+    healthyInput.severe_mental_illness = 0;
+    healthyInput.antipsychotics = 0;
+    healthyInput.corticosteroids = 0;
+    healthyInput.erectile_dysfunction = 0;
+    
+    const healthyResult = QRISK3.calculate_risk(healthyInput);
+    
+    // Apply Lp(a) modifier if available
+    let lpaModifier = 1.0;
+    if (data.lpa && data.lpa > 0) {
+      // Convert Lp(a) to mg/dL if in nmol/L
+      let lpaValue = data.lpa;
+      if (data.lpaUnit === 'nmol/L') {
+        lpaValue = convertLpa(lpaValue, 'nmol/L', 'mg/dL');
+      }
+      
+      // Calculate modifier
+      lpaModifier = calculateLpaModifier(lpaValue);
+    }
+    
+    // Adjusted risk with Lp(a)
+    const adjustedRisk = Math.min(result.score * lpaModifier, 99.9);
+    
+    return {
+      risk: result.score,
+      adjustedRisk: adjustedRisk,
+      relativeRisk: result.score / healthyResult.score,
+      heartAge: result.heart_age,
+      lpaModifier: lpaModifier,
+      category: getRiskCategory(adjustedRisk)
+    };
+  } catch (error) {
+    console.error('Error calculating QRISK3 score:', error);
+    throw new Error('Failed to calculate QRISK3 score: ' + error.message);
+  }
+}
+
+// =============================================================================
+// UNIT CONVERSION FUNCTIONS
+// =============================================================================
+
+/**
+ * Helper function to convert height from feet/inches to cm
+ * @param {number} feet - Height in feet
+ * @param {number} inches - Height in inches
+ * @returns {number} - Height in cm
+ */
+export function convertHeightToCm(feet, inches) {
+  if (feet === null && inches === null) {
+    return null;
+  }
+  
+  // Input validation
+  feet = parseFloat(feet) || 0;
+  inches = parseFloat(inches) || 0;
+  
+  if (feet < 0 || inches < 0) {
+    throw new Error('Height values cannot be negative');
+  }
+  
+  if (inches >= 12) {
+    // Convert excess inches to feet
+    feet += Math.floor(inches / 12);
+    inches = inches % 12;
+  }
+  
+  return ((feet * 12) + inches) * 2.54;
+}
+
+/**
+ * Helper function to convert height from cm to feet/inches
+ * @param {number} cm - Height in cm
+ * @returns {Object} - { feet, inches }
+ */
+export function convertHeightToFeetInches(cm) {
+  if (cm === null || cm === undefined) {
+    return { feet: null, inches: null };
+  }
+  
+  // Input validation
+  cm = parseFloat(cm);
+  
+  if (isNaN(cm)) {
+    throw new Error('Invalid height value');
+  }
+  
+  if (cm < 0) {
+    throw new Error('Height value cannot be negative');
+  }
+  
+  // 1 inch = 2.54 cm
+  const totalInches = cm / 2.54;
+  const feet = Math.floor(totalInches / 12);
+  const inches = Math.round(totalInches % 12);
+  
+  // Handle case where inches rounds to 12
+  if (inches === 12) {
+    return { feet: feet + 1, inches: 0 };
+  }
+  
+  return { feet, inches };
+}
+
+/**
+ * Helper function to convert weight from pounds to kg
+ * @param {number} pounds - Weight in pounds
+ * @returns {number} - Weight in kg
+ */
+export function convertWeightToKg(pounds) {
+  if (pounds === null || pounds === undefined) {
+    return null;
+  }
+  
+  // Input validation
+  pounds = parseFloat(pounds);
+  
+  if (isNaN(pounds)) {
+    throw new Error('Invalid weight value');
+  }
+  
+  if (pounds < 0) {
+    throw new Error('Weight value cannot be negative');
+  }
+  
+  return pounds * 0.45359237;
+}
+
+/**
+ * Helper function to convert weight from kg to pounds
+ * @param {number} kg - Weight in kg
+ * @returns {number} - Weight in pounds
+ */
+export function convertWeightToPounds(kg) {
+  if (kg === null || kg === undefined) {
+    return null;
+  }
+  
+  // Input validation
+  kg = parseFloat(kg);
+  
+  if (isNaN(kg)) {
+    throw new Error('Invalid weight value');
+  }
+  
+  if (kg < 0) {
+    throw new Error('Weight value cannot be negative');
+  }
+  
+  return kg / 0.45359237;
+}
+
+/**
+ * Helper function to convert cholesterol between mg/dL and mmol/L
+ * @param {number} value - Cholesterol value
+ * @param {string} fromUnit - Original unit ('mg/dL' or 'mmol/L')
+ * @param {string} toUnit - Target unit ('mg/dL' or 'mmol/L')
+ * @returns {number} - Converted cholesterol value
+ */
+export function convertCholesterol(value, fromUnit, toUnit) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  
+  // Input validation
+  value = parseFloat(value);
+  
+  if (isNaN(value)) {
+    throw new Error('Invalid cholesterol value');
+  }
+  
+  if (value < 0) {
+    throw new Error('Cholesterol value cannot be negative');
+  }
+  
+  if (fromUnit === toUnit) {
+    return value;
+  }
+  
+  if (fromUnit === 'mg/dL' && toUnit === 'mmol/L') {
+    return value / CONVERSION.CHOL_MMOL_TO_MGDL;
+  }
+  
+  if (fromUnit === 'mmol/L' && toUnit === 'mg/dL') {
+    return value * CONVERSION.CHOL_MMOL_TO_MGDL;
+  }
+  
+  throw new Error(`Invalid unit conversion: ${fromUnit} to ${toUnit}`);
+}
+
+/**
+ * Helper function to convert triglycerides between mg/dL and mmol/L
+ * @param {number} value - Triglyceride value
+ * @param {string} fromUnit - Original unit ('mg/dL' or 'mmol/L')
+ * @param {string} toUnit - Target unit ('mg/dL' or 'mmol/L')
+ * @returns {number} - Converted triglyceride value
+ */
+export function convertTriglycerides(value, fromUnit, toUnit) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  
+  // Input validation
+  value = parseFloat(value);
+  
+  if (isNaN(value)) {
+    throw new Error('Invalid triglyceride value');
+  }
+  
+  if (value < 0) {
+    throw new Error('Triglyceride value cannot be negative');
+  }
+  
+  if (fromUnit === toUnit) {
+    return value;
+  }
+  
+  if (fromUnit === 'mg/dL' && toUnit === 'mmol/L') {
+    return value / CONVERSION.TG_MMOL_TO_MGDL;
+  }
+  
+  if (fromUnit === 'mmol/L' && toUnit === 'mg/dL') {
+    return value * CONVERSION.TG_MMOL_TO_MGDL;
+  }
+  
+  throw new Error(`Invalid unit conversion: ${fromUnit} to ${toUnit}`);
+}
+
+/**
+ * Helper function to convert Lp(a) between mg/dL and nmol/L
+ * @param {number} value - Lp(a) value
+ * @param {string} fromUnit - Original unit ('mg/dL' or 'nmol/L')
+ * @param {string} toUnit - Target unit ('mg/dL' or 'nmol/L')
+ * @returns {number} - Converted Lp(a) value
+ */
+export function convertLpa(value, fromUnit, toUnit) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  
+  // Input validation
+  value = parseFloat(value);
+  
+  if (isNaN(value)) {
+    throw new Error('Invalid Lp(a) value');
+  }
+  
+  if (value < 0) {
+    throw new Error('Lp(a) value cannot be negative');
+  }
+  
+  if (fromUnit === toUnit) {
+    return value;
+  }
+  
+  if (fromUnit === 'mg/dL' && toUnit === 'nmol/L') {
+    return value * CONVERSION.LPA_MGDL_TO_NMOL;
+  }
+  
+  if (fromUnit === 'nmol/L' && toUnit === 'mg/dL') {
+    return value * CONVERSION.LPA_NMOL_TO_MGDL;
+  }
+  
+  throw new Error(`Invalid unit conversion: ${fromUnit} to ${toUnit}`);
+}
+
+/**
+ * Calculates BMI from height and weight
+ * @param {number} height - Height in cm
+ * @param {number} weight - Weight in kg
+ * @returns {number} - BMI value
+ */
+export function calculateBMI(height, weight) {
+  if (!height || !weight) {
+    return null;
+  }
+  
+  // Input validation
+  height = parseFloat(height);
+  weight = parseFloat(weight);
+  
+  if (isNaN(height) || isNaN(weight)) {
+    throw new Error('Invalid height or weight values');
+  }
+  
+  if (height <= 0 || weight <= 0) {
+    throw new Error('Height and weight must be positive values');
+  }
+  
+  // Convert height from cm to meters
+  const heightInM = height / 100;
+  
+  const bmi = weight / (heightInM * heightInM);
+  
+  // Check for unrealistic values
+  if (bmi < 10 || bmi > 100) {
+    console.warn('Calculated BMI is outside normal range:', bmi);
+  }
+  
+  return bmi;
+}
+
+/**
+ * Format BMI with risk category
+ * @param {number} bmi - BMI value
+ * @returns {string} - Formatted BMI with category
+ */
+export function formatBMI(bmi) {
+  if (!bmi) {
+    return 'Not available';
+  }
+  
+  // Input validation
+  bmi = parseFloat(bmi);
+  
+  if (isNaN(bmi)) {
+    throw new Error('Invalid BMI value');
+  }
+  
+  let category;
+  if (bmi < 18.5) {
+    category = 'Underweight';
+  } else if (bmi < 25) {
+    category = 'Normal weight';
+  } else if (bmi < 30) {
+    category = 'Overweight';
+  } else if (bmi < 35) {
+    category = 'Obese (Class I)';
+  } else if (bmi < 40) {
+    category = 'Obese (Class II)';
+  } else {
+    category = 'Obese (Class III)';
+  }
+  
+  return bmi.toFixed(1) + ' kg/m² (' + category + ')';
+}
+
+// =============================================================================
+// LP(A) MODIFIER CALCULATION
+// =============================================================================
+
+/**
+ * Calculate Lp(a) risk modifier based on concentration
+ * Reference: Willeit P, et al. Lancet 2018;392:1311-1320
+ * @param {number} lpaValue - Lp(a) concentration in mg/dL
+ * @returns {number} - Risk multiplier
+ */
+export function calculateLpaModifier(lpaValue) {
+  // Input validation
+  if (lpaValue === null || lpaValue === undefined) {
+    return 1.0; // No modification if no value
+  }
+  
+  lpaValue = parseFloat(lpaValue);
+  
+  if (isNaN(lpaValue)) {
+    throw new Error('Invalid Lp(a) value');
+  }
+  
+  if (lpaValue < 0) {
+    throw new Error('Lp(a) value cannot be negative');
+  }
+  
+  // No additional risk below 30 mg/dL (based on literature)
+  if (lpaValue < 30) {
+    return 1.0;
+  }
+  // Linear increase 1.0-1.3x for 30-50 mg/dL
+  else if (lpaValue >= 30 && lpaValue < 50) {
+    return 1.0 + (lpaValue - 30) * (0.3 / 20);
+  }
+  // Linear increase 1.3-1.6x for 50-100 mg/dL
+  else if (lpaValue >= 50 && lpaValue < 100) {
+    return 1.3 + (lpaValue - 50) * (0.3 / 50);
+  }
+  // Linear increase 1.6-2.0x for 100-200 mg/dL
+  else if (lpaValue >= 100 && lpaValue < 200) {
+    return 1.6 + (lpaValue - 100) * (0.4 / 100);
+  }
+  // Linear increase 2.0-3.0x for 200-300 mg/dL
+  else if (lpaValue >= 200 && lpaValue < 300) {
+    return 2.0 + (lpaValue - 200) * (1.0 / 100);
+  }
+  // Maximum 3.0x increase for values ≥300 mg/dL
+  else {
+    return 3.0;
+  }
+}
+
+// Apply memoization to improve performance
+export const memoizedLpaModifier = memoize(calculateLpaModifier);
+
+/**
+ * Determine risk category based on percentage
+ * @param {number} riskPercentage - Risk percentage value
+ * @returns {string} - Risk category (low, moderate, high)
+ */
+export function getRiskCategory(riskPercentage) {
+  // Input validation
+  if (riskPercentage === null || riskPercentage === undefined) {
+    throw new Error('Risk percentage not provided');
+  }
+  
+  riskPercentage = parseFloat(riskPercentage);
+  
+  if (isNaN(riskPercentage)) {
+    throw new Error('Invalid risk percentage');
+  }
+  
+  if (riskPercentage < 0) {
+    throw new Error('Risk percentage cannot be negative');
+  }
+  
+  // Risk categories based on standard clinical guidelines
+  if (riskPercentage < 10) {
+    return 'low';
+  } else if (riskPercentage < 20) {
+    return 'moderate';
+  } else {
+    return 'high';
+  }
+}
+
+// =============================================================================
+// SECURE STORAGE IMPLEMENTATION
+// =============================================================================
+
+/**
+ * Secure Storage Module
+ * Provides encrypted local storage functionality using Web Crypto API
+ */
+export const secureStorage = (() => {
+  // Storage prefix to identify encrypted data
+  const STORAGE_PREFIX = 'secure_';
+  
+  // Salt for key derivation
+  const SALT = new Uint8Array([
+    115, 97, 108, 116, 95, 118, 97, 108, 117, 101,  // "salt_value"
+    95, 102, 111, 114, 95, 99, 118, 100, 95, 116,   // "_for_cvd_t"
+    111, 111, 108, 95, 115, 116, 111, 114, 97, 103, // "ool_storag"
+    101, 95, 50, 48, 50, 53                        // "e_2025"
+  ]);
+  
+  // Encryption key storage
+  let cryptoKey = null;
+  
+  /**
+   * Initialize the secure storage system
+   * @returns {Promise<boolean>} Success status
+   */
+  async function initialize() {
+    try {
+      // Check if Web Crypto is available
+      if (!window.crypto || !window.crypto.subtle) {
+        console.warn('Web Crypto API not available. Falling back to basic storage.');
+        return false;
+      }
+      
+      // Get or create app password from local storage (used for key derivation)
+      let storedPassword = localStorage.getItem('app_password');
+      if (!storedPassword) {
+        // Generate random password if none exists
+        const randArray = new Uint8Array(32);
+        window.crypto.getRandomValues(randArray);
+        storedPassword = Array.from(randArray, b => b.toString(16).padStart(2, '0')).join('');
+        localStorage.setItem('app_password', storedPassword);
+      }
+      
+      // Convert password to bytes
+      const passwordBytes = new TextEncoder().encode(storedPassword);
+      
+      // Derive key material from password
+      const keyMaterial = await window.crypto.subtle.importKey(
+        'raw',
+        passwordBytes,
+        { name: 'PBKDF2' },
+        false,
+        ['deriveBits', 'deriveKey']
+      );
+      
+      // Derive the actual encryption key
+      cryptoKey = await window.crypto.subtle.deriveKey(
+        {
+          name: 'PBKDF2',
+          salt: SALT,
+          iterations: 100000,
+          hash: 'SHA-256'
+        },
+        keyMaterial,
+        { name: 'AES-GCM', length: 256 },
+        false,
+        ['encrypt', 'decrypt']
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Error initializing secure storage:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Encrypt data for storage
+   * @param {any} data - Data to encrypt 
+   * @returns {Promise<string|null>} - Base64 encoded encrypted data
+   */
+  async function encryptData(data) {
+    try {
+      if (!cryptoKey) {
+        const initialized = await initialize();
+        if (!initialized) {
+          return fallbackEncodeData(data);
+        }
+      }
+      
+      // Convert data to JSON string
+      const jsonData = typeof data === 'string' ? data : JSON.stringify(data);
+      
+      // Convert to bytes
+      const dataBytes = new TextEncoder().encode(jsonData);
+      
+      // Generate random IV (Initialization Vector)
+      const iv = new Uint8Array(12);
+      window.crypto.getRandomValues(iv);
+      
+      // Encrypt the data
+      const encryptedBuffer = await window.crypto.subtle.encrypt(
+        {
+          name: 'AES-GCM',
+          iv
+        },
+        cryptoKey,
+        dataBytes
+      );
+      
+      // Combine IV and encrypted data for storage
+      const combinedArray = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+      combinedArray.set(iv);
+      combinedArray.set(new Uint8Array(encryptedBuffer), iv.length);
+      
+      // Convert to base64 for storage
+      return btoa(String.fromCharCode(...combinedArray));
+    } catch (error) {
+      console.error('Error encrypting data:', error);
+      return fallbackEncodeData(data);
+    }
+  }
+  
+  /**
+   * Decrypt data from storage
+   * @param {string} encryptedData - Base64 encoded encrypted data
+   * @returns {Promise<any|null>} - Decrypted data
+   */
+  async function decryptData(encryptedData) {
+    try {
+      // Check if this is encrypted with Web Crypto
+      if (encryptedData.startsWith('FALLBACK:')) {
+        return fallbackDecodeData(encryptedData.substring(9));
+      }
+      
+      if (!cryptoKey) {
+        const initialized = await initialize();
+        if (!initialized) {
+          return fallbackDecodeData(encryptedData);
+        }
+      }
+      
+      // Convert from base64
+      const combinedArray = new Uint8Array(
+        atob(encryptedData).split('').map(char => char.charCodeAt(0))
+      );
+      
+      // Extract IV and encrypted data
+      const iv = combinedArray.slice(0, 12);
+      const encryptedBuffer = combinedArray.slice(12);
+      
+      // Decrypt the data
+      const decryptedBuffer = await window.crypto.subtle.decrypt(
+        {
+          name: 'AES-GCM',
+          iv
+        },
+        cryptoKey,
+        encryptedBuffer
+      );
+      
+      // Convert bytes to string
+      const decryptedText = new TextDecoder().decode(decryptedBuffer);
+      
+      // Parse JSON if needed
+      try {
+        return JSON.parse(decryptedText);
+      } catch {
+        return decryptedText;
+      }
+    } catch (error) {
+      console.error('Error decrypting data:', error);
+      return fallbackDecodeData(encryptedData);
+    }
+  }
+  
+  /**
+   * Fallback encryption for browsers without Web Crypto support
+   * @param {any} data - Data to encode
+   * @returns {string} - Encoded data
+   */
+  function fallbackEncodeData(data) {
+    try {
+      // Simple encoding - not secure but better than nothing
+      if (typeof data !== 'string') {
+        data = JSON.stringify(data);
+      }
+      
+      // Base64 encode the data with prefix to identify fallback method
+      return 'FALLBACK:' + btoa(unescape(encodeURIComponent(data)));
+    } catch (error) {
+      console.error('Error in fallback encoding:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Fallback decryption for browsers without Web Crypto support
+   * @param {string} encoded - Encoded data
+   * @returns {any} - Decoded data
+   */
+  function fallbackDecodeData(encoded) {
+    try {
+      // Remove fallback prefix if present
+      if (encoded.startsWith('FALLBACK:')) {
+        encoded = encoded.substring(9);
+      }
+      
+      // Decode the data
+      const decoded = decodeURIComponent(escape(atob(encoded)));
+      
+      // Parse JSON if possible
+      try {
+        return JSON.parse(decoded);
+      } catch {
+        return decoded;
+      }
+    } catch (error) {
+      console.error('Error in fallback decoding:', error);
+      return null;
+    }
   }
   
   /**
    * Store data securely
    * @param {string} key - Storage key
    * @param {any} data - Data to store
-   * @returns {boolean} - Success status
+   * @returns {Promise<boolean>} - Success status
    */
-  function setItem(key, data) {
+  async function setItem(key, data) {
     try {
-      const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-      const encoded = btoa(dataStr); // Basic encoding for now
-      localStorage.setItem('secure_' + key, encoded);
+      const encrypted = await encryptData(data);
+      if (!encrypted) {
+        return false;
+      }
+      
+      localStorage.setItem(STORAGE_PREFIX + key, encrypted);
       return true;
     } catch (error) {
       console.error('SecureStorage setItem error:', error);
@@ -2159,19 +3454,16 @@ const secureStorage = (function() {
   /**
    * Retrieve securely stored data
    * @param {string} key - Storage key
-   * @returns {any} - Retrieved data or null if not found
+   * @returns {Promise<any>} - Retrieved data or null if not found
    */
-  function getItem(key) {
+  async function getItem(key) {
     try {
-      const encoded = localStorage.getItem('secure_' + key);
-      if (!encoded) return null;
-      
-      const dataStr = atob(encoded);
-      try {
-        return JSON.parse(dataStr);
-      } catch {
-        return dataStr;
+      const encrypted = localStorage.getItem(STORAGE_PREFIX + key);
+      if (!encrypted) {
+        return null;
       }
+      
+      return await decryptData(encrypted);
     } catch (error) {
       console.error('SecureStorage getItem error:', error);
       return null;
@@ -2181,30 +3473,43 @@ const secureStorage = (function() {
   /**
    * Remove securely stored data
    * @param {string} key - Storage key to remove
+   * @returns {Promise<boolean>} - Success status
    */
-  function removeItem(key) {
+  async function removeItem(key) {
     try {
-      localStorage.removeItem('secure_' + key);
+      localStorage.removeItem(STORAGE_PREFIX + key);
+      return true;
     } catch (error) {
       console.error('SecureStorage removeItem error:', error);
+      return false;
     }
   }
   
   /**
    * Clear all securely stored data
+   * @returns {Promise<boolean>} - Success status
    */
-  function clear() {
+  async function clear() {
     try {
-      for (let i = localStorage.length - 1; i >= 0; i--) {
+      const keysToRemove = [];
+      
+      for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('secure_')) {
-          localStorage.removeItem(key);
+        if (key && key.startsWith(STORAGE_PREFIX)) {
+          keysToRemove.push(key);
         }
       }
+      
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      return true;
     } catch (error) {
       console.error('SecureStorage clear error:', error);
+      return false;
     }
   }
+  
+  // Initialize on load
+  initialize().catch(error => console.error('Error during secure storage initialization:', error));
   
   // Return the public API
   return {
@@ -2215,13 +3520,15 @@ const secureStorage = (function() {
   };
 })();
 
+// =============================================================================
+// LOADING INDICATOR
+// =============================================================================
 
-
-// === loading-indicator.js ===
 /**
- * Simple Loading Indicator Utility
+ * Loading Indicator Module
+ * Shows/hides loading indicators for async operations
  */
-const loadingIndicator = (function() {
+export const loadingIndicator = (() => {
   // Configuration
   const config = {
     defaultDelay: 300, // ms before showing indicators
@@ -2229,1592 +3536,1792 @@ const loadingIndicator = (function() {
     useOverlay: true, // whether to use a full-page overlay for global operations
     globalIndicatorId: 'global-loading-indicator'
   };
-  
+
+  // Active indicators
+  const activeIndicators = new Set();
+  let showTimeout = null;
+  let hideTimeout = null;
+
   /**
    * Show loading indicator
    * @param {string} message - Loading message
+   * @param {string} id - Optional identifier for specific indicator
    */
-  function show(message = 'Loading...') {
-    // Check if indicator already exists
-    let indicator = document.getElementById(config.globalIndicatorId);
+  function show(message = 'Loading...', id = 'global') {
+    clearTimeout(showTimeout);
+    clearTimeout(hideTimeout);
     
-    if (!indicator) {
-      // Create indicator
-      indicator = document.createElement('div');
-      indicator.id = config.globalIndicatorId;
-      indicator.className = 'loading-indicator';
-      
-      // Create overlay if needed
-      if (config.useOverlay) {
-        const overlay = document.createElement('div');
-        overlay.className = 'loading-overlay';
-        overlay.appendChild(indicator);
-        document.body.appendChild(overlay);
-      } else {
-        document.body.appendChild(indicator);
+    // Add to active indicators
+    activeIndicators.add(id);
+    
+    // Delay showing to prevent flicker for fast operations
+    showTimeout = setTimeout(() => {
+      // Check if indicator already exists
+      let indicator = document.getElementById(config.globalIndicatorId);
+
+      if (!indicator) {
+        // Create indicator
+        indicator = document.createElement('div');
+        indicator.id = config.globalIndicatorId;
+        indicator.className = 'loading-indicator';
+
+        // Create overlay if needed
+        if (config.useOverlay) {
+          const overlay = document.createElement('div');
+          overlay.className = 'loading-overlay';
+          overlay.appendChild(indicator);
+          document.body.appendChild(overlay);
+        } else {
+          document.body.appendChild(indicator);
+        }
       }
-    }
-    
-    // Set content
-    indicator.innerHTML = `
-      <div class="spinner"></div>
-      <div class="loading-message">${message}</div>
-    `;
-    
-    // Show indicator
-    indicator.style.display = 'flex';
-    const overlay = document.querySelector('.loading-overlay');
-    if (overlay) overlay.style.display = 'flex';
+
+      // Set content
+      indicator.innerHTML = `
+        <div class="spinner"></div>
+        <div class="loading-message">${inputSanitizer.sanitizeString(message)}</div>
+      `;
+
+      // Show indicator
+      indicator.style.display = 'flex';
+      const overlay = document.querySelector('.loading-overlay');
+      if (overlay) {overlay.style.display = 'flex';}
+    }, config.defaultDelay);
   }
   
   /**
    * Hide loading indicator
+   * @param {string} id - Optional identifier for specific indicator
    */
-  function hide() {
-    const indicator = document.getElementById(config.globalIndicatorId);
-    if (indicator) {
-      const overlay = document.querySelector('.loading-overlay');
-      if (overlay) overlay.style.display = 'none';
-      indicator.style.display = 'none';
+  function hide(id = 'global') {
+    // Remove from active indicators
+    activeIndicators.delete(id);
+    
+    // If there are still active indicators, don't hide the global one
+    if (activeIndicators.size > 0) {
+      return;
     }
+    
+    // Clear any pending show operations
+    clearTimeout(showTimeout);
+    
+    // Ensure minimum display time
+    clearTimeout(hideTimeout);
+    hideTimeout = setTimeout(() => {
+      const indicator = document.getElementById(config.globalIndicatorId);
+      if (!indicator) return;
+      
+      const overlay = document.querySelector('.loading-overlay');
+      
+      // Hide with fade-out animation
+      if (overlay) {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          overlay.style.display = 'none';
+          overlay.style.opacity = '1';
+        }, 300);
+      } else {
+        indicator.style.opacity = '0';
+        setTimeout(() => {
+          indicator.style.display = 'none';
+          indicator.style.opacity = '1';
+        }, 300);
+      }
+    }, config.defaultMinDuration);
+  }
+  
+  /**
+   * Update loading message
+   * @param {string} message - New loading message
+   */
+  function updateMessage(message) {
+    const indicator = document.getElementById(config.globalIndicatorId);
+    if (!indicator) return;
+    
+    const messageEl = indicator.querySelector('.loading-message');
+    if (messageEl) {
+      messageEl.textContent = inputSanitizer.sanitizeString(message);
+    }
+  }
+  
+  /**
+   * Set loading progress
+   * @param {number} percent - Progress percentage (0-100)
+   * @param {string} stage - Current stage description
+   */
+  function setProgress(percent, stage = null) {
+    const indicator = document.getElementById(config.globalIndicatorId);
+    if (!indicator) return;
+    
+    // Ensure percent is between 0 and 100
+    percent = Math.max(0, Math.min(100, percent));
+    
+    // Update or create progress bar
+    let progressBar = indicator.querySelector('.progress-bar-fill');
+    let progressContainer = indicator.querySelector('.progress-bar');
+    
+    if (!progressContainer) {
+      const progressHTML = `
+        <div class="progress-bar">
+          <div class="progress-bar-fill"></div>
+        </div>
+        <div class="progress-text">
+          <span class="progress-percentage">0%</span>
+          ${stage ? `<span class="progress-stage">${inputSanitizer.sanitizeString(stage)}</span>` : ''}
+        </div>
+      `;
+      
+      const progressElement = document.createElement('div');
+      progressElement.className = 'loading-progress';
+      progressElement.innerHTML = progressHTML;
+      
+      indicator.appendChild(progressElement);
+      
+      progressBar = indicator.querySelector('.progress-bar-fill');
+      progressContainer = indicator.querySelector('.progress-bar');
+    }
+    
+    // Set progress bar width
+    if (progressBar) {
+      progressBar.style.width = `${percent}%`;
+    }
+    
+    // Update percentage text
+    const percentageEl = indicator.querySelector('.progress-percentage');
+    if (percentageEl) {
+      percentageEl.textContent = `${Math.round(percent)}%`;
+      percentageEl.classList.add('animate');
+      setTimeout(() => percentageEl.classList.remove('animate'), 500);
+    }
+    
+    // Update stage text if provided
+    if (stage) {
+      let stageEl = indicator.querySelector('.progress-stage');
+      if (!stageEl) {
+        stageEl = document.createElement('span');
+        stageEl.className = 'progress-stage';
+        indicator.querySelector('.progress-text')?.appendChild(stageEl);
+      }
+      
+      if (stageEl) {
+        stageEl.textContent = inputSanitizer.sanitizeString(stage);
+      }
+    }
+  }
+  
+  /**
+   * Create CSS styles for loading indicator
+   * Ensures styling is consistent with the main CSS theme
+   */
+  function createStyles() {
+    if (document.getElementById('loading-indicator-styles')) return;
+    
+    const style = document.createElement('style');
+    style.id = 'loading-indicator-styles';
+    style.textContent = `
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: var(--z-index-modal-backdrop, 1040);
+        transition: opacity 0.3s ease;
+      }
+      
+      .loading-indicator {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+        background-color: white;
+        border-radius: var(--radius-lg, 0.5rem);
+        box-shadow: var(--shadow-xl, 0 20px 25px rgba(0, 0, 0, 0.15));
+        z-index: var(--z-index-modal, 1050);
+        max-width: 320px;
+        width: 90%;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .dark-theme .loading-indicator {
+        background-color: var(--card-color, #2d3748);
+        color: var(--text-color, #f7fafc);
+      }
+      
+      .loading-indicator::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background-image: 
+          linear-gradient(to right, 
+            var(--low-risk-color, #38a169),
+            var(--moderate-risk-color, #dd6b20),
+            var(--high-risk-color, #e53e3e));
+      }
+      
+      .spinner {
+        width: 60px;
+        height: 60px;
+        position: relative;
+        margin-bottom: 1.5rem;
+        transform-origin: center;
+        animation: heartbeat 1.2s ease-in-out infinite;
+      }
+      
+      .spinner::before,
+      .spinner::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        width: 30px;
+        height: 50px;
+        border-radius: 50px 50px 0 0;
+        background: var(--heart-color, #e53e3e);
+      }
+      
+      .spinner::before {
+        left: 30px;
+        transform: rotate(-45deg);
+        transform-origin: 0 100%;
+      }
+      
+      .spinner::after {
+        left: 0;
+        transform: rotate(45deg);
+        transform-origin: 100% 100%;
+      }
+      
+      @keyframes heartbeat {
+        0%, 100% { transform: scale(0.8); }
+        50% { transform: scale(1); }
+      }
+      
+      .loading-message {
+        margin-top: 1rem;
+        font-weight: var(--font-weight-medium, 500);
+        text-align: center;
+        color: var(--text-color, #2c3e50);
+      }
+      
+      .loading-progress {
+        width: 100%;
+        margin-top: 1rem;
+      }
+      
+      .progress-bar {
+        height: 8px;
+        background-color: rgba(43, 108, 176, 0.1);
+        border-radius: 9999px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+        position: relative;
+      }
+      
+      .progress-bar-fill {
+        height: 100%;
+        border-radius: 9999px;
+        width: 0;
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(to right, var(--secondary-color, #2b6cb0), var(--tertiary-color, #319795));
+      }
+      
+      .progress-bar-fill::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='8' viewBox='0 0 100 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,4 L20,4 L25,0 L30,8 L35,0 L40,8 L45,4 L100,4' stroke='%23ffffff' stroke-width='1' fill='none' stroke-opacity='0.5'/%3E%3C/svg%3E");
+        background-repeat: repeat-x;
+        background-size: 50px 8px;
+        animation: progress-pulse 1.5s infinite linear;
+      }
+      
+      @keyframes progress-pulse {
+        0% { background-position: 0px 0; }
+        100% { background-position: -50px 0; }
+      }
+      
+      .progress-text {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        font-size: var(--font-size-sm, 0.875rem);
+        color: var(--text-light, #718096);
+      }
+      
+      .progress-percentage {
+        font-family: var(--font-mono, monospace);
+        color: var(--secondary-color, #2b6cb0);
+        font-weight: var(--font-weight-bold, 700);
+        transition: transform 0.3s ease;
+      }
+      
+      .progress-percentage.animate {
+        animation: pulse-text 0.5s ease-in-out;
+      }
+      
+      @keyframes pulse-text {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+      }
+    `;
+    
+    document.head.appendChild(style);
+  }
+  
+  // Create styles when module is loaded
+  if (typeof document !== 'undefined') {
+    createStyles();
   }
   
   // Return public API
   return {
     show,
-    hide
+    hide,
+    updateMessage,
+    setProgress
   };
 })();
 
+// =============================================================================
+// THEME INTEGRATION
+// =============================================================================
 
-
-// === input-sanitizer.js ===
-// input-sanitizer.js placeholder
-
-
-
-// === physiological-validation.js ===
-// Physiological Validation Module
-const physiologicalValidation = (function() {
-  const RANGES = {
-    age: { min: 18, max: 100, unit: 'years' },
-    sbp: { min: 70, max: 240, unit: 'mmHg' },
-    totalChol: { min: 1.0, max: 15.0, unit: 'mmol/L' }
-  };
-  
-  function validateValue(type, value) {
-    const range = RANGES[type];
-    if (!range) return { isValid: true };
+/**
+ * Theme Handler Module
+ * Manages theme switching and persistence
+ */
+export const themeHandler = (() => {
+  /**
+   * Initialize theme based on saved preference or system setting
+   */
+  function initialize() {
+    const savedTheme = localStorage.getItem('preferred-theme');
+    const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
     
-    if (value < range.min || value > range.max) {
-      return {
-        isValid: false,
-        message: `${type} value of ${value} ${range.unit} is outside valid range`
-      };
+    // Apply saved theme if available
+    if (savedTheme) {
+      if (savedTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+      } else {
+        document.body.classList.remove('dark-theme');
+      }
+    } 
+    // Otherwise, apply system preference
+    else if (prefersDarkScheme.matches) {
+      document.body.classList.add('dark-theme');
     }
     
-    return { isValid: true };
+    // Update theme toggle button if present
+    updateToggleButton();
   }
   
-  return { validateValue };
-})();
-window.physiologicalValidation = physiologicalValidation;
-
-
-
-// === validator-extension.js ===
-// validator-extension.js placeholder
-
-
-
-// === enhanced-disclaimer.js ===
-// enhanced-disclaimer.js placeholder
-
-
-
-// === csp-report-handler.js ===
-// csp-report-handler.js placeholder
-
-
-
-// === qrisk3-implementation.js ===
-/**
- * CVD Risk Toolkit with Lp(a) Post-Test Modifier
- * 
- * LEGAL DISCLAIMER:
- * This software is provided for educational and informational purposes only. 
- * It is not intended to be a substitute for professional medical advice, diagnosis, or treatment.
- * Always seek the advice of a qualified healthcare provider with any questions regarding medical conditions.
- * 
- * REFERENCES AND ATTRIBUTIONS:
- * - QRISK3 algorithm: Hippisley-Cox J, et al. BMJ 2017;357:j2099
- * - Framingham Risk Score: D'Agostino RB Sr, et al. Circulation 2008;117:743-53
- * - Lp(a) adjustments based on: Willeit P, et al. Lancet 2018;392:1311-1320
- * 
- * Last updated: April 2025
- */
-
-/**
- * QRISK3 Implementation Module
- * 
- * This module implements the complete QRISK3 algorithm based on
- * the official code, including all risk factors and interactions.
- */
-
-/**
- * Calculate QRISK3 score using the official algorithm
- * @param {Object} data - Patient data from the form
- * @returns {Object} - Risk calculation results
- */
-function calculateQRISK3Score(data) {
-    // Convert units if needed
-    let standardizedData = standardizeUnitsForQRISK3(data);
+  /**
+   * Setup theme toggle button
+   */
+  function setupThemeToggle() {
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    if (!themeToggleBtn) return;
     
-    // Calculate base QRISK3 score
-    const baseRiskScore = calculateRawQRISK3(standardizedData);
-    
-    // Apply Lp(a) modifier if available
-    let lpaModifier = 1.0;
-    let modifiedRiskPercentage = baseRiskScore;
-    
-    if (standardizedData.lpa !== null && standardizedData.lpa !== undefined) {
-        // Convert Lp(a) to mg/dL if needed
-        let lpaValue = standardizedData.lpa;
-        if (standardizedData.lpaUnit === 'nmol/L') {
-            lpaValue = convertLpa(lpaValue, 'nmol/L', 'mg/dL');
-        }
-        
-        // Calculate modifier based on Lp(a) level
-        lpaModifier = calculateLpaModifier(lpaValue);
-        modifiedRiskPercentage = baseRiskScore * lpaModifier;
-    }
-    
-    return {
-        baseRisk: baseRiskScore,
-        lpaModifier: lpaModifier,
-        modifiedRisk: modifiedRiskPercentage,
-        riskCategory: getRiskCategory(modifiedRiskPercentage),
-        contributing: getContributingFactors(standardizedData)
-    };
-}
-
-/**
- * Standardize units for QRISK3 calculation
- * @param {Object} data - Raw form data
- * @returns {Object} - Data with standardized units
- */
-function standardizeUnitsForQRISK3(data) {
-    const standardized = { ...data };
-    
-    // Convert height and weight to calculate BMI if not provided
-    if (!standardized.bmi && standardized.height && standardized.weight) {
-        // Convert height to meters
-        let heightInM = standardized.height / 100;
-        
-        // Convert weight to kg if in pounds
-        let weightInKg = standardized.weight;
-        if (standardized.weightUnit === 'lb') {
-            weightInKg = convertWeightToKg(weightInKg);
-        }
-        
-        // Calculate BMI
-        standardized.bmi = weightInKg / (heightInM * heightInM);
-    }
-    
-    // Calculate cholesterol ratio if not provided
-    if (standardized.totalChol && standardized.hdl && !standardized.cholRatio) {
-        let totalChol = standardized.totalChol;
-        let hdl = standardized.hdl;
-        
-        // Convert to mmol/L if needed
-        if (standardized.totalCholUnit === 'mg/dL') {
-            totalChol = convertCholesterol(totalChol, 'mg/dL', 'mmol/L');
-        }
-        if (standardized.hdlUnit === 'mg/dL') {
-            hdl = convertCholesterol(hdl, 'mg/dL', 'mmol/L');
-        }
-        
-        standardized.cholRatio = totalChol / hdl;
-    }
-    
-    return standardized;
-}
-
-/**
- * Calculate raw QRISK3 score using the official algorithm
- * @param {Object} data - Standardized patient data
- * @returns {number} - 10-year risk percentage
- */
-function calculateRawQRISK3(data) {
-    // Determine which algorithm to use based on sex
-    const isFemale = data.sex === 'female';
-    
-    // Convert categorical variables to numeric values
-    const ethrisk = convertEthnicity(data.ethnicity);
-    const smoke_cat = convertSmoking(data.smoker);
-    
-    // Set boolean values for conditions
-    const b_AF = data.atrialFibrillation ? 1 : 0;
-    const b_atypicalantipsy = data.atypicalAntipsychotics ? 1 : 0;
-    const b_corticosteroids = data.corticosteroids ? 1 : 0;
-    const b_impotence2 = (!isFemale && data.erectileDysfunction) ? 1 : 0;
-    const b_migraine = data.migraine ? 1 : 0;
-    const b_ra = data.rheumatoidArthritis ? 1 : 0;
-    const b_renal = data.chronicKidneyDisease ? 1 : 0;
-    const b_semi = data.severeMetalIllness ? 1 : 0;
-    const b_sle = data.sle ? 1 : 0;
-    const b_treatedhyp = data.bpTreatment ? 1 : 0;
-    const b_type1 = (data.diabetes === 'type1') ? 1 : 0;
-    const b_type2 = (data.diabetes === 'type2') ? 1 : 0;
-    
-    // Get continuous variables
-    const age = data.age;
-    const bmi = data.bmi;
-    const sbp = data.sbp;
-    const sbps5 = data.sbpSd || 0; // Standard deviation of SBP
-    const rati = data.cholRatio; // Total cholesterol / HDL ratio
-    const town = data.townsend || 0; // Default to 0 if not provided
-    const fh_cvd = data.familyHistory ? 1 : 0;
-    
-    // Calculate the risk score using the appropriate function
-    let score;
-    if (isFemale) {
-        score = cvd_female_raw(
-            age, b_AF, b_atypicalantipsy, b_corticosteroids, b_migraine, 
-            b_ra, b_renal, b_semi, b_sle, b_treatedhyp, b_type1, b_type2, 
-            bmi, ethrisk, fh_cvd, rati, sbp, sbps5, smoke_cat, 10, town
-        );
-    } else {
-        score = cvd_male_raw(
-            age, b_AF, b_atypicalantipsy, b_corticosteroids, b_impotence2, 
-            b_migraine, b_ra, b_renal, b_semi, b_sle, b_treatedhyp, b_type1, 
-            b_type2, bmi, ethrisk, fh_cvd, rati, sbp, sbps5, smoke_cat, 10, town
-        );
-    }
-    
-    return score;
-}
-
-/**
- * Convert ethnicity values to QRISK3 numeric codes
- * @param {string} ethnicity - Ethnicity from form
- * @returns {number} - QRISK3 ethnicity code
- */
-function convertEthnicity(ethnicity) {
-    const ethnicityMap = {
-        'white': 1,
-        'indian': 2,
-        'pakistani': 3,
-        'bangladeshi': 4,
-        'other_asian': 5,
-        'black_caribbean': 6,
-        'black_african': 7,
-        'chinese': 8,
-        'other': 9
-    };
-    
-    return ethnicityMap[ethnicity] || 1; // Default to White if not specified
-}
-
-/**
- * Convert smoking status to QRISK3 numeric codes
- * @param {string} smoker - Smoking status from form
- * @returns {number} - QRISK3 smoking code
- */
-function convertSmoking(smoker) {
-    const smokingMap = {
-        'non': 0,
-        'ex': 1,
-        'light': 2,
-        'moderate': 3,
-        'heavy': 4
-    };
-    
-    return smokingMap[smoker] || 0; // Default to non-smoker if not specified
-}
-
-/**
- * Official QRISK3 algorithm for females
- * Directly ported from the published code
- */
-function cvd_female_raw(
-    age, b_AF, b_atypicalantipsy, b_corticosteroids, b_migraine, 
-    b_ra, b_renal, b_semi, b_sle, b_treatedhyp, b_type1, b_type2, 
-    bmi, ethrisk, fh_cvd, rati, sbp, sbps5, smoke_cat, surv, town
-) {
-    const survivor = [
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0.988876402378082, // 10-year survival probability
-        0, 0, 0, 0, 0
-    ];
-
-    // Conditional arrays for ethnicity and smoking
-    const Iethrisk = [
-        0,
-        0,
-        0.2804031433299542500000000,
-        0.5629899414207539800000000,
-        0.2959000085111651600000000,
-        0.0727853798779825450000000,
-        -0.1707213550885731700000000,
-        -0.3937104331487497100000000,
-        -0.3263249528353027200000000,
-        -0.1712705688324178400000000
-    ];
-    
-    const Ismoke = [
-        0,
-        0.1338683378654626200000000,
-        0.5620085801243853700000000,
-        0.6674959337750254700000000,
-        0.8494817764483084700000000
-    ];
-
-    // Applying fractional polynomial transforms
-    let dage = age / 10;
-    let age_1 = Math.pow(dage, -2);
-    let age_2 = dage;
-    
-    let dbmi = bmi / 10;
-    let bmi_1 = Math.pow(dbmi, -2);
-    let bmi_2 = Math.pow(dbmi, -2) * Math.log(dbmi);
-
-    // Centering continuous variables
-    age_1 = age_1 - 0.053274843841791;
-    age_2 = age_2 - 4.332503318786621;
-    bmi_1 = bmi_1 - 0.154946178197861;
-    bmi_2 = bmi_2 - 0.144462317228317;
-    rati = rati - 3.476326465606690;
-    sbp = sbp - 123.130012512207030;
-    sbps5 = sbps5 - 9.002537727355957;
-    town = town - 0.392308831214905;
-
-    // Start of sum
-    let a = 0;
-
-    // Conditional sums
-    a += Iethrisk[ethrisk];
-    a += Ismoke[smoke_cat];
-
-    // Sum from continuous values
-    a += age_1 * -8.1388109247726188000000000;
-    a += age_2 * 0.7973337668969909800000000;
-    a += bmi_1 * 0.2923609227546005200000000;
-    a += bmi_2 * -4.1513300213837665000000000;
-    a += rati * 0.1533803582080255400000000;
-    a += sbp * 0.0131314884071034240000000;
-    a += sbps5 * 0.0078894541014586095000000;
-    a += town * 0.0772237905885901080000000;
-
-    // Sum from boolean values
-    a += b_AF * 1.5923354969269663000000000;
-    a += b_atypicalantipsy * 0.2523764207011555700000000;
-    a += b_corticosteroids * 0.5952072530460185100000000;
-    a += b_migraine * 0.3012672608703450000000000;
-    a += b_ra * 0.2136480343518194200000000;
-    a += b_renal * 0.6519456949384583300000000;
-    a += b_semi * 0.1255530805882017800000000;
-    a += b_sle * 0.7588093865426769300000000;
-    a += b_treatedhyp * 0.5093159368342300400000000;
-    a += b_type1 * 1.7267977510537347000000000;
-    a += b_type2 * 1.0688773244615468000000000;
-    a += fh_cvd * 0.4544531902089621300000000;
-
-    // Sum from interaction terms
-    a += age_1 * (smoke_cat == 1 ? 1 : 0) * -4.7057161785851891000000000;
-    a += age_1 * (smoke_cat == 2 ? 1 : 0) * -2.7430383403573337000000000;
-    a += age_1 * (smoke_cat == 3 ? 1 : 0) * -0.8660808882939218200000000;
-    a += age_1 * (smoke_cat == 4 ? 1 : 0) * 0.9024156236971064800000000;
-    a += age_1 * b_AF * 19.9380348895465610000000000;
-    a += age_1 * b_corticosteroids * -0.9840804523593628100000000;
-    a += age_1 * b_migraine * 1.7634979587872999000000000;
-    a += age_1 * b_renal * -3.5874047731694114000000000;
-    a += age_1 * b_sle * 19.6903037386382920000000000;
-    a += age_1 * b_treatedhyp * 11.8728097339218120000000000;
-    a += age_1 * b_type1 * -1.2444332714320747000000000;
-    a += age_1 * b_type2 * 6.8652342000009599000000000;
-    a += age_1 * bmi_1 * 23.8026234121417420000000000;
-    a += age_1 * bmi_2 * -71.1849476920870070000000000;
-    a += age_1 * fh_cvd * 0.9946780794043512700000000;
-    a += age_1 * sbp * 0.0341318423386154850000000;
-    a += age_1 * town * -1.0301180802035639000000000;
-    a += age_2 * (smoke_cat == 1 ? 1 : 0) * -0.0755892446431930260000000;
-    a += age_2 * (smoke_cat == 2 ? 1 : 0) * -0.1195119287486707400000000;
-    a += age_2 * (smoke_cat == 3 ? 1 : 0) * -0.1036630639757192300000000;
-    a += age_2 * (smoke_cat == 4 ? 1 : 0) * -0.1399185359171838900000000;
-    a += age_2 * b_AF * -0.0761826510111625050000000;
-    a += age_2 * b_corticosteroids * -0.1200536494674247200000000;
-    a += age_2 * b_migraine * -0.0655869178986998590000000;
-    a += age_2 * b_renal * -0.2268887308644250700000000;
-    a += age_2 * b_sle * 0.0773479496790162730000000;
-    a += age_2 * b_treatedhyp * 0.0009685782358817443600000;
-    a += age_2 * b_type1 * -0.2872406462448894900000000;
-    a += age_2 * b_type2 * -0.0971122525906954890000000;
-    a += age_2 * bmi_1 * 0.5236995893366442900000000;
-    a += age_2 * bmi_2 * 0.0457441901223237590000000;
-    a += age_2 * fh_cvd * -0.0768850516984230380000000;
-    a += age_2 * sbp * -0.0015082501423272358000000;
-    a += age_2 * town * -0.0315934146749623290000000;
-
-    // Calculate the score
-    const score = 100.0 * (1 - Math.pow(survivor[surv], Math.exp(a)));
-    return score;
-}
-
-/**
- * Official QRISK3 algorithm for males
- * Directly ported from the published code
- */
-function cvd_male_raw(
-    age, b_AF, b_atypicalantipsy, b_corticosteroids, b_impotence2, 
-    b_migraine, b_ra, b_renal, b_semi, b_sle, b_treatedhyp, b_type1, 
-    b_type2, bmi, ethrisk, fh_cvd, rati, sbp, sbps5, smoke_cat, surv, town
-) {
-    const survivor = [
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0.977268040180206, // 10-year survival probability
-        0, 0, 0, 0, 0
-    ];
-
-    // Conditional arrays for ethnicity and smoking
-    const Iethrisk = [
-        0,
-        0,
-        0.2771924876030827900000000,
-        0.4744636071493126800000000,
-        0.5296172991968937100000000,
-        0.0351001591862990170000000,
-        -0.3580789966932791900000000,
-        -0.4005648523216514000000000,
-        -0.4152279288983017300000000,
-        -0.2632134813474996700000000
-    ];
-    
-    const Ismoke = [
-        0,
-        0.1912822286338898300000000,
-        0.5524158819264555200000000,
-        0.6383505302750607200000000,
-        0.7898381988185801900000000
-    ];
-
-    // Applying fractional polynomial transforms
-    let dage = age / 10;
-    let age_1 = Math.pow(dage, -1);
-    let age_2 = Math.pow(dage, 3);
-    
-    let dbmi = bmi / 10;
-    let bmi_1 = Math.pow(dbmi, -2);
-    let bmi_2 = Math.pow(dbmi, -2) * Math.log(dbmi);
-
-    // Centering continuous variables
-    age_1 = age_1 - 0.234766781330109;
-    age_2 = age_2 - 77.284080505371094;
-    bmi_1 = bmi_1 - 0.149176135659218;
-    bmi_2 = bmi_2 - 0.141913309693336;
-    rati = rati - 4.300998687744141;
-    sbp = sbp - 128.571578979492190;
-    sbps5 = sbps5 - 8.756621360778809;
-    town = town - 0.526304900646210;
-
-    // Start of sum
-    let a = 0;
-
-    // Conditional sums
-    a += Iethrisk[ethrisk];
-    a += Ismoke[smoke_cat];
-
-    // Sum from continuous values
-    a += age_1 * -17.8397816660055750000000000;
-    a += age_2 * 0.0022964880605765492000000;
-    a += bmi_1 * 2.4562776660536358000000000;
-    a += bmi_2 * -8.3011122314711354000000000;
-    a += rati * 0.1734019685632711100000000;
-    a += sbp * 0.0129101265425533050000000;
-    a += sbps5 * 0.0102519142912904560000000;
-    a += town * 0.0332682012772872950000000;
-
-    // Sum from boolean values
-    a += b_AF * 0.8820923692805465700000000;
-    a += b_atypicalantipsy * 0.1304687985517351300000000;
-    a += b_corticosteroids * 0.4548539975044554300000000;
-    a += b_impotence2 * 0.2225185908670538300000000;
-    a += b_migraine * 0.2558417807415991300000000;
-    a += b_ra * 0.2097065801395656700000000;
-    a += b_renal * 0.7185326128827438400000000;
-    a += b_semi * 0.1213303988204716400000000;
-    a += b_sle * 0.4401572174457522000000000;
-    a += b_treatedhyp * 0.5165987108269547400000000;
-    a += b_type1 * 1.2343425521675175000000000;
-    a += b_type2 * 0.8594207143093222100000000;
-    a += fh_cvd * 0.5405546900939015600000000;
-
-    // Sum from interaction terms
-    a += age_1 * (smoke_cat == 1 ? 1 : 0) * -0.2101113393351634600000000;
-    a += age_1 * (smoke_cat == 2 ? 1 : 0) * 0.7526867644750319100000000;
-    a += age_1 * (smoke_cat == 3 ? 1 : 0) * 0.9931588755640579100000000;
-    a += age_1 * (smoke_cat == 4 ? 1 : 0) * 2.1331163414389076000000000;
-    a += age_1 * b_AF * 3.4896675530623207000000000;
-    a += age_1 * b_corticosteroids * 1.1708133653489108000000000;
-    a += age_1 * b_impotence2 * -1.5064009857454310000000000;
-    a += age_1 * b_migraine * 2.3491159871402441000000000;
-    a += age_1 * b_renal * -0.5065671632722369400000000;
-    a += age_1 * b_treatedhyp * 6.5114581098532671000000000;
-    a += age_1 * b_type1 * 5.3379864878006531000000000;
-    a += age_1 * b_type2 * 3.6461817406221311000000000;
-    a += age_1 * bmi_1 * 31.0049529560338860000000000;
-    a += age_1 * bmi_2 * -111.2915718439164300000000000;
-    a += age_1 * fh_cvd * 2.7808628508531887000000000;
-    a += age_1 * sbp * 0.0188585244698658530000000;
-    a += age_1 * town * -0.1007554870063731000000000;
-    a += age_2 * (smoke_cat == 1 ? 1 : 0) * -0.0004985487027532612100000;
-    a += age_2 * (smoke_cat == 2 ? 1 : 0) * -0.0007987563331738541400000;
-    a += age_2 * (smoke_cat == 3 ? 1 : 0) * -0.0008370618426625129600000;
-    a += age_2 * (smoke_cat == 4 ? 1 : 0) * -0.0007840031915563728900000;
-    a += age_2 * b_AF * -0.0003499560834063604900000;
-    a += age_2 * b_corticosteroids * -0.0002496045095297166000000;
-    a += age_2 * b_impotence2 * -0.0011058218441227373000000;
-    a += age_2 * b_migraine * 0.0001989644604147863100000;
-    a += age_2 * b_renal * -0.0018325930166498813000000;
-    a += age_2 * b_treatedhyp * 0.0006383805310416501300000;
-    a += age_2 * b_type1 * 0.0006409780808752897000000;
-    a += age_2 * b_type2 * -0.0002469569558886831500000;
-    a += age_2 * bmi_1 * 0.0050380102356322029000000;
-    a += age_2 * bmi_2 * -0.0130744830025243190000000;
-    a += age_2 * fh_cvd * -0.0002479180990739603700000;
-    a += age_2 * sbp * -0.0000127187419158845700000;
-    a += age_2 * town * -0.0000932996423232728880000;
-
-    // Calculate the score
-    const score = 100.0 * (1 - Math.pow(survivor[surv], Math.exp(a)));
-    return score;
-}
-
-/**
- * Identify contributing risk factors from the data
- * @param {Object} data - Patient data
- * @returns {Array} - List of contributing risk factors
- */
-function getContributingFactors(data) {
-    const factors = [];
-    
-    // Add factors based on patient data
-    if (data.age >= 65) {
-        factors.push({ 
-            name: "Advanced age", 
-            impact: "high",
-            description: "Age is a strong independent risk factor for CVD" 
-        });
-    } else if (data.age >= 55) {
-        factors.push({ 
-            name: "Age", 
-            impact: "moderate",
-            description: "Age is a significant risk factor for CVD" 
-        });
-    }
-    
-    if (data.smoker && data.smoker !== 'non') {
-        const smokingImpact = data.smoker === 'heavy' ? 'high' : 
-                            (data.smoker === 'moderate' ? 'moderate' : 'low');
-        factors.push({ 
-            name: "Smoking", 
-            impact: smokingImpact,
-            description: "Smoking significantly increases CVD risk" 
-        });
-    }
-    
-    if (data.bmi >= 30) {
-        factors.push({ 
-            name: "Obesity", 
-            impact: "moderate",
-            description: "BMI ≥30 kg/m² increases CVD risk" 
-        });
-    } else if (data.bmi >= 25) {
-        factors.push({ 
-            name: "Overweight", 
-            impact: "low",
-            description: "BMI 25-29.9 kg/m² slightly increases CVD risk" 
-        });
-    }
-    
-    if (data.sbp >= 160) {
-        factors.push({ 
-            name: "Severe hypertension", 
-            impact: "high",
-            description: "Systolic BP ≥160 mmHg significantly increases CVD risk" 
-        });
-    } else if (data.sbp >= 140) {
-        factors.push({ 
-            name: "Hypertension", 
-            impact: "moderate",
-            description: "Systolic BP 140-159 mmHg increases CVD risk" 
-        });
-    }
-    
-    if (data.cholRatio >= 6) {
-        factors.push({ 
-            name: "Poor cholesterol ratio", 
-            impact: "high",
-            description: "Total:HDL cholesterol ratio ≥6 significantly increases risk" 
-        });
-    } else if (data.cholRatio >= 4.5) {
-        factors.push({ 
-            name: "Elevated cholesterol ratio", 
-            impact: "moderate",
-            description: "Total:HDL cholesterol ratio 4.5-5.9 increases risk" 
-        });
-    }
-    
-    if (data.diabetes === 'type1') {
-        factors.push({ 
-            name: "Type 1 diabetes", 
-            impact: "high",
-            description: "Type 1 diabetes significantly increases CVD risk" 
-        });
-    } else if (data.diabetes === 'type2') {
-        factors.push({ 
-            name: "Type 2 diabetes", 
-            impact: "high",
-            description: "Type 2 diabetes significantly increases CVD risk" 
-        });
-    }
-    
-    if (data.familyHistory) {
-        factors.push({ 
-            name: "Family history of CVD", 
-            impact: "moderate",
-            description: "Premature CVD in first-degree relative increases risk" 
-        });
-    }
-    
-    // Medical conditions
-    if (data.atrialFibrillation) {
-        factors.push({ 
-            name: "Atrial fibrillation", 
-            impact: "high",
-            description: "Atrial fibrillation substantially increases stroke risk" 
-        });
-    }
-    
-    if (data.chronicKidneyDisease) {
-        factors.push({ 
-            name: "Chronic kidney disease", 
-            impact: "high",
-            description: "CKD stages 3-5 significantly increases CVD risk" 
-        });
-    }
-    
-    if (data.rheumatoidArthritis) {
-        factors.push({ 
-            name: "Rheumatoid arthritis", 
-            impact: "moderate",
-            description: "Rheumatoid arthritis increases CVD risk" 
-        });
-    }
-    
-    if (data.sle) {
-        factors.push({ 
-            name: "Systemic lupus erythematosus", 
-            impact: "moderate",
-            description: "SLE increases CVD risk" 
-        });
-    }
-    
-    if (data.migraine) {
-        factors.push({ 
-            name: "Migraine", 
-            impact: "low",
-            description: "Migraine slightly increases stroke risk" 
-        });
-    }
-    
-    if (data.severeMetalIllness) {
-        factors.push({ 
-            name: "Severe mental illness", 
-            impact: "low",
-            description: "Severe mental illness slightly increases CVD risk" 
-        });
-    }
-    
-    if (data.erectileDysfunction && data.sex === 'male') {
-        factors.push({ 
-            name: "Erectile dysfunction", 
-            impact: "moderate",
-            description: "Erectile dysfunction is associated with increased CVD risk in men" 
-        });
-    }
-    
-    // Medications
-    if (data.atypicalAntipsychotics) {
-        factors.push({ 
-            name: "Atypical antipsychotics", 
-            impact: "low",
-            description: "Atypical antipsychotics slightly increase CVD risk" 
-        });
-    }
-    
-    if (data.corticosteroids) {
-        factors.push({ 
-            name: "Corticosteroids", 
-            impact: "moderate",
-            description: "Regular corticosteroid use increases CVD risk" 
-        });
-    }
-    
-    // Lp(a)
-    if (data.lpa !== null && data.lpa !== undefined) {
-        let lpaValue = data.lpa;
-        if (data.lpaUnit === 'nmol/L') {
-            lpaValue = convertLpa(lpaValue, 'nmol/L', 'mg/dL');
-        }
-        
-        if (lpaValue >= 180) {
-            factors.push({ 
-                name: "Very high Lp(a)", 
-                impact: "high",
-                description: "Lp(a) ≥180 mg/dL substantially increases CVD risk" 
-            });
-        } else if (lpaValue >= 50) {
-            factors.push({ 
-                name: "Elevated Lp(a)", 
-                impact: "moderate",
-                description: "Lp(a) ≥50 mg/dL increases CVD risk" 
-            });
-        } else if (lpaValue >= 30) {
-            factors.push({ 
-                name: "Borderline Lp(a)", 
-                impact: "low",
-                description: "Lp(a) 30-49 mg/dL slightly increases CVD risk" 
-            });
-        }
-    }
-    
-    return factors;
-}
-
-
-// === juno-integration.js ===
-/**
- * CVD Risk Toolkit with Lp(a) Post-Test Modifier
- * 
- * LEGAL DISCLAIMER:
- * This software is provided for educational and informational purposes only. 
- * It is not intended to be a substitute for professional medical advice, diagnosis, or treatment.
- * Always seek the advice of a qualified healthcare provider with any questions regarding medical conditions.
- * 
- * REFERENCES AND ATTRIBUTIONS:
- * - QRISK3 algorithm: Hippisley-Cox J, et al. BMJ 2017;357:j2099
- * - Framingham Risk Score: D'Agostino RB Sr, et al. Circulation 2008;117:743-53
- * - Lp(a) adjustments based on: Willeit P, et al. Lancet 2018;392:1311-1320
- * 
- * Last updated: April 2025
- */
-
-/**
- * Juno EMR Integration Module for CVD Risk Toolkit
- * 
- * This module enables the CVD Risk Toolkit to be embedded in Juno EMR's
- * Clinical Forms section and exchange data with the patient record.
- */
-
-// Juno EMR Integration Constants
-const JUNO_INTEGRATION = {
-  FORM_ID: 'cvd-risk-toolkit',
-  API_VERSION: '1.0',
-  PERMISSIONS: ['patient.read', 'patient.demographics', 'patient.labs', 'patient.medications']
-};
-
-/**
- * Initialize Juno EMR integration
- * This should be called when the application loads
- */
-function initJunoIntegration() {
-  // Check if running within Juno EMR iframe
-  if (window.parent !== window && isJunoEnvironment()) {
-    console.log('Juno EMR environment detected');
-    setupJunoEventListeners();
-    registerWithJunoAPI();
-  } else {
-    console.log('Running in standalone mode');
-  }
-}
-
-/**
- * Check if the current environment is Juno EMR
- * @returns {boolean} - Whether the app is running in Juno environment
- */
-function isJunoEnvironment() {
-  try {
-    return window.parent.JunoAPI !== undefined || 
-           window.location.href.includes('junoemr.com') ||
-           document.referrer.includes('junoemr.com');
-  } catch (e) {
-    // Security exception when accessing parent from different origin
-    return false;
-  }
-}
-
-/**
- * Register the application with Juno EMR API
- */
-function registerWithJunoAPI() {
-  if (window.parent.JunoAPI) {
-    window.parent.JunoAPI.register({
-      name: 'CVD Risk Toolkit',
-      version: '1.0',
-      permissions: JUNO_INTEGRATION.PERMISSIONS,
-      onPatientChange: handlePatientChange,
-      onFormSave: handleFormSave
+    // Toggle theme when button is clicked
+    themeToggleBtn.addEventListener('click', () => {
+      toggleTheme();
     });
-    
-    // Request patient data from Juno
-    window.parent.JunoAPI.requestPatientData();
-  } else {
-    console.error('Juno API not found in parent window');
   }
-}
+  
+  /**
+   * Toggle between light and dark themes
+   */
+  function toggleTheme() {
+    const isDarkTheme = document.body.classList.toggle('dark-theme');
+    
+    // Save preference
+    localStorage.setItem('preferred-theme', isDarkTheme ? 'dark' : 'light');
+    
+    // Update button
+    updateToggleButton();
+    
+    // Update charts if they exist
+    if (window.riskVisualization && typeof window.riskVisualization.updateChartThemes === 'function') {
+      window.riskVisualization.updateChartThemes();
+    }
+  }
+  
+  /**
+   * Update theme toggle button appearance
+   */
+  function updateToggleButton() {
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    if (!themeToggleBtn) return;
+    
+    const isDarkTheme = document.body.classList.contains('dark-theme');
+    
+    // Update icon based on current theme
+    themeToggleBtn.innerHTML = isDarkTheme ? 
+      '☀️' : // Sun icon for dark mode (to switch to light)
+      '🌙'; // Moon icon for light mode (to switch to dark)
+    
+    // Update button title/tooltip
+    themeToggleBtn.title = isDarkTheme ? 
+      'Switch to light theme' : 
+      'Switch to dark theme';
+  }
+  
+  /**
+   * Get a CSS variable value
+   * @param {string} variableName - CSS variable name
+   * @param {string} fallback - Fallback value
+   * @returns {string} - CSS variable value or fallback
+   */
+  function getCSSVariable(variableName, fallback = '') {
+    return getComputedStyle(document.documentElement)
+      .getPropertyValue(variableName).trim() || fallback;
+  }
+  
+  /**
+   * Get animation speed from CSS variables
+   * @param {string} type - Speed type (normal, fast, slow, heartbeat)
+   * @returns {number} - Animation speed in milliseconds
+   */
+  function getAnimationSpeed(type = 'normal') {
+    const speedVar = `--animation-speed-${type}`;
+    const defaultSpeed = type === 'heartbeat' ? 0.8 : 
+                        type === 'fast' ? 0.2 :
+                        type === 'slow' ? 0.5 : 0.3;
+                        
+    return parseFloat(getCSSVariable(speedVar, defaultSpeed)) * 1000;
+  }
+  
+  // Return public API
+  return {
+    initialize,
+    setupThemeToggle,
+    toggleTheme,
+    getCSSVariable,
+    getAnimationSpeed
+  };
+})();
+
+// =============================================================================
+// RESPONSIVE DESIGN HANDLERS
+// =============================================================================
 
 /**
- * Set up event listeners for Juno EMR communication
+ * Responsive Design Handler Module
+ * Manages responsive behavior and layout adjustments
  */
-function setupJunoEventListeners() {
-  window.addEventListener('message', function(event) {
-    // Validate message origin for security
-    if (!event.origin.includes('junoemr.com')) {
+export const responsiveHandler = (() => {
+  // Track responsive breakpoints from CSS
+  const breakpoints = {
+    sm: 640,
+    md: 768,
+    lg: 1024,
+    xl: 1280
+  };
+  
+  // Current screen size category
+  let currentBreakpoint = '';
+  
+  /**
+   * Initialize responsive handlers
+   */
+  function initialize() {
+    // Determine initial breakpoint
+    updateCurrentBreakpoint();
+    
+    // Set up resize observer for more efficient handling than resize event
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(debounce(() => {
+        const oldBreakpoint = currentBreakpoint;
+        updateCurrentBreakpoint();
+        
+        // Only trigger actions if breakpoint changed
+        if (oldBreakpoint !== currentBreakpoint) {
+          handleBreakpointChange(oldBreakpoint, currentBreakpoint);
+        }
+        
+        // Always resize charts
+        resizeVisualElements();
+      }, 250));
+      
+      resizeObserver.observe(document.body);
+    } 
+    // Fallback to window resize event
+    else {
+      window.addEventListener('resize', debounce(() => {
+        const oldBreakpoint = currentBreakpoint;
+        updateCurrentBreakpoint();
+        
+        if (oldBreakpoint !== currentBreakpoint) {
+          handleBreakpointChange(oldBreakpoint, currentBreakpoint);
+        }
+        
+        resizeVisualElements();
+      }, 250));
+    }
+  }
+  
+  /**
+   * Update current breakpoint based on window width
+   */
+  function updateCurrentBreakpoint() {
+    const width = window.innerWidth;
+    
+    if (width < breakpoints.sm) {
+      currentBreakpoint = 'xs';
+    } else if (width < breakpoints.md) {
+      currentBreakpoint = 'sm';
+    } else if (width < breakpoints.lg) {
+      currentBreakpoint = 'md';
+    } else if (width < breakpoints.xl) {
+      currentBreakpoint = 'lg';
+    } else {
+      currentBreakpoint = 'xl';
+    }
+    
+    // Add current breakpoint as a class to body
+    document.body.classList.remove('bp-xs', 'bp-sm', 'bp-md', 'bp-lg', 'bp-xl');
+    document.body.classList.add(`bp-${currentBreakpoint}`);
+  }
+  
+  /**
+   * Handle breakpoint changes
+   * @param {string} oldBreakpoint - Previous breakpoint
+   * @param {string} newBreakpoint - New breakpoint
+   */
+  function handleBreakpointChange(oldBreakpoint, newBreakpoint) {
+    console.log(`Breakpoint changed: ${oldBreakpoint} -> ${newBreakpoint}`);
+    
+    // Adjust UI elements based on breakpoint
+    adjustFormsForBreakpoint(newBreakpoint);
+    adjustTabsForBreakpoint(newBreakpoint);
+  }
+  
+  /**
+   * Adjust form layouts based on breakpoint
+   * @param {string} breakpoint - Current breakpoint
+   */
+  function adjustFormsForBreakpoint(breakpoint) {
+    const isSmall = breakpoint === 'xs' || breakpoint === 'sm';
+    
+    // Make form rows stack on small screens
+    document.querySelectorAll('.form-row').forEach(row => {
+      if (isSmall) {
+        row.style.flexDirection = 'column';
+      } else {
+        row.style.flexDirection = 'row';
+      }
+    });
+  }
+  
+  /**
+   * Adjust tabs based on breakpoint
+   * @param {string} breakpoint - Current breakpoint
+   */
+  function adjustTabsForBreakpoint(breakpoint) {
+    const isSmall = breakpoint === 'xs' || breakpoint === 'sm';
+    
+    // Adjust tab container for small screens
+    document.querySelectorAll('.tabs').forEach(tabs => {
+      if (isSmall) {
+        tabs.style.flexWrap = 'nowrap';
+        tabs.style.overflowX = 'auto';
+      } else {
+        tabs.style.flexWrap = 'wrap';
+        tabs.style.overflowX = 'visible';
+      }
+    });
+  }
+  
+  /**
+   * Resize visual elements like charts
+   */
+  function resizeVisualElements() {
+    // Resize charts if visualization module is available
+    if (window.riskVisualization && typeof window.riskVisualization.resizeCharts === 'function') {
+      window.riskVisualization.resizeCharts();
+    }
+  }
+  
+  // Return public API
+  return {
+    initialize,
+    getCurrentBreakpoint: () => currentBreakpoint,
+    resizeVisualElements
+  };
+})();
+
+// =============================================================================
+// ENHANCED ERROR HANDLING
+// =============================================================================
+
+/**
+ * Error Handling Module
+ * Provides enhanced error tracking and user-friendly error notifications
+ */
+export const errorHandler = (() => {
+  // Keep track of reported errors to avoid duplicates
+  const reportedErrors = new Set();
+  
+  /**
+   * Report an error with context
+   * @param {Error|string} error - Error object or message
+   * @param {string} context - Context where error occurred
+   * @param {boolean} showNotification - Whether to show a visible notification
+   */
+  function reportError(error, context = 'general', showNotification = true) {
+    // Convert string errors to Error objects
+    if (typeof error === 'string') {
+      error = new Error(error);
+    }
+    
+    // Generate error ID to track duplicates
+    const errorId = `${context}:${error.message}`;
+    
+    // Skip if this exact error was already reported
+    if (reportedErrors.has(errorId)) {
       return;
     }
     
-    const message = event.data;
+    // Add to reported errors
+    reportedErrors.add(errorId);
     
-    // Handle different message types from Juno
-    switch (message.type) {
-      case 'patient_data':
-        populateFormWithPatientData(message.data);
-        break;
-      case 'form_save_requested':
-        prepareFormDataForSaving();
-        break;
-      case 'form_cancelled':
-        resetForm();
-        break;
-    }
-  });
-}
-
-/**
- * Handle patient change event from Juno EMR
- * @param {Object} patientData - Patient data from Juno EMR
- */
-function handlePatientChange(patientData) {
-  populateFormWithPatientData(patientData);
-}
-
-/**
- * Populate the CVD Risk Toolkit form with patient data from Juno
- * @param {Object} patientData - Patient data from Juno EMR
- */
-function populateFormWithPatientData(patientData) {
-  if (!patientData) return;
-  
-  // Map Juno patient fields to form fields
-  
-  // Demographics
-  if (patientData.demographics) {
-    // Age calculation
-    if (patientData.demographics.dob) {
-      const dob = new Date(patientData.demographics.dob);
-      const today = new Date();
-      let age = today.getFullYear() - dob.getFullYear();
-      const monthDiff = today.getMonth() - dob.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
-        age--;
-      }
-      
-      // Set age in both FRS and QRISK forms
-      setFormValue('frs-age', age);
-      setFormValue('qrisk-age', age);
+    // Log to console
+    console.error(`[${context}]`, error);
+    
+    // Show notification if requested
+    if (showNotification) {
+      showErrorNotification(error, context);
     }
     
-    // Sex
-    if (patientData.demographics.sex) {
-      const sex = patientData.demographics.sex.toLowerCase();
-      setFormValue('frs-sex', sex);
-      setFormValue('qrisk-sex', sex);
-      
-      // Show/hide erectile dysfunction field based on sex
-      const edContainer = document.getElementById('qrisk-ed-container');
-      if (edContainer) {
-        edContainer.style.display = sex === 'male' ? 'block' : 'none';
-      }
-    }
-    
-    // Ethnicity (for QRISK)
-    if (patientData.demographics.ethnicity) {
-      mapEthnicityToQRISK(patientData.demographics.ethnicity);
-    }
-    
-    // Height and weight
-    if (patientData.demographics.height) {
-      setFormValue('qrisk-height', patientData.demographics.height);
-      // Calculate imperial equivalents if needed
-      calculateImperialHeight(patientData.demographics.height);
-    }
-    
-    if (patientData.demographics.weight) {
-      setFormValue('qrisk-weight', patientData.demographics.weight);
-    }
-    
-    // Calculate BMI if both height and weight are available
-    if (patientData.demographics.height && patientData.demographics.weight) {
-      calculateBMIForQRISK();
+    // Optional: send to error tracking service
+    if (window.errorTrackingService) {
+      window.errorTrackingService.captureError(error, { context });
     }
   }
   
-  // Lab values
-  if (patientData.labs) {
-    // Find most recent labs
-    const recentLabs = getLatestLabValues(patientData.labs);
-    
-    // Map lab values to form
-    if (recentLabs.totalCholesterol) {
-      setFormValue('frs-total-chol', recentLabs.totalCholesterol);
-      setFormValue('qrisk-total-chol', recentLabs.totalCholesterol);
-    }
-    
-    if (recentLabs.hdl) {
-      setFormValue('frs-hdl', recentLabs.hdl);
-      setFormValue('qrisk-hdl', recentLabs.hdl);
-    }
-    
-    if (recentLabs.ldl) {
-      setFormValue('frs-ldl', recentLabs.ldl);
-      setFormValue('qrisk-ldl', recentLabs.ldl);
-    }
-    
-    if (recentLabs.lpa) {
-      setFormValue('frs-lpa', recentLabs.lpa);
-      setFormValue('qrisk-lpa', recentLabs.lpa);
-    }
-    
-    // Calculate cholesterol ratio if both total and HDL are available
-    if (recentLabs.totalCholesterol && recentLabs.hdl) {
-      calculateCholesterolRatio();
-    }
-  }
-  
-  // Medical conditions
-  if (patientData.conditions) {
-    // Map conditions to form checkboxes
-    mapConditionsToForm(patientData.conditions);
-  }
-  
-  // Medications
-  if (patientData.medications) {
-    // Map medications to form fields
-    mapMedicationsToForm(patientData.medications);
-  }
-  
-  // Blood pressure
-  if (patientData.vitals && patientData.vitals.bloodPressure) {
-    const recentBP = getLatestBloodPressure(patientData.vitals.bloodPressure);
-    if (recentBP.systolic) {
-      setFormValue('frs-sbp', recentBP.systolic);
-      setFormValue('qrisk-sbp', recentBP.systolic);
-    }
-    
-    // If multiple BP readings are available, populate the SBP readings fields
-    populateSBPReadings(patientData.vitals.bloodPressure);
-  }
-}
-
-/**
- * Map Juno ethnicity codes to QRISK3 ethnicity options
- * @param {string} junoEthnicity - Juno EMR ethnicity code
- */
-function mapEthnicityToQRISK(junoEthnicity) {
-  const ethnicityMap = {
-    'white': 'white',
-    'caucasian': 'white',
-    'european': 'white',
-    'indian': 'indian',
-    'pakistani': 'pakistani',
-    'bangladeshi': 'bangladeshi',
-    'asian': 'other_asian',
-    'east_asian': 'other_asian',
-    'chinese': 'chinese',
-    'black_caribbean': 'black_caribbean',
-    'black_african': 'black_african',
-    'african': 'black_african',
-    'caribbean': 'black_caribbean',
-    'hispanic': 'other',
-    'latino': 'other',
-    'middle_eastern': 'other',
-    'mixed': 'other',
-    'other': 'other'
-  };
-  
-  const qriskEthnicity = ethnicityMap[junoEthnicity.toLowerCase()] || 'other';
-  setFormValue('qrisk-ethnicity', qriskEthnicity);
-}
-
-/**
- * Get the latest lab values from Juno lab data
- * @param {Array} labs - Array of lab results from Juno
- * @returns {Object} - Latest values for relevant labs
- */
-function getLatestLabValues(labs) {
-  const relevantLabs = {
-    totalCholesterol: null,
-    hdl: null,
-    ldl: null,
-    lpa: null
-  };
-  
-  // Lab code mappings
-  const labCodes = {
-    totalCholesterol: ['CHOL', '2093-3', 'CHOLESTEROL'],
-    hdl: ['HDL', '2085-9', 'HDL-CHOLESTEROL'],
-    ldl: ['LDL', '2089-1', 'LDL-CHOLESTEROL'],
-    lpa: ['LPA', 'LP(A)', 'LIPOPROTEIN A']
-  };
-  
-  // Find the latest result for each lab type
-  for (const labType in labCodes) {
-    const relevantResults = labs.filter(lab => 
-      labCodes[labType].some(code => 
-        lab.code && lab.code.toUpperCase().includes(code)
-      )
-    );
-    
-    if (relevantResults.length > 0) {
-      // Sort by date (newest first) and take the first result
-      relevantResults.sort((a, b) => new Date(b.date) - new Date(a.date));
-      relevantLabs[labType] = relevantResults[0].value;
-    }
-  }
-  
-  return relevantLabs;
-}
-
-/**
- * Map patient conditions to form checkboxes
- * @param {Array} conditions - Patient conditions from Juno
- */
-function mapConditionsToForm(conditions) {
-  // Condition mappings
-  const conditionMappings = {
-    'atrial fibrillation': 'qrisk-af',
-    'afib': 'qrisk-af',
-    'rheumatoid arthritis': 'qrisk-ra',
-    'chronic kidney disease': 'qrisk-ckd',
-    'ckd': 'qrisk-ckd',
-    'migraine': 'qrisk-migraine',
-    'systemic lupus erythematosus': 'qrisk-sle',
-    'sle': 'qrisk-sle',
-    'lupus': 'qrisk-sle',
-    'schizophrenia': 'qrisk-semi',
-    'bipolar disorder': 'qrisk-semi',
-    'severe depression': 'qrisk-semi',
-    'erectile dysfunction': 'qrisk-ed',
-    'impotence': 'qrisk-ed',
-    'diabetes type 1': 'diabetesType1',
-    'type 1 diabetes': 'diabetesType1',
-    'diabetes type 2': 'diabetesType2',
-    'type 2 diabetes': 'diabetesType2',
-    'family history of cvd': 'familyHistoryCVD',
-    'family history of coronary heart disease': 'familyHistoryCVD'
-  };
-  
-  // Check for each condition
-  for (const condition of conditions) {
-    const conditionName = condition.name ? condition.name.toLowerCase() : '';
-    
-    // Check for matches in our mapping
-    for (const [key, value] of Object.entries(conditionMappings)) {
-      if (conditionName.includes(key)) {
-        if (value === 'diabetesType1') {
-          setFormValue('frs-diabetes', 'yes');
-          setFormValue('qrisk-diabetes', 'type1');
-        } else if (value === 'diabetesType2') {
-          setFormValue('frs-diabetes', 'yes');
-          setFormValue('qrisk-diabetes', 'type2');
-        } else if (value === 'familyHistoryCVD') {
-          setFormValue('qrisk-family-history', 'yes');
-        } else {
-          // Standard checkbox
-          const checkbox = document.getElementById(value);
-          if (checkbox) checkbox.checked = true;
-        }
-      }
-    }
-  }
-}
-
-/**
- * Map patient medications to form fields
- * @param {Array} medications - Patient medications from Juno
- */
-function mapMedicationsToForm(medications) {
-  // Check for relevant medication classes
-  const onAntihypertensives = medications.some(med => 
-    isAntihypertensive(med.name)
-  );
-  
-  const onCorticosteroids = medications.some(med => 
-    isCorticosteroid(med.name)
-  );
-  
-  const onAtypicalAntipsychotics = medications.some(med => 
-    isAtypicalAntipsychotic(med.name)
-  );
-  
-  // Set form values based on medications
-  if (onAntihypertensives) {
-    setFormValue('frs-bp-treatment', 'yes');
-    setFormValue('qrisk-bp-treatment', 'yes');
-  }
-  
-  if (onCorticosteroids) {
-    const checkbox = document.getElementById('qrisk-corticosteroids');
-    if (checkbox) checkbox.checked = true;
-  }
-  
-  if (onAtypicalAntipsychotics) {
-    const checkbox = document.getElementById('qrisk-atypical-antipsychotics');
-    if (checkbox) checkbox.checked = true;
-  }
-}
-
-/**
- * Check if a medication is an antihypertensive
- * @param {string} medicationName - Name of the medication
- * @returns {boolean} - Whether it's an antihypertensive
- */
-function isAntihypertensive(medicationName) {
-  const antihypertensiveClasses = [
-    'ace inhibitor', 'acei', 'arb', 'angiotensin', 'calcium channel', 
-    'beta blocker', 'thiazide', 'diuretic',
-    // Common specific medications
-    'lisinopril', 'ramipril', 'enalapril', 'perindopril',
-    'losartan', 'valsartan', 'candesartan', 'irbesartan',
-    'amlodipine', 'diltiazem', 'verapamil', 'nifedipine',
-    'metoprolol', 'bisoprolol', 'atenolol', 'carvedilol',
-    'hydrochlorothiazide', 'chlorthalidone', 'indapamide',
-    'furosemide', 'spironolactone', 'eplerenone'
-  ];
-  
-  return antihypertensiveClasses.some(className => 
-    medicationName.toLowerCase().includes(className)
-  );
-}
-
-/**
- * Check if a medication is a corticosteroid
- * @param {string} medicationName - Name of the medication
- * @returns {boolean} - Whether it's a corticosteroid
- */
-function isCorticosteroid(medicationName) {
-  const corticosteroids = [
-    'prednisone', 'prednisolone', 'methylprednisolone', 'dexamethasone',
-    'hydrocortisone', 'budesonide', 'fluticasone', 'triamcinolone',
-    'betametasone', 'cortisone', 'fludrocortisone'
-  ];
-  
-  return corticosteroids.some(drug => 
-    medicationName.toLowerCase().includes(drug)
-  );
-}
-
-/**
- * Check if a medication is an atypical antipsychotic
- * @param {string} medicationName - Name of the medication
- * @returns {boolean} - Whether it's an atypical antipsychotic
- */
-function isAtypicalAntipsychotic(medicationName) {
-  const atypicalAntipsychotics = [
-    'risperidone', 'olanzapine', 'quetiapine', 'aripiprazole',
-    'clozapine', 'ziprasidone', 'paliperidone', 'asenapine',
-    'lurasidone', 'brexpiprazole', 'cariprazine', 'iloperidone'
-  ];
-  
-  return atypicalAntipsychotics.some(drug => 
-    medicationName.toLowerCase().includes(drug)
-  );
-}
-
-/**
- * Get the latest blood pressure readings
- * @param {Array} bpReadings - Array of BP readings from Juno
- * @returns {Object} - Latest systolic and diastolic values
- */
-function getLatestBloodPressure(bpReadings) {
-  if (!bpReadings || !bpReadings.length) {
-    return { systolic: null, diastolic: null };
-  }
-  
-  // Sort by date (newest first)
-  bpReadings.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
-  return {
-    systolic: bpReadings[0].systolic,
-    diastolic: bpReadings[0].diastolic
-  };
-}
-
-/**
- * Populate SBP readings fields with historical blood pressure data
- * @param {Array} bpReadings - Array of BP readings from Juno
- */
-function populateSBPReadings(bpReadings) {
-  if (!bpReadings || bpReadings.length < 2) return;
-  
-  // Sort by date (newest first)
-  bpReadings.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
-  // Take up to 6 most recent readings
-  const recentReadings = bpReadings.slice(0, 6);
-  
-  // Populate the reading fields
-  recentReadings.forEach((reading, index) => {
-    const readingField = document.getElementById(`qrisk-sbp-reading-${index + 1}`);
-    if (readingField) {
-      readingField.value = reading.systolic;
-    }
-  });
-  
-  // Calculate standard deviation if there are enough readings
-  if (recentReadings.length >= 3) {
-    calculateSBPStandardDeviation('qrisk');
-  }
-}
-
-/**
- * Calculate imperial height from cm
- * @param {number} heightCm - Height in centimeters
- */
-function calculateImperialHeight(heightCm) {
-  if (!heightCm) return;
-  
-  const totalInches = heightCm / 2.54;
-  const feet = Math.floor(totalInches / 12);
-  const inches = Math.round(totalInches % 12);
-  
-  setFormValue('qrisk-height-feet', feet);
-  setFormValue('qrisk-height-inches', inches);
-}
-
-/**
- * Handle form save request from Juno EMR
- * @returns {Object} - Data to be saved in Juno EMR
- */
-function handleFormSave() {
-  // Get results for saving
-  const resultsContainer = document.getElementById('risk-results');
-  if (!resultsContainer) return null;
-  
-  // Extract risk results
-  const riskResults = extractRiskResults();
-  
-  // Create structured data for Juno EMR
-  const formData = {
-    id: JUNO_INTEGRATION.FORM_ID,
-    timestamp: new Date().toISOString(),
-    results: riskResults,
-    recommendations: extractRecommendations()
-  };
-  
-  // Send data back to Juno
-  if (window.parent.JunoAPI) {
-    window.parent.JunoAPI.saveFormData(formData);
-  }
-  
-  return formData;
-}
-
-/**
- * Extract structured risk results from the UI
- * @returns {Object} - Structured risk assessment results
- */
-function extractRiskResults() {
-  const results = {};
-  
-  // Check which calculator was used
-  const frsResults = document.querySelector('.results-card .risk-title')?.textContent.includes('Framingham');
-  const qriskResults = document.querySelector('.results-card .risk-title')?.textContent.includes('QRISK');
-  const comparisonResults = document.querySelector('.results-card .risk-title')?.textContent.includes('Comparison');
-  
-  // Extract base risk, modifier, and final risk
-  if (frsResults || qriskResults) {
-    const calculator = frsResults ? 'Framingham' : 'QRISK3';
-    results.calculator = calculator;
-    results.baseRisk = document.querySelector('.base-risk')?.textContent;
-    results.lpaModifier = document.querySelector('.lpa-modifier')?.textContent || '1.0x';
-    results.finalRisk = document.querySelector('.adjusted-risk')?.textContent;
-    results.riskCategory = document.querySelector('.risk-category')?.textContent;
-  } else if (comparisonResults) {
-    results.calculator = 'Comparison';
-    results.framingham = {
-      baseRisk: document.querySelector('#compare-frs-base')?.textContent,
-      lpaModifier: document.querySelector('#compare-frs-lpa')?.textContent,
-      finalRisk: document.querySelector('#compare-frs-adjusted')?.textContent,
-      category: document.querySelector('#compare-frs-category')?.textContent
-    };
-    results.qrisk = {
-      baseRisk: document.querySelector('#compare-qrisk-base')?.textContent,
-      lpaModifier: document.querySelector('#compare-qrisk-lpa')?.textContent,
-      finalRisk: document.querySelector('#compare-qrisk-adjusted')?.textContent,
-      category: document.querySelector('#compare-qrisk-category')?.textContent
-    };
-  }
-  
-  return results;
-}
-
-/**
- * Extract treatment recommendations
- * @returns {Array} - Treatment recommendations
- */
-function extractRecommendations() {
-  const recommendations = [];
-  const recommendationsContent = document.getElementById('recommendations-content');
-  
-  if (recommendationsContent) {
-    const items = recommendationsContent.querySelectorAll('.recommendation-item');
-    items.forEach(item => {
-      const title = item.querySelector('strong')?.textContent || '';
-      const content = item.textContent.replace(title, '').trim();
-      
-      recommendations.push({
-        category: title.replace(':', '').trim(),
-        description: content
-      });
-    });
-  }
-  
-  return recommendations;
-}
-
-/**
- * Set a form field value
- * @param {string} id - Field ID
- * @param {*} value - Value to set
- */
-function setFormValue(id, value) {
-  const field = document.getElementById(id);
-  if (!field) return;
-  
-  if (field.tagName === 'SELECT') {
-    // For select elements, find and select the matching option
-    const options = field.options;
-    for (let i = 0; i < options.length; i++) {
-      if (options[i].value === value) {
-        field.selectedIndex = i;
-        // Trigger change event
-        const event = new Event('change', { bubbles: true });
-        field.dispatchEvent(event);
-        break;
-      }
-    }
-  } else {
-    // For input elements
-    field.value = value;
-    // Trigger change event
-    const event = new Event('change', { bubbles: true });
-    field.dispatchEvent(event);
-  }
-}
-
-/**
- * Reset the form
- */
-function resetForm() {
-  document.getElementById('frs-form')?.reset();
-  document.getElementById('qrisk-form')?.reset();
-  
-  // Hide any results
-  const resultsContainer = document.getElementById('results-container');
-  if (resultsContainer) {
-    resultsContainer.style.display = 'none';
-  }
-}
-
-/**
- * Prepare form data for Juno EMR's "FORM" section
- * Creates the form definition for Juno's form builder
- * @returns {Object} - Juno form definition
- */
-function createJunoFormDefinition() {
-  return {
-    name: "CVD Risk Assessment",
-    description: "Cardiovascular disease risk assessment with Lp(a) modifier",
-    version: "1.0",
-    author: "CVD Risk Toolkit Team",
-    sections: [
-      {
-        title: "Risk Assessment Results",
-        fields: [
-          {
-            name: "calculator",
-            label: "Risk Calculator Used",
-            type: "text"
-          },
-          {
-            name: "baseRisk",
-            label: "Base 10-Year Risk",
-            type: "text"
-          },
-          {
-            name: "lpaModifier",
-            label: "Lp(a) Risk Modifier",
-            type: "text"
-          },
-          {
-            name: "finalRisk",
-            label: "Final Adjusted Risk",
-            type: "text"
-          },
-          {
-            name: "riskCategory",
-            label: "Risk Category",
-            type: "text"
-          }
-        ]
-      },
-      {
-        title: "Treatment Recommendations",
-        fields: [
-          {
-            name: "statinRecommendation",
-            label: "Statin Therapy",
-            type: "text"
-          },
-          {
-            name: "ezetimibeRecommendation",
-            label: "Ezetimibe",
-            type: "text"
-          },
-          {
-            name: "pcsk9Recommendation",
-            label: "PCSK9 Inhibitor",
-            type: "text"
-          },
-          {
-            name: "additionalRecommendations",
-            label: "Additional Recommendations",
-            type: "textarea"
-          }
-        ]
-      }
-    ]
-  };
-}
-
-// Export functions for use in the main application
-window.JunoIntegration = {
-  init: initJunoIntegration,
-  isJunoEnvironment: isJunoEnvironment,
-  createFormDefinition: createJunoFormDefinition,
-  handleSave: handleFormSave
-};
-
-// Initialize on window load
-window.addEventListener('load', initJunoIntegration);
-
-
-// === enhanced-display.js ===
-// Enhanced Display Module
-const enhancedDisplay = (function() {
-  function showError(message, type = 'error') {
+  /**
+   * Show a user-friendly error notification
+   * @param {Error} error - Error object
+   * @param {string} context - Context where error occurred
+   */
+  function showErrorNotification(error, context) {
+    // Create notification element
     const errorDiv = document.createElement('div');
-    errorDiv.className = `enhanced-error ${type}`;
-    errorDiv.textContent = message;
+    errorDiv.className = 'error-notification';
+    
+    // Set content based on context
+    let errorTitle, errorMessage;
+    
+    switch (context) {
+      case 'calculation':
+        errorTitle = 'Calculation Error';
+        errorMessage = 'There was a problem with your risk calculation. Please check your inputs and try again.';
+        break;
+      case 'storage':
+        errorTitle = 'Storage Error';
+        errorMessage = 'Unable to save your data. Your changes may not be preserved.';
+        break;
+      case 'network':
+        errorTitle = 'Network Error';
+        errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+        break;
+      default:
+        errorTitle = 'Application Error';
+        errorMessage = 'An unexpected error occurred. Please try again or reload the page.';
+    }
+    
+    // Create error notification HTML
+    errorDiv.innerHTML = `
+      <div class="error-icon">⚠️</div>
+      <div class="error-content">
+        <div class="error-title">${inputSanitizer.sanitizeString(errorTitle)}</div>
+        <div class="error-message">${inputSanitizer.sanitizeString(errorMessage)}</div>
+        <div class="error-details">${inputSanitizer.sanitizeString(error.message)}</div>
+      </div>
+      <button class="error-close" aria-label="Close error notification">×</button>
+    `;
+    
+    // Add to document
     document.body.appendChild(errorDiv);
-    setTimeout(() => errorDiv.remove(), 5000);
+    
+    // Set ARIA attributes for accessibility
+    errorDiv.setAttribute('role', 'alert');
+    errorDiv.setAttribute('aria-live', 'assertive');
+    
+    // Add CSS if needed
+    if (!document.getElementById('error-notification-styles')) {
+      const style = document.createElement('style');
+      style.id = 'error-notification-styles';
+      style.textContent = `
+        .error-notification {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          max-width: 350px;
+          background-color: white;
+          border-left: 4px solid var(--error-color, #e53e3e);
+          border-radius: var(--radius-md, 0.375rem);
+          box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.1));
+          padding: 16px;
+          display: flex;
+          align-items: flex-start;
+          z-index: var(--z-index-tooltip, 1070);
+          animation: slideInRight 0.3s var(--ease-out-back, cubic-bezier(0.34, 1.56, 0.64, 1));
+          opacity: 0;
+          transform: translateX(50px);
+        }
+        
+        @keyframes slideInRight {
+          to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .error-icon {
+          font-size: 24px;
+          margin-right: 12px;
+          flex-shrink: 0;
+        }
+        
+        .error-content {
+          flex: 1;
+        }
+        
+        .error-title {
+          font-weight: var(--font-weight-bold, 700);
+          margin-bottom: 4px;
+          color: var(--error-color, #e53e3e);
+        }
+        
+        .error-message {
+          margin-bottom: 8px;
+          color: var(--text-color, #2d3748);
+        }
+        
+        .error-details {
+          font-size: var(--font-size-sm, 0.875rem);
+          color: var(--text-light, #718096);
+          word-break: break-word;
+        }
+        
+        .error-close {
+          background: none;
+          border: none;
+          font-size: 18px;
+          cursor: pointer;
+          color: var(--gray-500, #a0aec0);
+          padding: 4px;
+          margin-left: 8px;
+          flex-shrink: 0;
+          transition: color 0.2s ease;
+        }
+        
+        .error-close:hover {
+          color: var(--gray-700, #4a5568);
+        }
+        
+        .dark-theme .error-notification {
+          background-color: var(--card-color, #2d3748);
+        }
+        
+        .dark-theme .error-message {
+          color: var(--text-color, #f7fafc);
+        }
+        
+        .dark-theme .error-details {
+          color: var(--text-light, #e2e8f0);
+        }
+      `;
+      
+      document.head.appendChild(style);
+    }
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      errorDiv.style.opacity = '1';
+      errorDiv.style.transform = 'translateX(0)';
+    });
+    
+    // Close button event
+    const closeBtn = errorDiv.querySelector('.error-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        errorDiv.style.opacity = '0';
+        errorDiv.style.transform = 'translateX(50px)';
+        
+        // Remove after animation
+        setTimeout(() => {
+          if (errorDiv.parentNode) {
+            errorDiv.parentNode.removeChild(errorDiv);
+          }
+        }, 300);
+      });
+    }
+    
+    // Auto-remove after delay
+    setTimeout(() => {
+      errorDiv.style.opacity = '0';
+      errorDiv.style.transform = 'translateX(50px)';
+      
+      setTimeout(() => {
+        if (errorDiv.parentNode) {
+          errorDiv.parentNode.removeChild(errorDiv);
+        }
+      }, 300);
+    }, 8000);
   }
   
-  function showLoadingOverlay(message = 'Loading...') {
-    const overlay = document.createElement('div');
-    overlay.className = 'enhanced-loading-overlay';
-    overlay.innerHTML = `<div class="loading-content"><div class="spinner"></div><p>${message}</p></div>`;
-    document.body.appendChild(overlay);
-    return overlay;
+  /**
+   * Clear all error notifications
+   */
+  function clearAllNotifications() {
+    document.querySelectorAll('.error-notification').forEach(notification => {
+      notification.style.opacity = '0';
+      notification.style.transform = 'translateX(50px)';
+      
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+      }, 300);
+    });
   }
   
-  function hideLoadingOverlay(overlay) {
-    if (overlay) overlay.remove();
-  }
+  // Setup global error handler
+  window.addEventListener('error', (event) => {
+    reportError(event.error || new Error(event.message), 'uncaught');
+    // Don't prevent default - let the error propagate to console
+  });
   
-  return { showError, showLoadingOverlay, hideLoadingOverlay };
+  // Setup promise rejection handler
+  window.addEventListener('unhandledrejection', (event) => {
+    const error = event.reason instanceof Error ? 
+      event.reason : new Error(String(event.reason));
+    reportError(error, 'promise');
+  });
+  
+  // Return public API
+  return {
+    reportError,
+    showErrorNotification,
+    clearAllNotifications
+  };
 })();
-window.enhancedDisplay = enhancedDisplay;
 
+// =============================================================================
+// ACCESSIBILITY ENHANCEMENTS
+// =============================================================================
 
-
-
-  // Enhanced Form functionality with comprehensive error handling
-  document.addEventListener("DOMContentLoaded", function() {
-    console.log('Initializing CVD Risk Toolkit...');
-    
-    // Global error handler
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-      console.error('Global error:', msg, url, lineNo, columnNo, error);
-      if (window.errorLogger) {
-        window.errorLogger.logError(error || msg);
+/**
+ * Accessibility Enhancement Module
+ * Improves application accessibility for all users
+ */
+export const accessibilityEnhancer = (() => {
+  /**
+   * Initialize accessibility enhancements
+   */
+  function initialize() {
+    enhanceFormAccessibility();
+    setupKeyboardNavigation();
+    addARIAAttributes();
+    setupFocusIndicators();
+  }
+  
+  /**
+   * Enhance form element accessibility
+   */
+  function enhanceFormAccessibility() {
+    // Add aria attributes to form elements
+    document.querySelectorAll('input, select').forEach(el => {
+      const label = document.querySelector(`label[for="${el.id}"]`);
+      if (label && !el.getAttribute('aria-labelledby')) {
+        const labelId = `${el.id}-label`;
+        label.id = labelId;
+        el.setAttribute('aria-labelledby', labelId);
       }
-      return false;
-    };
-    
-    // Promise rejection handler
-    window.addEventListener('unhandledrejection', function(event) {
-      console.error('Unhandled promise rejection:', event.reason);
-      if (window.errorLogger) {
-        window.errorLogger.logError(event.reason);
+      
+      // Add appropriate roles
+      if (el.type === 'checkbox') {
+        el.setAttribute('role', 'checkbox');
+      }
+      
+      // Add required attribute for screen readers
+      if (el.required || el.classList.contains('required')) {
+        el.setAttribute('aria-required', 'true');
       }
     });
     
-    try {
-      // Initialize all modules
-      const initializationSteps = [
-        { name: 'loading indicators', fn: () => window.loadingIndicator?.initialize() },
-        { name: 'physiological validation', fn: () => typeof validatePhysiologicalValues === 'function' && validatePhysiologicalValues() },
-        { name: 'form handlers', fn: () => typeof initializeFormHandlers === 'function' && initializeFormHandlers() },
-        { name: 'enhanced display', fn: () => window.enhancedDisplay?.initialize() },
-        { name: 'disclaimers', fn: () => window.enhancedDisclaimer?.showInitialDisclaimers() },
-        { name: 'mobile optimization', fn: () => typeof initializeMobileOptimization === 'function' && initializeMobileOptimization() },
-        { name: 'OpenAI integration', fn: () => typeof initializeOpenAI === 'function' && initializeOpenAI() },
-        { name: 'HIPAA compliance logging', fn: () => typeof initializeHIPAALogging === 'function' && initializeHIPAALogging() },
-        { name: 'XSS protection', fn: () => window.xssProtection?.initialize() },
-        { name: 'CSRF protection', fn: () => window.csrfProtection?.initialize() },
-        { name: 'data privacy', fn: () => window.dataPrivacy?.initialize() },
-        { name: 'error logging', fn: () => window.errorLogger?.initialize() },
-        { name: 'performance monitoring', fn: () => window.performanceMonitor?.initialize() }
-      ];
-      
-      let successCount = 0;
-      initializationSteps.forEach(step => {
-        try {
-          if (step.fn) {
-            step.fn();
-            console.log('✓ Initialized ' + step.name);
-            successCount++;
-          }
-        } catch (error) {
-          console.error('✗ Failed to initialize ' + step.name + ':', error);
+    // Make error messages accessible
+    document.querySelectorAll('.error-message').forEach(el => {
+      el.setAttribute('role', 'alert');
+      el.setAttribute('aria-live', 'assertive');
+    });
+    
+    // Add error state attributes
+    document.addEventListener('input', (event) => {
+      if (event.target.classList.contains('error')) {
+        event.target.setAttribute('aria-invalid', 'true');
+        
+        const errorMessage = event.target.parentElement.querySelector('.error-message') ||
+                            event.target.closest('.form-group')?.querySelector('.error-message');
+        
+        if (errorMessage) {
+          const errorId = `${event.target.id}-error`;
+          errorMessage.id = errorId;
+          event.target.setAttribute('aria-describedby', errorId);
         }
-      });
-      
-      console.log('CVD Risk Toolkit initialization complete: ' + successCount + '/' + initializationSteps.length + ' successful');
-    } catch (error) {
-      console.error('Critical error during initialization:', error);
-    }
-  });
-
-  // Export for testing
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-      safeGet,
-      debounce,
-      throttle
-    };
+      } else {
+        event.target.removeAttribute('aria-invalid');
+      }
+    });
   }
   
+  /**
+   * Setup keyboard navigation enhancements
+   */
+  function setupKeyboardNavigation() {
+    // Make card headers keyboard accessible
+    document.querySelectorAll('.card-header').forEach(header => {
+      if (!header.hasAttribute('tabindex')) {
+        header.setAttribute('tabindex', '0');
+        header.setAttribute('role', 'button');
+        header.setAttribute('aria-expanded', header.classList.contains('active') ? 'true' : 'false');
+        
+        // Add keyboard event for enter/space to toggle
+        header.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            
+            // Find click handler and trigger it
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            header.dispatchEvent(clickEvent);
+          }
+        });
+      }
+    });
+    
+    // Enhance tab navigation
+    document.querySelectorAll('.tab').forEach(tab => {
+      if (!tab.hasAttribute('tabindex')) {
+        tab.setAttribute('tabindex', '0');
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', tab.classList.contains('active') ? 'true' : 'false');
+        
+        // Add keyboard navigation
+        tab.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            
+            // Trigger click event
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            tab.dispatchEvent(clickEvent);
+          }
+        });
+      }
+    });
+  }
+  
+  /**
+   * Add ARIA attributes to improve screen reader experience
+   */
+  function addARIAAttributes() {
+    // Add attributes to tab content sections
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.setAttribute('role', 'tabpanel');
+      content.setAttribute('aria-hidden', content.classList.contains('active') ? 'false' : 'true');
+    });
+    
+    // Set up tab panels
+    document.querySelectorAll('.tabs').forEach(tabContainer => {
+      tabContainer.setAttribute('role', 'tablist');
+      
+      // Connect tabs to their panels
+      const tabs = tabContainer.querySelectorAll('.tab');
+      const panels = document.querySelectorAll('.tab-content');
+      
+      tabs.forEach((tab, index) => {
+        if (panels[index]) {
+          const tabId = `tab-${index}`;
+          const panelId = `panel-${index}`;
+          
+          tab.id = tabId;
+          panels[index].id = panelId;
+          
+          tab.setAttribute('aria-controls', panelId);
+          panels[index].setAttribute('aria-labelledby', tabId);
+        }
+      });
+    });
+    
+    // Add attributes to collapsible sections
+    document.querySelectorAll('.card-header').forEach((header, index) => {
+      const body = header.nextElementSibling;
+      if (body && body.classList.contains('card-body')) {
+        const headerId = `card-header-${index}`;
+        const bodyId = `card-body-${index}`;
+        
+        header.id = headerId;
+        body.id = bodyId;
+        
+        header.setAttribute('aria-controls', bodyId);
+        body.setAttribute('aria-labelledby', headerId);
+        body.setAttribute('role', 'region');
+      }
+    });
+  }
+  
+  /**
+   * Setup visible focus indicators for keyboard navigation
+   */
+  function setupFocusIndicators() {
+    // Add CSS for focus styles if needed
+    if (!document.getElementById('focus-styles')) {
+      const style = document.createElement('style');
+      style.id = 'focus-styles';
+      style.textContent = `
+        .focus-visible:focus {
+          outline: none !important;
+          box-shadow: var(--shadow-outline, 0 0 0 3px rgba(66, 153, 225, 0.6)) !important;
+          position: relative;
+          z-index: 1;
+        }
+        
+        /* Only show focus styles for keyboard interaction */
+        .js-focus-visible :focus:not(.focus-visible) {
+          outline: none;
+          box-shadow: none;
+        }
+        
+        .skip-to-content {
+          position: absolute;
+          left: -9999px;
+          top: auto;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          z-index: -999;
+        }
+        
+        .skip-to-content:focus {
+          left: 0;
+          top: 0;
+          width: auto;
+          height: auto;
+          padding: 8px 16px;
+          background-color: var(--secondary-color, #2b6cb0);
+          color: white;
+          font-weight: 600;
+          z-index: 9999;
+          text-decoration: none;
+        }
+      `;
+      
+      document.head.appendChild(style);
+    }
+    
+    // Add a skip to content link for keyboard users
+    if (!document.querySelector('.skip-to-content')) {
+      const skipLink = document.createElement('a');
+      skipLink.href = '#main';
+      skipLink.className = 'skip-to-content';
+      skipLink.textContent = 'Skip to main content';
+      
+      document.body.insertBefore(skipLink, document.body.firstChild);
+      
+      // Ensure main content has an ID to link to
+      const mainContent = document.querySelector('.main-content');
+      if (mainContent && !mainContent.id) {
+        mainContent.id = 'main';
+      }
+    }
+    
+    // Mark all interactive elements as focusable
+    document.querySelectorAll('button, a, input, select, textarea, [role="button"], [tabindex="0"]')
+      .forEach(el => {
+        el.classList.add('focus-visible');
+      });
+  }
+  
+  // Return public API
+  return {
+    initialize,
+    enhanceFormAccessibility,
+    setupKeyboardNavigation
+  };
+})();
+
+// =============================================================================
+// PRINT HANDLING
+// =============================================================================
+
+/**
+ * Print Handler Module
+ * Manages print functionality with enhanced formatting
+ */
+export const printHandler = (() => {
+  /**
+   * Setup print buttons and functionality
+   */
+  function initialize() {
+    const printButtons = document.querySelectorAll('.print-button');
+    
+    printButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        preparePrint();
+      });
+    });
+    
+    // Listen for print media query changes
+    if (window.matchMedia) {
+      const mediaQueryList = window.matchMedia('print');
+      mediaQueryList.addEventListener('change', (mql) => {
+        if (mql.matches) {
+          // Print mode is active
+          onBeforePrint();
+        } else {
+          // Print mode is complete
+          onAfterPrint();
+        }
+      });
+    }
+    
+    // Fallback for browsers that don't support media query listeners
+    window.onbeforeprint = onBeforePrint;
+    window.onafterprint = onAfterPrint;
+  }
+  
+  /**
+   * Prepare document for printing
+   */
+  function preparePrint() {
+    // Add temporary print-specific classes
+    document.body.classList.add('preparing-print');
+    
+    // Expand all collapsed sections for printing
+    expandAllSections();
+    
+    // Wait a moment for sections to expand
+    setTimeout(() => {
+      window.print();
+      
+      // Remove temporary classes after print dialog
+      setTimeout(() => {
+        document.body.classList.remove('preparing-print');
+        restoreCollapsedSections();
+      }, 1000);
+    }, 300);
+  }
+  
+  /**
+   * Expand all collapsible sections for printing
+   */
+  function expandAllSections() {
+    // Store original states to restore later
+    const sections = [];
+    
+    document.querySelectorAll('.card').forEach(card => {
+      const header = card.querySelector('.card-header');
+      const body = card.querySelector('.card-body');
+      
+      if (header && body) {
+        const wasActive = header.classList.contains('active');
+        
+        // Store original state
+        sections.push({
+          card,
+          header,
+          body,
+          wasActive
+        });
+        
+        // Expand section
+        if (!wasActive) {
+          card.classList.add('temp-expanded');
+          body.style.display = 'block';
+          body.style.height = 'auto';
+          body.style.opacity = '1';
+          body.style.transform = 'none';
+        }
+      }
+    });
+    
+    // Store sections data for restoration
+    window.expandedSectionsData = sections;
+  }
+  
+  /**
+   * Restore collapsed sections after printing
+   */
+  function restoreCollapsedSections() {
+    const sections = window.expandedSectionsData || [];
+    
+    sections.forEach(section => {
+      if (!section.wasActive) {
+        section.card.classList.remove('temp-expanded');
+        section.body.style.display = 'none';
+      }
+    });
+    
+    // Clear stored data
+    window.expandedSectionsData = null;
+  }
+  
+  /**
+   * Handle actions before printing starts
+   */
+  function onBeforePrint() {
+    // Same actions as preparePrint but without triggering print
+    document.body.classList.add('printing');
+    expandAllSections();
+  }
+  
+  /**
+   * Handle actions after printing completes
+   */
+  function onAfterPrint() {
+    document.body.classList.remove('printing');
+    restoreCollapsedSections();
+  }
+  
+  // Return public API
+  return {
+    initialize,
+    preparePrint
+  };
+})();
+
+// =============================================================================
+// PWA SUPPORT
+// =============================================================================
+
+/**
+ * Progressive Web App Support Module
+ * Handles service worker registration and PWA functionality
+ */
+export const pwaSupport = (() => {
+  /**
+   * Register service worker for offline support
+   * @returns {Promise<boolean>} - Whether registration was successful
+   */
+  async function registerServiceWorker() {
+    try {
+      // Check if service workers are supported
+      if (!('serviceWorker' in navigator)) {
+        console.warn('Service workers are not supported in this browser');
+        return false;
+      }
+      
+      // Check if already registered
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        console.log('Service worker already registered');
+        return true;
+      }
+      
+      // Register the service worker
+      const reg = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+      console.log('Service worker registration successful with scope: ', reg.scope);
+      return true;
+    } catch (error) {
+      console.error('Service worker registration failed:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Setup installation prompt handling
+   */
+  function setupInstallPrompt() {
+    let deferredPrompt;
+    
+    // Save the install prompt event for later use
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      
+      // Stash the event so it can be triggered later
+      deferredPrompt = e;
+      
+      // Show install button or notification if available
+      const installButton = document.getElementById('install-app-button');
+      if (installButton) {
+        installButton.style.display = 'block';
+        
+        installButton.addEventListener('click', async () => {
+          if (!deferredPrompt) return;
+          
+          // Show the install prompt
+          deferredPrompt.prompt();
+          
+          // Wait for the user to respond to the prompt
+          const choiceResult = await deferredPrompt.userChoice;
+          
+          // Reset the deferred prompt variable
+          deferredPrompt = null;
+          
+          // Hide the install button
+          installButton.style.display = 'none';
+          
+          console.log('User installation choice:', choiceResult.outcome);
+        });
+      }
+    });
+    
+    // Handle successful installation
+    window.addEventListener('appinstalled', (evt) => {
+      console.log('Application was installed');
+      // Hide install button if present
+      const installButton = document.getElementById('install-app-button');
+      if (installButton) {
+        installButton.style.display = 'none';
+      }
+    });
+  }
+  
+  /**
+   * Check for service worker updates
+   * @returns {Promise<boolean>} - Whether updates were found and applied
+   */
+  async function checkForUpdates() {
+    try {
+      if (!('serviceWorker' in navigator)) {
+        return false;
+      }
+      
+      // Get the registration
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        return false;
+      }
+      
+      // Check for updates
+      await registration.update();
+      
+      if (registration.waiting) {
+        // Show update notification
+        showUpdateNotification(registration);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Show update notification and handle update application
+   * @param {ServiceWorkerRegistration} registration - Service worker registration
+   */
+  function showUpdateNotification(registration) {
+    // Create notification if it doesn't exist
+    let updateNotification = document.getElementById('update-notification');
+    
+    if (!updateNotification) {
+      updateNotification = document.createElement('div');
+      updateNotification.id = 'update-notification';
+      updateNotification.className = 'update-notification';
+      
+      updateNotification.innerHTML = `
+        <div class="update-message">
+          <strong>Update Available</strong>
+          <p>A new version of the app is available.</p>
+        </div>
+        <div class="update-actions">
+          <button id="apply-update-button" class="update-button">Update Now</button>
+          <button id="dismiss-update-button" class="dismiss-button">Later</button>
+        </div>
+      `;
+      
+      document.body.appendChild(updateNotification);
+      
+      // Add CSS if needed
+      if (!document.getElementById('update-notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'update-notification-styles';
+        style.textContent = `
+          .update-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background-color: white;
+            border-radius: var(--radius-md, 0.375rem);
+            box-shadow: var(--shadow-lg, 0 10px 15px rgba(0, 0, 0, 0.1));
+            padding: 16px;
+            z-index: var(--z-index-tooltip, 1070);
+            max-width: 320px;
+            border-left: 4px solid var(--info-color, #3182ce);
+            animation: slideInUp 0.3s var(--ease-pulse);
+          }
+          
+          @keyframes slideInUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+          }
+          
+          .update-message {
+            margin-bottom: 12px;
+          }
+          
+          .update-message strong {
+            display: block;
+            font-weight: var(--font-weight-bold, 700);
+            margin-bottom: 4px;
+            color: var(--info-color, #3182ce);
+          }
+          
+          .update-actions {
+            display: flex;
+            gap: 8px;
+          }
+          
+          .update-button {
+            padding: 6px 12px;
+            background-color: var(--info-color, #3182ce);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md, 0.375rem);
+            font-weight: var(--font-weight-medium, 500);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+          }
+          
+          .update-button:hover {
+            background-color: var(--primary-color, #2c5282);
+          }
+          
+          .dismiss-button {
+            padding: 6px 12px;
+            background-color: transparent;
+            color: var(--text-light, #718096);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: var(--radius-md, 0.375rem);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+          }
+          
+          .dismiss-button:hover {
+            background-color: var(--background-secondary, #f0f5fa);
+          }
+          
+          .dark-theme .update-notification {
+            background-color: var(--card-color, #2d3748);
+            color: var(--text-color, #f7fafc);
+          }
+          
+          .dark-theme .dismiss-button {
+            color: var(--text-light, #e2e8f0);
+            border-color: var(--border-color, #4a5568);
+          }
+          
+          .dark-theme .dismiss-button:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+          }
+        `;
+        
+        document.head.appendChild(style);
+      }
+      
+      // Handle button clicks
+      const applyButton = updateNotification.querySelector('#apply-update-button');
+      const dismissButton = updateNotification.querySelector('#dismiss-update-button');
+      
+      if (applyButton) {
+        applyButton.addEventListener('click', () => {
+          // Skip waiting to activate the new service worker
+          if (registration && registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+          
+          // Reload the page
+          window.location.reload();
+        });
+      }
+      
+      if (dismissButton) {
+        dismissButton.addEventListener('click', () => {
+          if (updateNotification.parentNode) {
+            updateNotification.parentNode.removeChild(updateNotification);
+          }
+        });
+      }
+    }
+  }
+  
+  /**
+   * Create service worker script content
+   * @returns {string} - Service worker JavaScript content
+   */
+  function generateServiceWorkerContent() {
+    return `
+// Service Worker for CVD Risk Toolkit
+const CACHE_NAME = 'cvd-risk-toolkit-v1.3.2';
+const ASSETS = ${JSON.stringify(APP_ASSETS)};
+
+// Install event - cache app shell assets
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        console.log('Opened cache');
+        return cache.addAll(ASSETS);
+      })
+      .catch((error) => {
+        console.error('Error caching assets:', error);
+      })
+  );
+  // Activate immediately
+  self.skipWaiting();
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  const cacheWhitelist = [CACHE_NAME];
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  // Claim clients immediately
+  return self.clients.claim();
+});
+
+// Listen for message to skip waiting
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Fetch event - serve from cache or network
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        // Cache hit - return cached response
+        if (response) {
+          return response;
+        }
+        
+        // Clone the request because it's a one-time use stream
+        const fetchRequest = event.request.clone();
+        
+        return fetch(fetchRequest).then((response) => {
+          // Invalid response or non-GET request
+          if (!response || response.status !== 200 || response.type !== 'basic' || event.request.method !== 'GET') {
+            return response;
+          }
+          
+          // Clone the response because it's a one-time use stream
+          const responseToCache = response.clone();
+          
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              // Store response in cache
+              cache.put(event.request, responseToCache);
+            })
+            .catch(error => {
+              console.error('Error caching response:', error);
+            });
+            
+          return response;
+        });
+      })
+      .catch(error => {
+        console.error('Fetch error:', error);
+        // Optionally return a custom offline page here
+        // return caches.match('/offline.html');
+      })
+  );
+});
+
+// Handle background sync for offline calculations
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-saved-calculations') {
+    event.waitUntil(syncSavedCalculations());
+  }
+});
+
+// Function to sync saved calculations with server
+async function syncSavedCalculations() {
+  // In a real app, we'd sync with a server here
+  // For this app, we're using local storage, so no action needed
+  console.log('Background sync completed for saved calculations');
+  return true;
+}
+    `;
+  }
+})();
+
+// =============================================================================
+// PWA SUPPORT
+// =============================================================================
+
+/**
+ * Progressive Web App Support Module
+ * Handles service worker registration and PWA functionality
+ */
+export const pwaSupport = (() => {
+  /**
+   * Register service worker for offline support
+   * @returns {Promise<boolean>} - Whether registration was successful
+   */
+  async function registerServiceWorker() {
+    try {
+      // Check if service workers are supported
+      if (!('serviceWorker' in navigator)) {
+        console.warn('Service workers are not supported in this browser');
+        return false;
+      }
+      
+      // Check if already registered
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        console.log('Service worker already registered');
+        return true;
+      }
+      
+      // Register the service worker
+      const reg = await navigator.serviceWorker.register('/service-worker.js', { scope: '/' });
+      console.log('Service worker registration successful with scope: ', reg.scope);
+      return true;
+    } catch (error) {
+      console.error('Service worker registration failed:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Setup installation prompt handling
+   */
+  function setupInstallPrompt() {
+    let deferredPrompt;
+    
+    // Save the install prompt event for later use
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      
+      // Stash the event so it can be triggered later
+      deferredPrompt = e;
+      
+      // Show install button or notification if available
+      const installButton = document.getElementById('install-app-button');
+      if (installButton) {
+        installButton.style.display = 'block';
+        
+        installButton.addEventListener('click', async () => {
+          if (!deferredPrompt) return;
+          
+          // Show the install prompt
+          deferredPrompt.prompt();
+          
+          // Wait for the user to respond to the prompt
+          const choiceResult = await deferredPrompt.userChoice;
+          
+          // Reset the deferred prompt variable
+          deferredPrompt = null;
+          
+          // Hide the install button
+          installButton.style.display = 'none';
+          
+          console.log('User installation choice:', choiceResult.outcome);
+        });
+      }
+    });
+    
+    // Handle successful installation
+    window.addEventListener('appinstalled', (evt) => {
+      console.log('Application was installed');
+      // Hide install button if present
+      const installButton = document.getElementById('install-app-button');
+      if (installButton) {
+        installButton.style.display = 'none';
+      }
+    });
+  }
+  
+  /**
+   * Check for service worker updates
+   * @returns {Promise<boolean>} - Whether updates were found and applied
+   */
+  async function checkForUpdates() {
+    try {
+      if (!('serviceWorker' in navigator)) {
+        return false;
+      }
+      
+      // Get the registration
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        return false;
+      }
+      
+      // Check for updates
+      await registration.update();
+      
+      if (registration.waiting) {
+        // Show update notification
+        showUpdateNotification(registration);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error checking for updates:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Show update notification and handle update application
+   * @param {ServiceWorkerRegistration} registration - Service worker registration
+   */
+  function showUpdateNotification(registration) {
+    // Create notification if it doesn't exist
+    let updateNotification = document.getElementById('update-notification');
+    
+    if (!updateNotification) {
+      updateNotification = document.createElement('div');
+      updateNotification.id = 'update-notification';
+      updateNotification.className = 'update-notification';
+      
+      updateNotification.innerHTML = `
+        <div class="update-message">
+          <strong>Update Available</strong>
+          <p>A new version of the app is available.</p>
+        </div>
+        <div class="update-actions">
+          <button id="apply-update-button" class="update-button">Update Now</button>
+          <button id="dismiss-update-button" class="dismiss-button">Later</button>
+        </div>
+      `;
+      
+      document.body.appendChild(updateNotification

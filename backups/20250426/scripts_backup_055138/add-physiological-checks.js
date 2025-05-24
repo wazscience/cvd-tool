@@ -937,17 +937,17 @@ try {
 if (!indexHtml.includes('physiological-validation.js')) {
   // Add before closing body tag
   const validationScript = '<script src="js/utils/physiological-validation.js"></script>';
-  
+
   // Insert at appropriate location in script loading sequence
   if (indexHtml.includes('<!-- Security and Privacy Utilities -->')) {
     // Add after security scripts
-    indexHtml = indexHtml.replace('<!-- Initialize Security Framework -->', 
+    indexHtml = indexHtml.replace('<!-- Initialize Security Framework -->',
       '<!-- Initialize Security Framework -->\n    ' + validationScript);
   } else {
     // Add before closing body tag
     indexHtml = indexHtml.replace('</body>', '    ' + validationScript + '\n</body>');
   }
-  
+
   fs.writeFileSync(indexHtmlPath, indexHtml);
   console.log('Added physiological validation script to index.html');
 }
@@ -1299,10 +1299,10 @@ console.log('Enhanced legal disclaimer implementation created successfully!');
 if (!indexHtml.includes('enhanced-disclaimer.js')) {
   // Add before closing body tag
   const disclaimerScript = '<script src="js/utils/enhanced-disclaimer.js"></script>';
-  
+
   // Insert before closing body tag
   indexHtml = indexHtml.replace('</body>', '    ' + disclaimerScript + '\n</body>');
-  
+
   fs.writeFileSync(indexHtmlPath, indexHtml);
   console.log('Added enhanced disclaimer script to index.html');
 }

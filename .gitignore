@@ -1,0 +1,9 @@
+# Backup files
+*.bak
+*.tmp
+
+# Temporary fixes directory
+fixes/
+
+# Node modules
+node_modules/

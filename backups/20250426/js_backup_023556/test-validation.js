@@ -13,7 +13,7 @@ const requiredFiles = [
 ];
 
 // Check each required file
-let missingFiles = [];
+const missingFiles = [];
 for (const file of requiredFiles) {
   if (!fs.existsSync(file)) {
     missingFiles.push(file);

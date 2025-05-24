@@ -1,0 +1,1865 @@
+/**
+ * Memory Manager for CVD Risk Toolkit
+ * Provides optimized memory management, caching, and garbage collection
+ * 
+ * Path: js/utils/memory-manager.js
+ * 
+ * @requires js/utils/event-bus.js
+ * @requires js/utils/error-detection-system.js
+ * @requires js/utils/data-manager.js
+ */
+
+// Use strict mode to catch common coding errors
+'use strict';
+
+/**
+ * MemoryManager class - Manages application memory usage
+ */
+class MemoryManager {
+    constructor() {
+        // Singleton pattern
+        if (MemoryManager.instance) {
+            return MemoryManager.instance;
+        }
+        
+        MemoryManager.instance = this;
+        
+        // Initialize properties
+        this.initialized = false;
+        this.inMemoryCache = new Map();
+        this.sessionStorageCache = new Map();
+        this.localStorage = new Map();
+        this.memorySizeLimit = 10 * 1024 * 1024; // 10 MB default
+        this.currentMemoryUsage = 0;
+        this.gcThreshold = 0.9; // Run GC when 90% of limit is reached
+        this.lastGcTime = Date.now();
+        this.memoryPressureLevel = 'normal'; // normal, moderate, high
+        this.lowMemoryMode = false;
+        this.lowEndDevice = false;
+        this.debugMode = false;
+        this.autoSessionPersist = true;
+        this.autoPurgeInterval = 60000; // 1 minute
+        this.autoPurgeEnabled = true;
+        this.autoPurgeTimer = null;
+        this.preloadEnabled = true;
+        this.compressionEnabled = true;
+        
+        // Initialize the module
+        this.init();
+    }
+    
+    /**
+     * Initialize the module
+     * @private
+     */
+    init() {
+        try {
+            // Check device capabilities
+            this.checkDeviceCapabilities();
+            
+            // Initialize dependencies
+            this.initializeDependencies();
+            
+            // Set up event listeners
+            this.setupEventListeners();
+            
+            // Start memory monitoring
+            this.startMemoryMonitoring();
+            
+            // Load persisted items from session storage
+            this.loadPersistedItems();
+            
+            this.initialized = true;
+            
+            // Log initialization success in debug mode
+            if (this.debugMode) {
+                console.log('Memory Manager initialized successfully');
+                console.log('Low memory mode:', this.lowMemoryMode);
+                console.log('Low-end device detected:', this.lowEndDevice);
+                console.log('Compression enabled:', this.compressionEnabled);
+                console.log('Memory limit:', this.formatByteSize(this.memorySizeLimit));
+            }
+            
+            // Publish initialization complete event
+            this.eventBus.publish('memoryManager:initialized', { 
+                success: true,
+                lowMemoryMode: this.lowMemoryMode,
+                lowEndDevice: this.lowEndDevice
+            });
+        } catch (error) {
+            console.error('Failed to initialize Memory Manager:', error);
+            
+            // Report error
+            if (this.errorSystem) {
+                this.errorSystem.reportError({
+                    component: 'MemoryManager',
+                    method: 'init',
+                    error: error
+                });
+            }
+            
+            // Publish initialization failed event
+            if (this.eventBus) {
+                this.eventBus.publish('memoryManager:initialized', { 
+                    success: false,
+                    error: error.message
+                });
+            }
+        }
+    }
+    
+    /**
+     * Check device capabilities and adjust memory strategy
+     * @private
+     */
+    checkDeviceCapabilities() {
+        try {
+            // Check for device memory API
+            if (navigator.deviceMemory) {
+                const deviceMemory = navigator.deviceMemory; // in GB
+                
+                // Adjust memory limit based on device memory
+                if (deviceMemory <= 1) {
+                    this.memorySizeLimit = 5 * 1024 * 1024; // 5 MB for low memory devices
+                    this.lowMemoryMode = true;
+                    this.lowEndDevice = true;
+                } else if (deviceMemory <= 2) {
+                    this.memorySizeLimit = 8 * 1024 * 1024; // 8 MB for medium memory devices
+                    this.lowMemoryMode = true;
+                } else if (deviceMemory >= 8) {
+                    this.memorySizeLimit = 20 * 1024 * 1024; // 20 MB for high memory devices
+                }
+            }
+            
+            // Check for hardware concurrency
+            if (navigator.hardwareConcurrency) {
+                const cores = navigator.hardwareConcurrency;
+                
+                // Adjust strategies based on CPU cores
+                if (cores <= 2) {
+                    this.lowEndDevice = true;
+                    // Reduce operations on low-end devices
+                    this.autoPurgeInterval = 120000; // 2 minutes
+                    this.preloadEnabled = false;
+                }
+            }
+            
+            // Check for network connection
+            if (navigator.connection) {
+                const connection = navigator.connection;
+                
+                // Adjust based on connection type
+                if (connection.saveData) {
+                    this.preloadEnabled = false; // Respect data saver mode
+                }
+                
+                if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
+                    this.lowEndDevice = true;
+                    this.preloadEnabled = false;
+                }
+            }
+            
+            // Check if low-end device was already detected
+            if (document.body && document.body.classList.contains('low-end-device')) {
+                this.lowEndDevice = true;
+                this.lowMemoryMode = true;
+                this.preloadEnabled = false;
+                this.autoPurgeInterval = 120000; // 2 minutes
+            }
+        } catch (error) {
+            console.warn('Error checking device capabilities:', error);
+            // Continue with default settings if something fails
+        }
+    }
+    
+    /**
+     * Initialize dependencies safely
+     * @private
+     */
+    initializeDependencies() {
+        // Initialize event bus with fallback
+        this.eventBus = window.eventBus || {
+            subscribe: () => console.warn('EventBus not available'),
+            publish: () => console.warn('EventBus not available')
+        };
+        
+        // Initialize error detection system with fallback
+        this.errorSystem = window.errorDetectionSystem || {
+            reportError: (err) => console.error('Error detection system not available:', err)
+        };
+        
+        // Initialize data manager with fallback
+        this.dataManager = window.dataManager || {
+            setSessionItem: () => false,
+            getSessionItem: () => null,
+            setItem: async () => false,
+            getItem: async () => null
+        };
+    }
+    
+    /**
+     * Set up event listeners
+     * @private
+     */
+    setupEventListeners() {
+        // Listen for memory pressure events
+        if ('onmemorypressure' in window) {
+            window.addEventListener('memorypressure', this.handleMemoryPressure.bind(this));
+        }
+        
+        // Listen for visibility change events
+        document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+        
+        // Listen for preferences updates
+        this.eventBus.subscribe('preferences:updated', this.handlePreferencesUpdate.bind(this));
+        
+        // Listen for data clear events
+        this.eventBus.subscribe('data:cleared', this.handleDataCleared.bind(this));
+        
+        // Listen for page navigation events
+        this.eventBus.subscribe('navigation:beforePageChange', this.handleBeforePageChange.bind(this));
+        
+        // Listen for low memory events
+        this.eventBus.subscribe('system:lowMemory', this.handleLowMemoryEvent.bind(this));
+        
+        // Listen for before calculation events (to ensure memory is available)
+        this.eventBus.subscribe('calculation:beforeStart', this.handleBeforeCalculation.bind(this));
+    }
+    
+    /**
+     * Start memory monitoring
+     * @private
+     */
+    startMemoryMonitoring() {
+        // Set up auto-purge timer
+        if (this.autoPurgeEnabled) {
+            this.autoPurgeTimer = setInterval(() => {
+                this.checkMemoryUsage();
+            }, this.autoPurgeInterval);
+        }
+    }
+    
+    /**
+     * Load persisted items from session storage
+     * @private
+     */
+    async loadPersistedItems() {
+        try {
+            // Load session storage keys with our prefix
+            const sessionData = this.dataManager.getSessionItem('memoryManagerData');
+            
+            if (sessionData && Array.isArray(sessionData.keys)) {
+                for (const key of sessionData.keys) {
+                    const value = await this.dataManager.getSessionItem(`mem_${key}`);
+                    if (value !== null) {
+                        this.sessionStorageCache.set(key, value);
+                    }
+                }
+            }
+            
+            // Load in-memory cache items flagged for session persistence
+            const persistentKeys = await this.dataManager.getSessionItem('memoryManagerPersistentKeys');
+            
+            if (persistentKeys && Array.isArray(persistentKeys)) {
+                for (const key of persistentKeys) {
+                    const value = await this.dataManager.getSessionItem(`memItem_${key}`);
+                    if (value !== null) {
+                        this.store(key, value, { persist: 'session' });
+                    }
+                }
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'loadPersistedItems',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Handle memory pressure event
+     * @param {Event} event - Memory pressure event
+     * @private
+     */
+    handleMemoryPressure(event) {
+        try {
+            const pressureLevel = event.pressure || 'moderate';
+            this.memoryPressureLevel = pressureLevel;
+            
+            // Log memory pressure event in debug mode
+            if (this.debugMode) {
+                console.warn(`Memory pressure event: ${pressureLevel}`);
+            }
+            
+            // Take action based on pressure level
+            if (pressureLevel === 'critical') {
+                this.handleCriticalMemoryPressure();
+            } else {
+                this.runGarbageCollection();
+            }
+            
+            // Publish memory pressure event
+            this.eventBus.publish('memory:pressureChanged', { 
+                level: pressureLevel,
+                currentUsage: this.currentMemoryUsage,
+                limit: this.memorySizeLimit
+            });
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'handleMemoryPressure',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Handle visibility change event
+     * @private
+     */
+    handleVisibilityChange() {
+        try {
+            if (document.visibilityState === 'hidden') {
+                // When page is not visible, persist session data
+                if (this.autoSessionPersist) {
+                    this.persistSessionData();
+                }
+                
+                // Run garbage collection to ensure enough memory
+                this.runGarbageCollection();
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'handleBeforeCalculation',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Handle critical memory pressure
+     * @private
+     */
+    handleCriticalMemoryPressure() {
+        try {
+            // Aggressive memory cleanup
+            
+            // 1. Clear all non-essential caches
+            this.clearNonEssentialCache();
+            
+            // 2. Run full garbage collection
+            this.runGarbageCollection(true);
+            
+            // 3. Enable low memory mode
+            this.lowMemoryMode = true;
+            
+            // 4. Disable preloading
+            this.preloadEnabled = false;
+            
+            // 5. Log warning
+            console.warn('Critical memory pressure detected. Aggressive cleanup performed.');
+            
+            // 6. Notify application
+            this.eventBus.publish('memory:criticalPressure', {
+                currentUsage: this.currentMemoryUsage,
+                limit: this.memorySizeLimit,
+                message: 'Critical memory pressure detected'
+            });
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'handleCriticalMemoryPressure',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Clear non-essential cache items
+     * @private
+     */
+    clearNonEssentialCache() {
+        try {
+            // Get current timestamp
+            const now = Date.now();
+            
+            // Clear old items first
+            const itemsToRemove = [];
+            
+            // Identify items to remove
+            for (const [key, value] of this.inMemoryCache.entries()) {
+                // Skip essential items
+                if (value.essential) continue;
+                
+                // Remove items older than 5 minutes
+                if (value.timestamp && (now - value.timestamp) > 5 * 60 * 1000) {
+                    itemsToRemove.push(key);
+                    continue;
+                }
+                
+                // Remove large non-essential items
+                if (value.size && value.size > 100 * 1024) { // 100 KB
+                    itemsToRemove.push(key);
+                    continue;
+                }
+            }
+            
+            // Remove identified items
+            for (const key of itemsToRemove) {
+                this.inMemoryCache.delete(key);
+            }
+            
+            // Recalculate memory usage
+            this.updateMemoryUsage();
+            
+            if (this.debugMode) {
+                console.log(`Cleared ${itemsToRemove.length} non-essential cache items`);
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'clearNonEssentialCache',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Check current memory usage and run garbage collection if needed
+     * @private
+     */
+    checkMemoryUsage() {
+        try {
+            // Update memory usage
+            this.updateMemoryUsage();
+            
+            // Calculate usage ratio
+            const memoryUsageRatio = this.currentMemoryUsage / this.memorySizeLimit;
+            
+            if (memoryUsageRatio > this.gcThreshold) {
+                // Run garbage collection
+                this.runGarbageCollection();
+            }
+            
+            // Check for excessive memory usage
+            if (memoryUsageRatio > 0.95) {
+                // Enable low memory mode if not already enabled
+                if (!this.lowMemoryMode) {
+                    this.lowMemoryMode = true;
+                    
+                    // Publish low memory mode event
+                    this.eventBus.publish('memory:lowMemoryModeEnabled', {
+                        currentUsage: this.currentMemoryUsage,
+                        limit: this.memorySizeLimit
+                    });
+                }
+                
+                // Run more aggressive garbage collection
+                this.clearNonEssentialCache();
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'checkMemoryUsage',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Update memory usage calculation
+     * @private
+     */
+    updateMemoryUsage() {
+        try {
+            let totalSize = 0;
+            
+            // Calculate size of in-memory cache
+            for (const [key, value] of this.inMemoryCache.entries()) {
+                if (value.size) {
+                    totalSize += value.size;
+                } else {
+                    // Estimate size if not provided
+                    const estimatedSize = this.estimateObjectSize(value.data);
+                    totalSize += estimatedSize;
+                    
+                    // Update size in cache
+                    value.size = estimatedSize;
+                }
+            }
+            
+            // Update current memory usage
+            this.currentMemoryUsage = totalSize;
+            
+            if (this.debugMode) {
+                console.log(`Memory usage: ${this.formatByteSize(this.currentMemoryUsage)} of ${this.formatByteSize(this.memorySizeLimit)}`);
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'updateMemoryUsage',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Run garbage collection
+     * @param {boolean} aggressive - Whether to use aggressive collection
+     * @private
+     */
+    runGarbageCollection(aggressive = false) {
+        try {
+            // Remember current time
+            this.lastGcTime = Date.now();
+            
+            // Get items to remove
+            const itemsToRemove = this.identifyItemsForGC(aggressive);
+            
+            // Remove items
+            for (const key of itemsToRemove) {
+                this.inMemoryCache.delete(key);
+            }
+            
+            // Update memory usage
+            this.updateMemoryUsage();
+            
+            if (this.debugMode) {
+                console.log(`Garbage collection completed. Removed ${itemsToRemove.length} items.`);
+                console.log(`Memory usage after GC: ${this.formatByteSize(this.currentMemoryUsage)}`);
+            }
+            
+            // Publish garbage collection event
+            this.eventBus.publish('memory:garbageCollectionCompleted', {
+                itemsRemoved: itemsToRemove.length,
+                currentUsage: this.currentMemoryUsage,
+                aggressive: aggressive
+            });
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'runGarbageCollection',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Identify items for garbage collection
+     * @param {boolean} aggressive - Whether to use aggressive collection
+     * @returns {Array<string>} Keys of items to remove
+     * @private
+     */
+    identifyItemsForGC(aggressive = false) {
+        const itemsToRemove = [];
+        const now = Date.now();
+        
+        for (const [key, value] of this.inMemoryCache.entries()) {
+            // Skip items marked as essential unless in aggressive mode
+            if (value.essential && !aggressive) {
+                continue;
+            }
+            
+            // Remove expired items
+            if (value.expiry && value.expiry < now) {
+                itemsToRemove.push(key);
+                continue;
+            }
+            
+            // In aggressive mode, remove old items
+            if (aggressive && value.timestamp) {
+                const age = now - value.timestamp;
+                
+                // Remove items older than 10 minutes in aggressive mode
+                if (age > 10 * 60 * 1000) {
+                    itemsToRemove.push(key);
+                    continue;
+                }
+            }
+            
+            // Remove large unused items
+            if (value.lastAccessed && value.size) {
+                const timeSinceLastAccess = now - value.lastAccessed;
+                const size = value.size;
+                
+                // Clean up strategy based on size and time since last access
+                if (size > 1000000) { // 1 MB
+                    // Remove large items if not accessed in 5 minutes
+                    if (timeSinceLastAccess > 5 * 60 * 1000) {
+                        itemsToRemove.push(key);
+                        continue;
+                    }
+                } else if (size > 500000) { // 500 KB
+                    // Remove medium items if not accessed in 15 minutes
+                    if (timeSinceLastAccess > 15 * 60 * 1000) {
+                        itemsToRemove.push(key);
+                        continue;
+                    }
+                } else if (aggressive) {
+                    // In aggressive mode, remove small items not accessed in 30 minutes
+                    if (timeSinceLastAccess > 30 * 60 * 1000) {
+                        itemsToRemove.push(key);
+                        continue;
+                    }
+                }
+            }
+            
+            // In aggressive mode, remove items with preserved flag if they're large
+            if (aggressive && value.preserved && value.size && value.size > 500000) {
+                itemsToRemove.push(key);
+            }
+        }
+        
+        return itemsToRemove;
+    }
+    
+    /**
+     * Persist in-memory items to session storage
+     * @private
+     */
+    persistSessionData() {
+        try {
+            const persistentKeys = [];
+            
+            // Find items flagged for session persistence
+            for (const [key, value] of this.inMemoryCache.entries()) {
+                if (value.persist === 'session') {
+                    persistentKeys.push(key);
+                    
+                    // Store in session storage
+                    this.dataManager.setSessionItem(`memItem_${key}`, value.data);
+                }
+            }
+            
+            // Store the list of persistent keys
+            this.dataManager.setSessionItem('memoryManagerPersistentKeys', persistentKeys);
+            
+            // Store session storage cache keys
+            const sessionKeys = Array.from(this.sessionStorageCache.keys());
+            
+            // Store in session storage
+            for (const key of sessionKeys) {
+                const value = this.sessionStorageCache.get(key);
+                this.dataManager.setSessionItem(`mem_${key}`, value);
+            }
+            
+            // Store the list of keys
+            this.dataManager.setSessionItem('memoryManagerData', {
+                keys: sessionKeys,
+                timestamp: Date.now()
+            });
+            
+            if (this.debugMode) {
+                console.log(`Session data persisted: ${persistentKeys.length} in-memory items, ${sessionKeys.length} session items`);
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'persistSessionData',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Preload data asynchronously
+     * @param {string} key - Key to preload
+     * @param {function} dataLoader - Function that returns data or Promise
+     * @param {Object} options - Storage options
+     * @returns {Promise<boolean>} Success status
+     * @public
+     */
+    async preload(key, dataLoader, options = {}) {
+        try {
+            // Skip if preloading is disabled
+            if (!this.preloadEnabled || this.lowMemoryMode) {
+                return false;
+            }
+            
+            // Skip if we're already at memory limit
+            if (this.currentMemoryUsage >= this.memorySizeLimit * 0.9) {
+                return false;
+            }
+            
+            // Check if we already have the data
+            if (this.inMemoryCache.has(key)) {
+                return true;
+            }
+            
+            // Load data asynchronously
+            setTimeout(async () => {
+                try {
+                    const data = await dataLoader();
+                    this.store(key, data, options);
+                } catch (error) {
+                    if (this.debugMode) {
+                        console.warn(`Failed to preload ${key}:`, error);
+                    }
+                }
+            }, 0);
+            
+            return true;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'preload',
+                error: error,
+                key: key
+            });
+            return false;
+        }
+    }
+    
+    /**
+     * Store data in memory
+     * @param {string} key - Key to store under
+     * @param {any} data - Data to store
+     * @param {Object} options - Storage options
+     * @returns {boolean} Success status
+     * @public
+     */
+    store(key, data, options = {}) {
+        try {
+            if (!key) {
+                throw new Error('Invalid key');
+            }
+            
+            // Default options
+            const defaultOptions = {
+                persist: null, // null, 'session', 'local'
+                expiry: null, // Timestamp or null for no expiry
+                size: null, // Size in bytes or null to auto-calculate
+                essential: false, // Whether item is essential (protected from garbage collection)
+                preserved: false, // Whether item should be preserved when possible
+                compressed: this.compressionEnabled // Whether to compress the data
+            };
+            
+            // Merge options
+            const finalOptions = { ...defaultOptions, ...options };
+            
+            // Get current timestamp
+            const now = Date.now();
+            
+            // Handle expiry time if provided as relative time
+            if (finalOptions.expiry && typeof finalOptions.expiry === 'number' && finalOptions.expiry < 24 * 60 * 60 * 1000) {
+                // If expiry is less than a day, assume it's relative time in milliseconds
+                finalOptions.expiry = now + finalOptions.expiry;
+            }
+            
+            // Check if data already exists
+            const existingItem = this.inMemoryCache.get(key);
+            
+            // Calculate data size if not provided
+            let dataSize = finalOptions.size;
+            if (!dataSize) {
+                dataSize = this.estimateObjectSize(data);
+            }
+            
+            // If adding this item would exceed memory limit, run garbage collection
+            if (this.currentMemoryUsage + dataSize > this.memorySizeLimit) {
+                this.runGarbageCollection();
+                
+                // If still not enough space, remove non-essential items
+                if (this.currentMemoryUsage + dataSize > this.memorySizeLimit) {
+                    this.clearNonEssentialCache();
+                }
+                
+                // If still not enough space and item is not essential, fail
+                if (this.currentMemoryUsage + dataSize > this.memorySizeLimit && !finalOptions.essential) {
+                    if (this.debugMode) {
+                        console.warn(`Not enough memory to store ${key} (${this.formatByteSize(dataSize)})`);
+                    }
+                    return false;
+                }
+            }
+            
+            // Process data based on options
+            let processedData = data;
+            
+            // Compress data if enabled and data is larger than 10 KB
+            if (finalOptions.compressed && dataSize > 10 * 1024) {
+                try {
+                    processedData = this.compressData(data);
+                } catch (e) {
+                    // Compression failed, use original data
+                    processedData = data;
+                    
+                    if (this.debugMode) {
+                        console.warn(`Compression failed for ${key}:`, e);
+                    }
+                }
+            }
+            
+            // Create cache item
+            const cacheItem = {
+                data: processedData,
+                timestamp: now,
+                lastAccessed: now,
+                size: dataSize,
+                compressed: finalOptions.compressed && processedData !== data,
+                essential: finalOptions.essential,
+                preserved: finalOptions.preserved,
+                persist: finalOptions.persist,
+                expiry: finalOptions.expiry
+            };
+            
+            // Store in memory
+            this.inMemoryCache.set(key, cacheItem);
+            
+            // Update memory usage
+            this.currentMemoryUsage += dataSize;
+            
+            // Store in session or local storage if requested
+            if (finalOptions.persist === 'session') {
+                this.sessionStorageCache.set(key, processedData);
+                
+                // If auto-persist is enabled, store immediately
+                if (this.autoSessionPersist) {
+                    this.dataManager.setSessionItem(`memItem_${key}`, processedData);
+                }
+            } else if (finalOptions.persist === 'local') {
+                this.localStorage.set(key, processedData);
+                
+                // Store in local storage asynchronously
+                setTimeout(async () => {
+                    try {
+                        await this.dataManager.setItem(key, processedData);
+                    } catch (error) {
+                        if (this.debugMode) {
+                            console.warn(`Failed to persist ${key} to local storage:`, error);
+                        }
+                    }
+                }, 0);
+            }
+            
+            return true;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'store',
+                error: error,
+                key: key
+            });
+            return false;
+        }
+    }
+    
+    /**
+     * Retrieve data from memory
+     * @param {string} key - Key to retrieve
+     * @returns {any} Retrieved data or null if not found
+     * @public
+     */
+    retrieve(key) {
+        try {
+            if (!key) {
+                return null;
+            }
+            
+            // Check in-memory cache first
+            if (this.inMemoryCache.has(key)) {
+                const cacheItem = this.inMemoryCache.get(key);
+                
+                // Check if expired
+                if (cacheItem.expiry && cacheItem.expiry < Date.now()) {
+                    // Remove expired item
+                    this.inMemoryCache.delete(key);
+                    return null;
+                }
+                
+                // Update last accessed time
+                cacheItem.lastAccessed = Date.now();
+                
+                // Decompress if needed
+                let resultData = cacheItem.data;
+                if (cacheItem.compressed) {
+                    resultData = this.decompressData(cacheItem.data);
+                }
+                
+                return resultData;
+            }
+            
+            // Check session storage cache
+            if (this.sessionStorageCache.has(key)) {
+                const data = this.sessionStorageCache.get(key);
+                
+                // Move to in-memory cache for faster access next time
+                this.store(key, data, {
+                    persist: 'session',
+                    essential: false
+                });
+                
+                return data;
+            }
+            
+            // Check localStorage cache
+            if (this.localStorage.has(key)) {
+                const data = this.localStorage.get(key);
+                
+                // Move to in-memory cache for faster access next time
+                this.store(key, data, {
+                    persist: 'local',
+                    essential: false
+                });
+                
+                return data;
+            }
+            
+            // Not found in memory, try to load from storage
+            this.loadFromStorage(key);
+            
+            return null;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'retrieve',
+                error: error,
+                key: key
+            });
+            return null;
+        }
+    }
+    
+    /**
+     * Load data from storage asynchronously
+     * @param {string} key - Key to load
+     * @private
+     */
+    async loadFromStorage(key) {
+        try {
+            // Try session storage first
+            const sessionData = this.dataManager.getSessionItem(`memItem_${key}`);
+            
+            if (sessionData) {
+                // Store in memory for future access
+                this.store(key, sessionData, {
+                    persist: 'session',
+                    essential: false
+                });
+                return;
+            }
+            
+            // Try local storage
+            const localData = await this.dataManager.getItem(key);
+            
+            if (localData) {
+                // Store in memory for future access
+                this.store(key, localData, {
+                    persist: 'local',
+                    essential: false
+                });
+            }
+        } catch (error) {
+            if (this.debugMode) {
+                console.warn(`Failed to load ${key} from storage:`, error);
+            }
+        }
+    }
+    
+    /**
+     * Update existing data in memory
+     * @param {string} key - Key to update
+     * @param {any} data - New data
+     * @param {boolean} merge - Whether to merge with existing data
+     * @returns {boolean} Success status
+     * @public
+     */
+    update(key, data, merge = false) {
+        try {
+            if (!key) {
+                return false;
+            }
+            
+            // Check if data exists
+            if (!this.inMemoryCache.has(key)) {
+                // If not exists, just store new data
+                return this.store(key, data);
+            }
+            
+            // Get existing item
+            const existingItem = this.inMemoryCache.get(key);
+            
+            // If not merging, simply replace
+            if (!merge) {
+                // Keep existing options
+                const options = {
+                    persist: existingItem.persist,
+                    expiry: existingItem.expiry,
+                    essential: existingItem.essential,
+                    preserved: existingItem.preserved,
+                    compressed: existingItem.compressed
+                };
+                
+                // Remove old item
+                this.inMemoryCache.delete(key);
+                
+                // Store new item
+                return this.store(key, data, options);
+            }
+            
+            // For merging, we need to get existing data
+            let existingData = existingItem.data;
+            
+            // Decompress if needed
+            if (existingItem.compressed) {
+                existingData = this.decompressData(existingData);
+            }
+            
+            // Merge data
+            let mergedData;
+            
+            if (Array.isArray(existingData) && Array.isArray(data)) {
+                // Merge arrays
+                mergedData = [...existingData, ...data];
+            } else if (typeof existingData === 'object' && existingData !== null &&
+                       typeof data === 'object' && data !== null) {
+                // Merge objects
+                mergedData = { ...existingData, ...data };
+            } else {
+                // Can't merge, use new data
+                mergedData = data;
+            }
+            
+            // Keep existing options
+            const options = {
+                persist: existingItem.persist,
+                expiry: existingItem.expiry,
+                essential: existingItem.essential,
+                preserved: existingItem.preserved,
+                compressed: existingItem.compressed
+            };
+            
+            // Remove old item
+            this.inMemoryCache.delete(key);
+            
+            // Store merged data
+            return this.store(key, mergedData, options);
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'update',
+                error: error,
+                key: key
+            });
+            return false;
+        }
+    }
+    
+    /**
+     * Remove data from memory
+     * @param {string} key - Key to remove
+     * @returns {boolean} Success status
+     * @public
+     */
+    remove(key) {
+        try {
+            if (!key) {
+                return false;
+            }
+            
+            // Check if data exists in memory
+            if (this.inMemoryCache.has(key)) {
+                // Remove from memory
+                this.inMemoryCache.delete(key);
+            }
+            
+            // Remove from session storage cache
+            if (this.sessionStorageCache.has(key)) {
+                this.sessionStorageCache.delete(key);
+                
+                // Also remove from actual session storage
+                this.dataManager.removeSessionItem(`memItem_${key}`);
+            }
+            
+            // Remove from local storage cache
+            if (this.localStorage.has(key)) {
+                this.localStorage.delete(key);
+                
+                // Also remove from actual local storage
+                this.dataManager.removeItem(key);
+            }
+            
+            // Update memory usage
+            this.updateMemoryUsage();
+            
+            return true;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'remove',
+                error: error,
+                key: key
+            });
+            return false;
+        }
+    }
+    
+    /**
+     * Check if data exists in memory
+     * @param {string} key - Key to check
+     * @returns {boolean} Whether data exists
+     * @public
+     */
+    exists(key) {
+        try {
+            if (!key) {
+                return false;
+            }
+            
+            // Check in-memory cache
+            if (this.inMemoryCache.has(key)) {
+                const cacheItem = this.inMemoryCache.get(key);
+                
+                // Check if expired
+                if (cacheItem.expiry && cacheItem.expiry < Date.now()) {
+                    // Remove expired item
+                    this.inMemoryCache.delete(key);
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            // Check session storage cache
+            if (this.sessionStorageCache.has(key)) {
+                return true;
+            }
+            
+            // Check local storage cache
+            if (this.localStorage.has(key)) {
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'exists',
+                error: error,
+                key: key
+            });
+            return false;
+        }
+    }
+    
+    /**
+     * Clear all stored data
+     * @param {boolean} preserveEssential - Whether to preserve essential items
+     * @returns {boolean} Success status
+     * @public
+     */
+    clear(preserveEssential = true) {
+        try {
+            if (preserveEssential) {
+                // Identify non-essential items
+                const itemsToRemove = [];
+                
+                for (const [key, value] of this.inMemoryCache.entries()) {
+                    if (!value.essential) {
+                        itemsToRemove.push(key);
+                    }
+                }
+                
+                // Remove non-essential items
+                for (const key of itemsToRemove) {
+                    this.inMemoryCache.delete(key);
+                }
+            } else {
+                // Clear all in-memory cache
+                this.inMemoryCache.clear();
+            }
+            
+            // Clear session storage cache
+            this.sessionStorageCache.clear();
+            
+            // Clear local storage cache
+            this.localStorage.clear();
+            
+            // Update memory usage
+            this.updateMemoryUsage();
+            
+            // Log debug message
+            if (this.debugMode) {
+                console.log('Memory cache cleared');
+            }
+            
+            return true;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'clear',
+                error: error
+            });
+            return false;
+        }
+    }
+    
+    /**
+     * Mark item as essential
+     * @param {string} key - Key to mark
+     * @param {boolean} essential - Essential flag
+     * @returns {boolean} Success status
+     * @public
+     */
+    markEssential(key, essential = true) {
+        try {
+            if (!key || !this.inMemoryCache.has(key)) {
+                return false;
+            }
+            
+            // Update essential flag
+            const cacheItem = this.inMemoryCache.get(key);
+            cacheItem.essential = essential;
+            
+            return true;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'markEssential',
+                error: error,
+                key: key
+            });
+            return false;
+        }
+    }
+    
+    /**
+     * Set expiry time for item
+     * @param {string} key - Key to update
+     * @param {number} expiryTime - Expiry timestamp or ms from now
+     * @returns {boolean} Success status
+     * @public
+     */
+    setExpiry(key, expiryTime) {
+        try {
+            if (!key || !this.inMemoryCache.has(key)) {
+                return false;
+            }
+            
+            // Get current timestamp
+            const now = Date.now();
+            
+            // Calculate expiry timestamp
+            let expiryTimestamp;
+            
+            if (expiryTime < 24 * 60 * 60 * 1000) {
+                // If less than a day, assume it's relative time in ms
+                expiryTimestamp = now + expiryTime;
+            } else {
+                // Otherwise, assume it's an absolute timestamp
+                expiryTimestamp = expiryTime;
+            }
+            
+            // Update expiry time
+            const cacheItem = this.inMemoryCache.get(key);
+            cacheItem.expiry = expiryTimestamp;
+            
+            return true;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'setExpiry',
+                error: error,
+                key: key
+            });
+            return false;
+        }
+    }
+    
+    /**
+     * Estimate size of an object in bytes
+     * @param {any} object - Object to estimate size of
+     * @returns {number} Size in bytes
+     * @private
+     */
+    estimateObjectSize(object) {
+        try {
+            if (object === null || object === undefined) {
+                return 0;
+            }
+            
+            // For strings, use length * 2 (approximate UTF-16 size)
+            if (typeof object === 'string') {
+                return object.length * 2;
+            }
+            
+            // For numbers, booleans, etc.
+            if (typeof object !== 'object') {
+                return 8;
+            }
+            
+            // For arrays, maps, sets
+            if (Array.isArray(object) || object instanceof Map || object instanceof Set) {
+                let size = 0;
+                
+                if (Array.isArray(object)) {
+                    // For arrays, estimate size of each element
+                    size = 40; // Array overhead
+                    for (let i = 0; i < object.length; i++) {
+                        size += this.estimateObjectSize(object[i]);
+                    }
+                } else if (object instanceof Map) {
+                    // For maps, estimate size of keys and values
+                    size = 40; // Map overhead
+                    for (const [key, value] of object.entries()) {
+                        size += this.estimateObjectSize(key);
+                        size += this.estimateObjectSize(value);
+                    }
+                } else if (object instanceof Set) {
+                    // For sets, estimate size of values
+                    size = 40; // Set overhead
+                    for (const value of object) {
+                        size += this.estimateObjectSize(value);
+                    }
+                }
+                
+                return size;
+            }
+            
+            // For objects
+            if (typeof object === 'object') {
+                // Use JSON.stringify as a rough estimate
+                try {
+                    const json = JSON.stringify(object);
+                    return json.length * 2; // Approximate UTF-16 size
+                } catch (e) {
+                    // If JSON.stringify fails, use a rough estimate based on number of keys
+                    let size = 40; // Object overhead
+                    for (const key in object) {
+                        if (Object.prototype.hasOwnProperty.call(object, key)) {
+                            size += key.length * 2; // Key size
+                            size += this.estimateObjectSize(object[key]); // Value size
+                        }
+                    }
+                    return size;
+                }
+            }
+            
+            // Default size
+            return 8;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'estimateObjectSize',
+                error: error
+            });
+            return 100; // Default size if estimation fails
+        }
+    }
+    
+    /**
+     * Compress data
+     * @param {any} data - Data to compress
+     * @returns {any} Compressed data
+     * @private
+     */
+    compressData(data) {
+        try {
+            // Only compress objects and arrays
+            if (typeof data !== 'object' || data === null) {
+                return data;
+            }
+            
+            // Convert to JSON string
+            const jsonString = JSON.stringify(data);
+            
+            // Use simple RLE compression for longer strings
+            if (jsonString.length > 1000) {
+                return this.compressRLE(jsonString);
+            }
+            
+            return data; // Return original if not compressible
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'compressData',
+                error: error
+            });
+            return data; // Return original if compression fails
+        }
+    }
+    
+    /**
+     * Decompress data
+     * @param {any} data - Data to decompress
+     * @returns {any} Decompressed data
+     * @private
+     */
+    decompressData(data) {
+        try {
+            // Check if data is compressed
+            if (typeof data === 'object' && data !== null && data._compressed) {
+                // RLE compressed
+                if (data._type === 'rle') {
+                    const decompressed = this.decompressRLE(data.data);
+                    return JSON.parse(decompressed);
+                }
+                
+                // Other compression types can be added here
+            }
+            
+            return data; // Return original if not compressed
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'decompressData',
+                error: error
+            });
+            return data; // Return original if decompression fails
+        }
+    }
+    
+    /**
+     * Compress string using RLE (Run-Length Encoding)
+     * @param {string} str - String to compress
+     * @returns {Object} Compressed data object
+     * @private
+     */
+    compressRLE(str) {
+        try {
+            let compressed = '';
+            let count = 1;
+            let char = str[0];
+            
+            for (let i = 1; i < str.length; i++) {
+                if (str[i] === char) {
+                    count++;
+                } else {
+                    // Add count and character to result
+                    if (count > 3) {
+                        compressed += count + char;
+                    } else {
+                        compressed += char.repeat(count);
+                    }
+                    
+                    // Reset count and character
+                    count = 1;
+                    char = str[i];
+                }
+            }
+            
+            // Add the last run
+            if (count > 3) {
+                compressed += count + char;
+            } else {
+                compressed += char.repeat(count);
+            }
+            
+            // Check if compression actually saved space
+            if (compressed.length < str.length) {
+                return {
+                    _compressed: true,
+                    _type: 'rle',
+                    data: compressed,
+                    originalLength: str.length
+                };
+            }
+            
+            // Otherwise return original parsed JSON
+            return JSON.parse(str);
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'compressRLE',
+                error: error
+            });
+            // Return original string if compression fails
+            return str;
+        }
+    }
+    
+    /**
+     * Decompress RLE compressed string
+     * @param {string} compressedStr - Compressed string
+     * @returns {string} Decompressed string
+     * @private
+     */
+    decompressRLE(compressedStr) {
+        try {
+            let decompressed = '';
+            let i = 0;
+            
+            while (i < compressedStr.length) {
+                // Check if we have a count
+                if (/[0-9]/.test(compressedStr[i])) {
+                    let countStr = '';
+                    
+                    // Read count
+                    while (i < compressedStr.length && /[0-9]/.test(compressedStr[i])) {
+                        countStr += compressedStr[i];
+                        i++;
+                    }
+                    
+                    const count = parseInt(countStr, 10);
+                    const char = compressedStr[i];
+                    
+                    // Add repeated character
+                    decompressed += char.repeat(count);
+                    i++;
+                } else {
+                    // Single character
+                    decompressed += compressedStr[i];
+                    i++;
+                }
+            }
+            
+            return decompressed;
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'decompressRLE',
+                error: error
+            });
+            // Return original string if decompression fails
+            return compressedStr;
+        }
+    }
+    
+    /**
+     * Format byte size to human-readable string
+     * @param {number} bytes - Size in bytes
+     * @returns {string} Formatted size
+     * @private
+     */
+    formatByteSize(bytes) {
+        try {
+            if (bytes < 1024) {
+                return bytes + ' bytes';
+            } else if (bytes < 1024 * 1024) {
+                return (bytes / 1024).toFixed(2) + ' KB';
+            } else if (bytes < 1024 * 1024 * 1024) {
+                return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            } else {
+                return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+            }
+        } catch (error) {
+            return bytes + ' bytes';
+        }
+    }
+    
+    /**
+     * Get memory usage statistics
+     * @returns {Object} Memory usage statistics
+     * @public
+     */
+    getMemoryStats() {
+        try {
+            // Update memory usage
+            this.updateMemoryUsage();
+            
+            // Get counts
+            const inMemoryCount = this.inMemoryCache.size;
+            const sessionCount = this.sessionStorageCache.size;
+            const localCount = this.localStorage.size;
+            
+            // Count essential items
+            let essentialCount = 0;
+            let essentialSize = 0;
+            
+            for (const value of this.inMemoryCache.values()) {
+                if (value.essential) {
+                    essentialCount++;
+                    essentialSize += value.size || 0;
+                }
+            }
+            
+            return {
+                totalUsage: this.currentMemoryUsage,
+                totalUsageFormatted: this.formatByteSize(this.currentMemoryUsage),
+                limit: this.memorySizeLimit,
+                limitFormatted: this.formatByteSize(this.memorySizeLimit),
+                usageRatio: this.currentMemoryUsage / this.memorySizeLimit,
+                usagePercentage: (this.currentMemoryUsage / this.memorySizeLimit * 100).toFixed(1) + '%',
+                inMemoryCount: inMemoryCount,
+                sessionCount: sessionCount,
+                localCount: localCount,
+                essentialCount: essentialCount,
+                essentialSize: essentialSize,
+                essentialSizeFormatted: this.formatByteSize(essentialSize),
+                lastGcTime: this.lastGcTime,
+                lowMemoryMode: this.lowMemoryMode,
+                memoryPressureLevel: this.memoryPressureLevel
+            };
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'getMemoryStats',
+                error: error
+            });
+            
+            // Return minimal stats on error
+            return {
+                totalUsage: this.currentMemoryUsage,
+                limit: this.memorySizeLimit,
+                error: error.message
+            };
+        }
+    }
+    
+    /**
+     * Set debug mode
+     * @param {boolean} enable - Whether to enable debug mode
+     * @public
+     */
+    setDebugMode(enable) {
+        this.debugMode = Boolean(enable);
+    }
+    
+    /**
+     * Set low memory mode
+     * @param {boolean} enable - Whether to enable low memory mode
+     * @public
+     */
+    setLowMemoryMode(enable) {
+        this.lowMemoryMode = Boolean(enable);
+        
+        // Adjust settings for low memory mode
+        if (this.lowMemoryMode) {
+            this.autoPurgeInterval = 30000; // 30 seconds
+            this.gcThreshold = 0.8; // 80%
+            this.preloadEnabled = false;
+            
+            // Force garbage collection
+            this.runGarbageCollection(true);
+        } else {
+            this.autoPurgeInterval = 60000; // 1 minute
+            this.gcThreshold = 0.9; // 90%
+            this.preloadEnabled = !this.lowEndDevice;
+        }
+        
+        // Restart auto-purge timer with new interval
+        if (this.autoPurgeTimer) {
+            clearInterval(this.autoPurgeTimer);
+        }
+        
+        if (this.autoPurgeEnabled) {
+            this.autoPurgeTimer = setInterval(() => {
+                this.checkMemoryUsage();
+            }, this.autoPurgeInterval);
+        }
+    }
+}
+
+// Create global instance using IIFE
+window.memoryManager = (function() {
+    try {
+        return new MemoryManager();
+    } catch (error) {
+        console.error('Failed to initialize Memory Manager:', error);
+        
+        // Return minimal implementation
+        return {
+            store: () => false,
+            retrieve: () => null,
+            update: () => false,
+            remove: () => false,
+            exists: () => false,
+            clear: () => false,
+            getMemoryStats: () => ({ error: 'Memory Manager not available' }),
+            setDebugMode: () => {},
+            setLowMemoryMode: () => {}
+        };
+    }
+})();
+ collection when page is hidden
+                this.runGarbageCollection();
+            } else if (document.visibilityState === 'visible') {
+                // When page becomes visible again, check for memory issues
+                this.checkMemoryUsage();
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'handleVisibilityChange',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Handle preferences update event
+     * @param {Object} data - Preferences data
+     * @private
+     */
+    handlePreferencesUpdate(data) {
+        try {
+            if (data && data.preferences) {
+                // Apply preference changes
+                if (data.preferences.debugMode !== undefined) {
+                    this.debugMode = Boolean(data.preferences.debugMode);
+                }
+                
+                if (data.preferences.lowMemoryMode !== undefined) {
+                    this.lowMemoryMode = Boolean(data.preferences.lowMemoryMode);
+                    
+                    // Adjust settings when low memory mode changes
+                    if (this.lowMemoryMode) {
+                        this.autoPurgeInterval = 30000; // 30 seconds
+                        this.gcThreshold = 0.8; // 80%
+                        this.preloadEnabled = false;
+                        
+                        // Force garbage collection
+                        this.runGarbageCollection(true);
+                    } else {
+                        this.autoPurgeInterval = 60000; // 1 minute
+                        this.gcThreshold = 0.9; // 90%
+                        this.preloadEnabled = !this.lowEndDevice;
+                    }
+                    
+                    // Restart auto-purge timer with new interval
+                    if (this.autoPurgeTimer) {
+                        clearInterval(this.autoPurgeTimer);
+                    }
+                    
+                    if (this.autoPurgeEnabled) {
+                        this.autoPurgeTimer = setInterval(() => {
+                            this.checkMemoryUsage();
+                        }, this.autoPurgeInterval);
+                    }
+                }
+                
+                if (data.preferences.autoPurgeEnabled !== undefined) {
+                    const newAutoPurgeEnabled = Boolean(data.preferences.autoPurgeEnabled);
+                    
+                    if (newAutoPurgeEnabled !== this.autoPurgeEnabled) {
+                        this.autoPurgeEnabled = newAutoPurgeEnabled;
+                        
+                        // Start or stop auto-purge timer
+                        if (this.autoPurgeEnabled) {
+                            if (this.autoPurgeTimer) {
+                                clearInterval(this.autoPurgeTimer);
+                            }
+                            
+                            this.autoPurgeTimer = setInterval(() => {
+                                this.checkMemoryUsage();
+                            }, this.autoPurgeInterval);
+                        } else if (this.autoPurgeTimer) {
+                            clearInterval(this.autoPurgeTimer);
+                            this.autoPurgeTimer = null;
+                        }
+                    }
+                }
+                
+                if (data.preferences.autoSessionPersist !== undefined) {
+                    this.autoSessionPersist = Boolean(data.preferences.autoSessionPersist);
+                }
+                
+                if (data.preferences.compressionEnabled !== undefined) {
+                    this.compressionEnabled = Boolean(data.preferences.compressionEnabled);
+                }
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'handlePreferencesUpdate',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Handle data cleared event
+     * @private
+     */
+    handleDataCleared() {
+        try {
+            // Clear all caches
+            this.inMemoryCache.clear();
+            this.sessionStorageCache.clear();
+            this.localStorage.clear();
+            
+            // Reset memory usage
+            this.currentMemoryUsage = 0;
+            
+            // Log debug message
+            if (this.debugMode) {
+                console.log('Memory Manager: All caches cleared');
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'handleDataCleared',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Handle before page change event
+     * @private
+     */
+    handleBeforePageChange() {
+        try {
+            // Persist session data
+            if (this.autoSessionPersist) {
+                this.persistSessionData();
+            }
+            
+            // Run garbage collection before page change
+            this.runGarbageCollection();
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'handleBeforePageChange',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Handle low memory event
+     * @private
+     */
+    handleLowMemoryEvent() {
+        try {
+            // Run full garbage collection
+            this.runGarbageCollection(true);
+            
+            // Enable low memory mode if not already enabled
+            if (!this.lowMemoryMode) {
+                this.lowMemoryMode = true;
+                
+                // Adjust settings for low memory mode
+                this.autoPurgeInterval = 30000; // 30 seconds
+                this.gcThreshold = 0.8; // 80%
+                this.preloadEnabled = false;
+                
+                // Restart auto-purge timer with new interval
+                if (this.autoPurgeTimer) {
+                    clearInterval(this.autoPurgeTimer);
+                }
+                
+                if (this.autoPurgeEnabled) {
+                    this.autoPurgeTimer = setInterval(() => {
+                        this.checkMemoryUsage();
+                    }, this.autoPurgeInterval);
+                }
+                
+                // Publish low memory mode event
+                this.eventBus.publish('memory:lowMemoryModeEnabled', {
+                    currentUsage: this.currentMemoryUsage,
+                    limit: this.memorySizeLimit
+                });
+            }
+        } catch (error) {
+            this.errorSystem.reportError({
+                component: 'MemoryManager',
+                method: 'handleLowMemoryEvent',
+                error: error
+            });
+        }
+    }
+    
+    /**
+     * Handle before calculation event
+     * @private
+     */
+    handleBeforeCalculation() {
+        try {
+            // Check if we need to run garbage collection
+            const memoryUsageRatio = this.currentMemoryUsage / this.memorySizeLimit;
+            
+            if (memoryUsageRatio > this.gcThreshold * 0.8) {
+                // Run garbage

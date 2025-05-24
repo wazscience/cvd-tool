@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- 
+    =========================================================================
+    Enhanced CVD Risk Toolkit with Lp(a) Post-Test Modifier
+    Version: 3.0.1 (ESM Edition)
+    Last Updated: May 04, 2025
+    
+    Security and accessibility improvements added May 2025
+    
+    PURPOSE AND FUNCTION:
+    This toolkit provides healthcare professionals with a comprehensive platform for 
+    cardiovascular disease risk assessment. It incorporates established risk calculators 
+    (Framingham Risk Score and QRISK3) with additional adjustments for lipoprotein(a), 
+    a significant independent risk factor for cardiovascular disease.
+    
+    SCIENTIFIC REFERENCES:
+    - Framingham Risk Score: D'Agostino RB Sr, et al. Circulation 2008;117:743-53
+    - QRISK3 algorithm: Hippisley-Cox J, et al. BMJ 2017;357:j2099
+    - Lp(a) adjustments based on: Willeit P, et al. Lancet 2018;392:1311-1320
+    - CCS Guidelines: Pearson GJ, et al. Can J Cardiol. 2021;37(8):1129-1150
+    =========================================================================
+    -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="CVD Risk Toolkit with Lp(a) Post-Test Modifier for cardiovascular risk assessment with lipoprotein(a) adjustment">
+    <meta name="author" content="CVD Risk Toolkit Team">
+    <meta name="theme-color" content="#4a90e2">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self';">
+    
+    <title>CVD Risk Toolkit with Lp(a) Post-Test Modifier</title>
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Primary stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- PWA icons -->
+    <link rel="icon" type="image/svg+xml" href="icons/icon-192x192.svg">
+    <link rel="apple-touch-icon" href="icons/icon-192x192.svg">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Print stylesheet -->
+    <style media="print">
+        body { background-color: white; }
+        .main-header, .tabs, .form-actions, .export-section, button, .tab-content:not(.active) { display: none !important; }
+        .page-container { padding: 0; margin: 0; }
+        .results-section, .main-content { padding: 0; }
+        .card { break-inside: avoid; page-break-inside: avoid; }
+        .results-card, .recommendation-item { border: 1px solid #ddd; margin-bottom: 15px; }
+        .container { width: 100%; max-width: 100%; margin: 0; padding: 0; }
+        @page { size: portrait; margin: 0.5cm; }
+        .legal-disclaimer { font-size: 8pt; }
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+    </style>
+</head>
+<body class="no-js">
+    <script>document.body.classList.remove('no-js');</script>
+    <div class="page-container">
+        <header class="main-header">
+            <div class="container">
+                <div class="header-content">
+                    <div class="logo-container">
+                        <h1>CVD Risk Toolkit</h1>
+                        <span class="tagline">with Lp(a) Post-Test Modifier</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark mode">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+                        </button>
+                        <button class="help-button" id="help-button" aria-label="Help">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9 9a3 3 0 0 1 5.12-2.12A3 3 0 0 1 12 15"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                        </button>
+                    </div>
+                </div>
+                <p class="header-description">Calculate 10-year cardiovascular disease risk using established risk calculators with lipoprotein(a) adjustment</p>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <div class="container">
+                <div class="legal-disclaimer-banner" role="alert">
+                    <strong>Healthcare Professional Use Only:</strong> This tool is designed to support clinical decision-making, not replace it. Always use clinical judgment.
+                </div>
+                
+                <div class="loading-container" id="loading-container" style="display: none;" aria-live="polite" role="status">
+                    <div class="loading-spinner" aria-hidden="true"></div>
+                    <p class="loading-text">Processing data...</p>
+                </div>
+                
+                <noscript>
+                    <div class="error-message-container" role="alert">
+                        <p>This application requires JavaScript to function. Please enable JavaScript in your browser settings and reload the page.</p>
+                    </div>
+                </noscript>
+                
+                <div class="tabs-container">
+                    <div class="tabs" role="tablist">
+                        <button class="tab" data-tab="medication-tab" role="tab" aria-selected="false" id="tab-medication" aria-controls="medication-tab">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+                            <span>Medication Management</span>
+                        </button>
+                        <button class="tab active" data-tab="frs-tab" role="tab" aria-selected="true" id="tab-frs" aria-controls="frs-tab">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7"></path></svg>
+                            <span>Framingham Risk Score</span>
+                        </button>
+                        <button class="tab" data-tab="qrisk-tab" role="tab" aria-selected="false" id="tab-qrisk" aria-controls="qrisk-tab">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"></path><circle cx="20" cy="10" r="2"></circle></svg>
+                            <span>QRISK3</span>
+                        </button>
+                        <button class="tab" data-tab="both-tab" role="tab" aria-selected="false" id="tab-both" aria-controls="both-tab">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+                            <span>Compare Both</span>
+                        </button>
+                    </div>
+
+                    <!-- Framingham Risk Score Tab -->
+                    <div id="frs-tab" class="tab-content active" role="tabpanel" aria-labelledby="tab-frs">
+                        <form id="frs-form" class="clinical-form" novalidate>
+                            <div class="form-header">
+                                <h2 class="section-title">Framingham Risk Score Calculator</h2>
+                                <p class="section-description">The Framingham Risk Score estimates 10-year cardiovascular disease risk based on the Framingham Heart Study.</p>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Patient Demographics</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="frs-age" class="required">Age</label>
+                                            <input type="number" id="frs-age" name="frs-age" min="30" max="74" placeholder="30-74 years" required pattern="[3-7][0-9]" title="Age must be between 30 and 74" aria-describedby="frs-age-validation">
+                                            <div id="frs-age-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="frs-sex" class="required">Sex</label>
+                                            <select id="frs-sex" name="frs-sex" required aria-describedby="frs-sex-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                            </select>
+                                            <div id="frs-sex-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Lipid Profile</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="frs-total-chol" class="required">Total Cholesterol</label>
+                                            <div class="input-group">
+                                                <input type="number" id="frs-total-chol" name="frs-total-chol" min="1" max="15" placeholder="Enter value" required step="0.1" aria-describedby="frs-total-chol-validation">
+                                                <select id="frs-total-chol-unit" name="frs-total-chol-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="frs-total-chol-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="frs-hdl" class="required">HDL Cholesterol</label>
+                                            <div class="input-group">
+                                                <input type="number" id="frs-hdl" name="frs-hdl" min="0.5" max="3" placeholder="Enter value" required step="0.1" aria-describedby="frs-hdl-validation">
+                                                <select id="frs-hdl-unit" name="frs-hdl-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="frs-hdl-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="frs-ldl">LDL Cholesterol
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about LDL cholesterol">i</div>
+                                                    <div class="tooltip-text" role="tooltip" id="frs-ldl-tooltip">LDL cholesterol level is used to determine specific treatment recommendations according to clinical guidelines.</div>
+                                                </div>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" id="frs-ldl" name="frs-ldl" min="0.5" max="10" placeholder="Enter value (optional)" step="0.1" aria-describedby="frs-ldl-tooltip frs-ldl-validation">
+                                                <select id="frs-ldl-unit" name="frs-ldl-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="frs-ldl-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Blood Pressure</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="frs-sbp" class="required">Systolic Blood Pressure</label>
+                                            <div class="input-group">
+                                                <input type="number" id="frs-sbp" name="frs-sbp" min="90" max="200" placeholder="Enter value" required aria-describedby="frs-sbp-validation">
+                                                <span class="unit-selector">mmHg</span>
+                                            </div>
+                                            <div id="frs-sbp-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="frs-bp-treatment" class="required">Blood Pressure Treatment</label>
+                                            <select id="frs-bp-treatment" name="frs-bp-treatment" required aria-describedby="frs-bp-treatment-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="yes">Yes</option>
+                                                <option value="no">No</option>
+                                            </select>
+                                            <div id="frs-bp-treatment-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Risk Factors</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="frs-smoker" class="required">Smoker</label>
+                                            <select id="frs-smoker" name="frs-smoker" required aria-describedby="frs-smoker-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="yes">Yes</option>
+                                                <option value="no">No</option>
+                                            </select>
+                                            <div id="frs-smoker-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="frs-diabetes">Diabetes</label>
+                                            <select id="frs-diabetes" name="frs-diabetes">
+                                                <option value="no" selected>No</option>
+                                                <option value="yes">Yes</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header" aria-expanded="false">
+                                    <h3>Lipoprotein(a) Modifier</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▲</span>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Area for Lp(a) research update notices -->
+                                    <div id="lpa-research-updates" class="research-update-container" style="display: none;" aria-live="polite">
+                                        <!-- Dynamically updated with new research -->
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="frs-lpa">Lp(a) Level
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about Lp(a)">i</div>
+                                                    <div class="tooltip-text" role="tooltip" id="frs-lpa-tooltip">Elevated Lp(a) (≥50 mg/dL or ≥100 nmol/L) is an independent risk factor that increases cardiovascular risk.</div>
+                                                </div>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" id="frs-lpa" name="frs-lpa" min="0" max="500" placeholder="Enter value (optional)" step="1" aria-describedby="frs-lpa-tooltip frs-lpa-validation">
+                                                <select id="frs-lpa-unit" name="frs-lpa-unit" class="unit-selector">
+                                                    <option value="mg/dL">mg/dL</option>
+                                                    <option value="nmol/L">nmol/L</option>
+                                                </select>
+                                            </div>
+                                            <div id="frs-lpa-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="secondary-btn" id="reset-frs-button" data-reset-form="frs-form">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    Reset Form
+                                </button>
+                                <button type="button" class="primary-btn" id="calculate-frs-button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+                                    Calculate FRS Risk
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- QRISK3 Tab -->
+                    <div id="qrisk-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-qrisk">
+                        <form id="qrisk-form" class="clinical-form" novalidate>
+                            <div class="form-header">
+                                <h2 class="section-title">QRISK3 Calculator</h2>
+                                <p class="section-description">QRISK3 estimates 10-year cardiovascular risk, accounting for multiple factors including ethnicity and additional health conditions.</p>
+                                <div class="algorithm-info">
+                                    <p class="algorithm-note"><strong>Note:</strong> This is a simplified implementation of the QRISK3 algorithm. While it includes the main risk factors, it may not exactly match the official QRISK3 calculator results.</p>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Patient Demographics</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-age" class="required">Age</label>
+                                            <input type="number" id="qrisk-age" name="qrisk-age" min="25" max="84" placeholder="25-84 years" required pattern="[2-8][0-9]" title="Age must be between 25 and 84" aria-describedby="qrisk-age-validation">
+                                            <div id="qrisk-age-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="qrisk-sex" class="required">Sex</label>
+                                            <select id="qrisk-sex" name="qrisk-sex" required aria-describedby="qrisk-sex-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                            </select>
+                                            <div id="qrisk-sex-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-ethnicity" class="required">Ethnicity</label>
+                                            <select id="qrisk-ethnicity" name="qrisk-ethnicity" required aria-describedby="qrisk-ethnicity-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="white">White</option>
+                                                <option value="indian">Indian</option>
+                                                <option value="pakistani">Pakistani</option>
+                                                <option value="bangladeshi">Bangladeshi</option>
+                                                <option value="other_asian">Other Asian</option>
+                                                <option value="black_caribbean">Black Caribbean</option>
+                                                <option value="black_african">Black African</option>
+                                                <option value="chinese">Chinese</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                            <div id="qrisk-ethnicity-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="qrisk-townsend">Townsend Deprivation Score
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about Townsend Score">i</div>
+                                                    <div class="tooltip-text" role="tooltip">A measure of material deprivation. UK average is 0. Higher scores indicate more deprived areas. If unknown, leave at default value of 0.</div>
+                                                </div>
+                                            </label>
+                                            <input type="number" id="qrisk-townsend" name="qrisk-townsend" min="-6" max="10" placeholder="Default: 0" value="0" step="0.1" aria-describedby="qrisk-townsend-validation">
+                                            <div id="qrisk-townsend-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Physical Measurements</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-height" class="required">Height</label>
+                                            <div class="input-group">
+                                                <input type="number" id="qrisk-height" name="qrisk-height" min="100" max="250" placeholder="Enter value" required aria-describedby="qrisk-height-validation">
+                                                <select id="qrisk-height-unit" name="qrisk-height-unit" class="unit-selector">
+                                                    <option value="cm">cm</option>
+                                                    <option value="ft/in">ft/in</option>
+                                                </select>
+                                            </div>
+                                            <div id="qrisk-height-ft-container" class="height-ft-container" style="display: none;">
+                                                <input type="number" id="qrisk-height-feet" name="qrisk-height-feet" min="3" max="7" placeholder="Feet" aria-label="Height in feet">
+                                                <input type="number" id="qrisk-height-inches" name="qrisk-height-inches" min="0" max="11" placeholder="Inches" aria-label="Height in inches">
+                                            </div>
+                                            <div id="qrisk-height-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="qrisk-weight" class="required">Weight</label>
+                                            <div class="input-group">
+                                                <input type="number" id="qrisk-weight" name="qrisk-weight" min="30" max="200" placeholder="Enter value" required aria-describedby="qrisk-weight-validation">
+                                                <select id="qrisk-weight-unit" name="qrisk-weight-unit" class="unit-selector">
+                                                    <option value="kg">kg</option>
+                                                    <option value="lb">lb</option>
+                                                </select>
+                                            </div>
+                                            <div id="qrisk-weight-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-bmi-display">Body Mass Index (BMI)</label>
+                                            <div class="input-group">
+                                                <input type="text" id="qrisk-bmi-display" name="qrisk-bmi-display" disabled placeholder="Auto-calculated" aria-live="polite">
+                                                <span class="unit-selector">kg/m²</span>
+                                            </div>
+                                            <!-- Hidden field to store the actual numeric BMI value for calculations -->
+                                            <input type="hidden" id="qrisk-bmi" name="qrisk-bmi">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Blood Pressure</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-sbp" class="required">Systolic Blood Pressure</label>
+                                            <div class="input-group">
+                                                <input type="number" id="qrisk-sbp" name="qrisk-sbp" min="70" max="210" placeholder="Enter value" required aria-describedby="qrisk-sbp-validation">
+                                                <span class="unit-selector">mmHg</span>
+                                            </div>
+                                            <div id="qrisk-sbp-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="qrisk-sbp-sd">Standard Deviation of Systolic Blood Pressure
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about SBP standard deviation">i</div>
+                                                    <div class="tooltip-text" role="tooltip">Variability in blood pressure is a risk factor. If unknown, you can calculate it from multiple readings below.</div>
+                                                </div>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" id="qrisk-sbp-sd" name="qrisk-sbp-sd" min="0" max="30" placeholder="Enter if known" aria-describedby="qrisk-sbp-sd-validation">
+                                                <span class="unit-selector">mmHg</span>
+                                            </div>
+                                            <button type="button" class="toggle-link" id="qrisk-toggle-sbp-readings" aria-expanded="false" aria-controls="qrisk-sbp-readings">Calculate from multiple readings</button>
+                                            <div id="qrisk-sbp-sd-validation" class="error-message" aria-live="polite"></div>
+                                            
+                                            <div id="qrisk-sbp-readings" style="display: none; margin-top: 10px;" aria-hidden="true">
+                                                <div class="sbp-readings-container">
+                                                    <div class="sbp-reading">
+                                                        <label for="qrisk-sbp-reading-1">Reading 1</label>
+                                                        <input type="number" id="qrisk-sbp-reading-1" name="qrisk-sbp-reading-1" min="70" max="210" placeholder="mmHg">
+                                                    </div>
+                                                    <div class="sbp-reading">
+                                                        <label for="qrisk-sbp-reading-2">Reading 2</label>
+                                                        <input type="number" id="qrisk-sbp-reading-2" name="qrisk-sbp-reading-2" min="70" max="210" placeholder="mmHg">
+                                                    </div>
+                                                    <div class="sbp-reading">
+                                                        <label for="qrisk-sbp-reading-3">Reading 3</label>
+                                                        <input type="number" id="qrisk-sbp-reading-3" name="qrisk-sbp-reading-3" min="70" max="210" placeholder="mmHg">
+                                                    </div>
+                                                    <div class="sbp-reading">
+                                                        <label for="qrisk-sbp-reading-4">Reading 4</label>
+                                                        <input type="number" id="qrisk-sbp-reading-4" name="qrisk-sbp-reading-4" min="70" max="210" placeholder="mmHg">
+                                                    </div>
+                                                    <div class="sbp-reading">
+                                                        <label for="qrisk-sbp-reading-5">Reading 5</label>
+                                                        <input type="number" id="qrisk-sbp-reading-5" name="qrisk-sbp-reading-5" min="70" max="210" placeholder="mmHg">
+                                                    </div>
+                                                    <div class="sbp-reading">
+                                                        <label for="qrisk-sbp-reading-6">Reading 6</label>
+                                                        <input type="number" id="qrisk-sbp-reading-6" name="qrisk-sbp-reading-6" min="70" max="210" placeholder="mmHg">
+                                                    </div>
+                                                </div>
+                                                <div class="checkbox-item" style="margin-top: 10px;">
+                                                    <input type="checkbox" id="qrisk-single-sbp-reading" name="qrisk-single-sbp-reading">
+                                                    <label for="qrisk-single-sbp-reading">I only have 1 systolic reading</label>
+                                                </div>
+                                                <button type="button" class="sbp-calc-btn" id="calculate-sbp-sd-btn">Calculate SD</button>
+                                                <div id="qrisk-sbp-sd-result" class="sbp-result" aria-live="polite"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-bp-treatment">On Blood Pressure Treatment</label>
+                                            <select id="qrisk-bp-treatment" name="qrisk-bp-treatment">
+                                                <option value="no" selected>No</option>
+                                                <option value="yes">Yes</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Lipid Profile</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-total-chol" class="required">Total Cholesterol</label>
+                                            <div class="input-group">
+                                                <input type="number" id="qrisk-total-chol" name="qrisk-total-chol" min="1" max="15" placeholder="Enter value" required step="0.1" aria-describedby="qrisk-total-chol-validation">
+                                                <select id="qrisk-total-chol-unit" name="qrisk-total-chol-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="qrisk-total-chol-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="qrisk-hdl" class="required">HDL Cholesterol</label>
+                                            <div class="input-group">
+                                                <input type="number" id="qrisk-hdl" name="qrisk-hdl" min="0.5" max="3" placeholder="Enter value" required step="0.1" aria-describedby="qrisk-hdl-validation">
+                                                <select id="qrisk-hdl-unit" name="qrisk-hdl-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="qrisk-hdl-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-ldl">LDL Cholesterol
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about LDL cholesterol">i</div>
+                                                    <div class="tooltip-text" role="tooltip">LDL cholesterol level is used to determine specific treatment recommendations according to clinical guidelines.</div>
+                                                </div>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" id="qrisk-ldl" name="qrisk-ldl" min="0.5" max="10" placeholder="Enter value (optional)" step="0.1" aria-describedby="qrisk-ldl-validation">
+                                                <select id="qrisk-ldl-unit" name="qrisk-ldl-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="qrisk-ldl-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="qrisk-ratio-display">Total Cholesterol:HDL Ratio</label>
+                                            <div class="input-group">
+                                                <input type="text" id="qrisk-ratio-display" name="qrisk-ratio-display" disabled placeholder="Auto-calculated" aria-live="polite">
+                                                <span class="unit-selector">ratio</span>
+                                            </div>
+                                            <!-- Hidden field to store the actual numeric ratio value for calculations -->
+                                            <input type="hidden" id="qrisk-chol-ratio" name="qrisk-chol-ratio">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Risk Factors</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-smoker" class="required">Smoker Status</label>
+                                            <select id="qrisk-smoker" name="qrisk-smoker" required aria-describedby="qrisk-smoker-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="non">Non-smoker</option>
+                                                <option value="ex">Ex-smoker</option>
+                                                <option value="light">Light smoker (< 10/day)</option>
+                                                <option value="moderate">Moderate smoker (10-19/day)</option>
+                                                <option value="heavy">Heavy smoker (20+/day)</option>
+                                            </select>
+                                            <div id="qrisk-smoker-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="qrisk-diabetes" class="required">Diabetes Status</label>
+                                            <select id="qrisk-diabetes" name="qrisk-diabetes" required aria-describedby="qrisk-diabetes-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="none">None</option>
+                                                <option value="type1">Type 1</option>
+                                                <option value="type2">Type 2</option>
+                                            </select>
+                                            <div id="qrisk-diabetes-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-family-history" class="required">Family History of CVD</label>
+                                            <select id="qrisk-family-history" name="qrisk-family-history" required aria-describedby="qrisk-family-history-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="yes">Yes</option>
+                                                <option value="no">No</option>
+                                            </select>
+                                            <div id="qrisk-family-history-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Medical Conditions</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="checkbox-group">
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="qrisk-af" name="qrisk-af">
+                                            <label for="qrisk-af">Atrial Fibrillation</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="qrisk-ra" name="qrisk-ra">
+                                            <label for="qrisk-ra">Rheumatoid Arthritis</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="qrisk-ckd" name="qrisk-ckd">
+                                            <label for="qrisk-ckd">Chronic Kidney Disease (Stage 3, 4, or 5)</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="qrisk-migraine" name="qrisk-migraine">
+                                            <label for="qrisk-migraine">Migraine</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="qrisk-sle" name="qrisk-sle">
+                                            <label for="qrisk-sle">Systemic Lupus Erythematosus (SLE)</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="qrisk-semi" name="qrisk-semi">
+                                            <label for="qrisk-semi">Severe Mental Illness</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-item" id="qrisk-ed-container" style="display: none;">
+                                            <input type="checkbox" id="qrisk-ed" name="qrisk-ed">
+                                            <label for="qrisk-ed">Erectile Dysfunction/Impotence</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Medications</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="checkbox-group">
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="qrisk-atypical-antipsychotics" name="qrisk-atypical-antipsychotics">
+                                            <label for="qrisk-atypical-antipsychotics">On Atypical Antipsychotics</label>
+                                        </div>
+                                        
+                                        <div class="checkbox-item">
+                                            <input type="checkbox" id="qrisk-corticosteroids" name="qrisk-corticosteroids">
+                                            <label for="qrisk-corticosteroids">On Regular Corticosteroids</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header" aria-expanded="false">
+                                    <h3>Lipoprotein(a) Modifier</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▲</span>
+                                </div>
+                                <div class="card-body">
+                                    <!-- Area for Lp(a) research update notices -->
+                                    <div id="qrisk-lpa-research-updates" class="research-update-container" style="display: none;" aria-live="polite">
+                                        <!-- Dynamically updated with new research -->
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="qrisk-lpa">Lp(a) Level
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about Lp(a)">i</div>
+                                                    <div class="tooltip-text" role="tooltip" id="qrisk-lpa-tooltip">Elevated Lp(a) (≥50 mg/dL or ≥100 nmol/L) is an independent risk factor that increases cardiovascular risk.</div>
+                                                </div>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" id="qrisk-lpa" name="qrisk-lpa" min="0" max="500" placeholder="Enter value (optional)" step="1" aria-describedby="qrisk-lpa-tooltip qrisk-lpa-validation">
+                                                <select id="qrisk-lpa-unit" name="qrisk-lpa-unit" class="unit-selector">
+                                                    <option value="mg/dL">mg/dL</option>
+                                                    <option value="nmol/L">nmol/L</option>
+                                                </select>
+                                            </div>
+                                            <div id="qrisk-lpa-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="secondary-btn" id="reset-qrisk-button" data-reset-form="qrisk-form">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    Reset Form
+                                </button>
+                                <button type="button" class="primary-btn" id="calculate-qrisk-button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+                                    Calculate QRISK3 Score
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Medication Management Tab -->
+                    <div id="medication-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-medication">
+                        <form id="medication-form" class="clinical-form" novalidate>
+                            <div class="form-header">
+                                <h2 class="section-title">Medication Management</h2>
+                                <p class="section-description">Evaluate current lipid-lowering therapy and receive personalized medication recommendations based on risk assessment and clinical guidelines.</p>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Prevention Category</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="prevention-category" class="required">Prevention Category
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about prevention categories">i</div>
+                                                    <div class="tooltip-text" role="tooltip">Primary prevention is for patients without established cardiovascular disease. Secondary prevention is for patients with existing cardiovascular disease.</div>
+                                                </div>
+                                            </label>
+                                            <select id="prevention-category" name="prevention-category" required aria-describedby="prevention-category-validation">
+                                                <option value="" selected disabled>Select</option>
+                                                <option value="primary">Primary Prevention</option>
+                                                <option value="secondary">Secondary Prevention</option>
+                                            </select>
+                                            <div id="prevention-category-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="secondary-details">Secondary Prevention Details
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about secondary prevention details">i</div>
+                                                    <div class="tooltip-text" role="tooltip">Specify qualifying condition(s) for secondary prevention. This affects treatment targets and PCSK9 inhibitor coverage criteria.</div>
+                                                </div>
+                                            </label>
+                                            <select id="secondary-details" name="secondary-details" disabled aria-describedby="secondary-details-validation">
+                                                <option value="" selected disabled>Select if applicable</option>
+                                                <option value="mi">MI or ACS within past 2 years</option>
+                                                <option value="stroke">Ischemic stroke/TIA</option>
+                                                <option value="cad">Coronary artery disease (other)</option>
+                                                <option value="pad">Peripheral arterial disease</option>
+                                                <option value="multi">Multiple vascular territories</option>
+                                            </select>
+                                            <div id="secondary-details-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Current Lipid Profile</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="med-total-chol" class="required">Total Cholesterol</label>
+                                            <div class="input-group">
+                                                <input type="number" id="med-total-chol" name="med-total-chol" min="1" max="15" placeholder="Enter value" required step="0.1" aria-describedby="med-total-chol-validation">
+                                                <select id="med-total-chol-unit" name="med-total-chol-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="med-total-chol-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="med-ldl" class="required">LDL Cholesterol</label>
+                                            <div class="input-group">
+                                                <input type="number" id="med-ldl" name="med-ldl" min="0.5" max="10" placeholder="Enter value" required step="0.1" aria-describedby="med-ldl-validation">
+                                                <select id="med-ldl-unit" name="med-ldl-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="med-ldl-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="med-hdl" class="required">HDL Cholesterol</label>
+                                            <div class="input-group">
+                                                <input type="number" id="med-hdl" name="med-hdl" min="0.5" max="3" placeholder="Enter value" required step="0.1" aria-describedby="med-hdl-validation">
+                                                <select id="med-hdl-unit" name="med-hdl-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="med-hdl-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="med-trig" class="required">Triglycerides</label>
+                                            <div class="input-group">
+                                                <input type="number" id="med-trig" name="med-trig" min="0.5" max="15" placeholder="Enter value" required step="0.1" aria-describedby="med-trig-validation">
+                                                <select id="med-trig-unit" name="med-trig-unit" class="unit-selector">
+                                                    <option value="mmol/L">mmol/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="med-trig-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="med-non-hdl">Non-HDL Cholesterol</label>
+                                            <div class="input-group">
+                                                <input type="number" id="med-non-hdl" name="med-non-hdl" placeholder="Auto-calculated" disabled step="0.1" aria-describedby="med-non-hdl-validation">
+                                                <span class="unit-selector" id="med-non-hdl-unit">mmol/L</span>
+                                            </div>
+                                            <button type="button" class="toggle-link" id="toggle-manual-non-hdl">Enter manually</button>
+                                            <div id="med-non-hdl-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="med-apob">ApoB
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about ApoB">i</div>
+                                                    <div class="tooltip-text" role="tooltip">ApoB is now recommended as a risk marker in certain high-risk patients and is required for PCSK9 inhibitor coverage.</div>
+                                                </div>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" id="med-apob" name="med-apob" min="0.2" max="2.5" placeholder="Enter value (optional)" step="0.01" aria-describedby="med-apob-validation">
+                                                <select id="med-apob-unit" name="med-apob-unit" class="unit-selector">
+                                                    <option value="g/L">g/L</option>
+                                                    <option value="mg/dL">mg/dL</option>
+                                                </select>
+                                            </div>
+                                            <div id="med-apob-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="med-lpa">Lp(a)
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about Lp(a)">i</div>
+                                                    <div class="tooltip-text" role="tooltip">Elevated Lp(a) (≥50 mg/dL or ≥100 nmol/L) is an independent risk factor that increases cardiovascular risk and may affect treatment decisions.</div>
+                                                </div>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" id="med-lpa" name="med-lpa" min="0" max="500" placeholder="Enter value (optional)" step="1" aria-describedby="med-lpa-validation">
+                                                <select id="med-lpa-unit" name="med-lpa-unit" class="unit-selector">
+                                                    <option value="mg/dL">mg/dL</option>
+                                                    <option value="nmol/L">nmol/L</option>
+                                                </select>
+                                            </div>
+                                            <div id="med-lpa-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Current Therapy</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-group">
+                                        <label for="current-statin" class="required">Current Statin</label>
+                                        <select id="current-statin" name="current-statin" required aria-describedby="current-statin-validation">
+                                            <option value="" selected disabled>Select</option>
+                                            <option value="none">No Statin</option>
+                                            <option value="atorvastatin_5">Atorvastatin 5 mg</option>
+                                            <option value="atorvastatin_10">Atorvastatin 10 mg</option>
+                                            <option value="atorvastatin_20">Atorvastatin 20 mg</option>
+                                            <option value="atorvastatin_40">Atorvastatin 40 mg</option>
+                                            <option value="atorvastatin_80">Atorvastatin 80 mg</option>
+                                            <option value="rosuvastatin_5">Rosuvastatin 5 mg</option>
+                                            <option value="rosuvastatin_10">Rosuvastatin 10 mg</option>
+                                            <option value="rosuvastatin_20">Rosuvastatin 20 mg</option>
+                                            <option value="rosuvastatin_40">Rosuvastatin 40 mg</option>
+                                            <option value="simvastatin_5">Simvastatin 5 mg</option>
+                                            <option value="simvastatin_10">Simvastatin 10 mg</option>
+                                            <option value="simvastatin_20">Simvastatin 20 mg</option>
+                                            <option value="simvastatin_40">Simvastatin 40 mg</option>
+                                            <option value="pravastatin_10">Pravastatin 10 mg</option>
+                                            <option value="pravastatin_20">Pravastatin 20 mg</option>
+                                            <option value="pravastatin_40">Pravastatin 40 mg</option>
+                                            <option value="lovastatin_10">Lovastatin 10 mg</option>
+                                            <option value="lovastatin_20">Lovastatin 20 mg</option>
+                                            <option value="lovastatin_40">Lovastatin 40 mg</option>
+                                            <option value="fluvastatin_20">Fluvastatin 20 mg</option>
+                                            <option value="fluvastatin_40">Fluvastatin 40 mg</option>
+                                            <option value="pitavastatin_1">Pitavastatin 1 mg</option>
+                                            <option value="pitavastatin_2">Pitavastatin 2 mg</option>
+                                            <option value="pitavastatin_4">Pitavastatin 4 mg</option>
+                                        </select>
+                                        <div id="current-statin-validation" class="error-message" aria-live="polite"></div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label>Additional Therapy</label>
+                                        <div class="checkbox-group">
+                                            <div class="checkbox-item">
+                                                <input type="checkbox" id="ezetimibe" name="ezetimibe">
+                                                <label for="ezetimibe">Ezetimibe</label>
+                                            </div>
+                                            
+                                            <div class="checkbox-item">
+                                                <input type="checkbox" id="pcsk9" name="pcsk9">
+                                                <label for="pcsk9">PCSK9 Inhibitor</label>
+                                            </div>
+                                            
+                                            <div class="checkbox-item" id="pcsk9-type-container" style="display: none; margin-left: 25px;">
+                                                <select id="pcsk9-type" name="pcsk9-type">
+                                                    <option value="evolocumab">Evolocumab (Repatha)</option>
+                                                    <option value="alirocumab">Alirocumab (Praluent)</option>
+                                                    <option value="inclisiran">Inclisiran (Leqvio)</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="checkbox-item">
+                                                <input type="checkbox" id="bempedoic-acid" name="bempedoic-acid">
+                                                <label for="bempedoic-acid">Bempedoic Acid</label>
+                                            </div>
+                                            
+                                            <div class="checkbox-item">
+                                                <input type="checkbox" id="fibrate" name="fibrate">
+                                                <label for="fibrate">Fibrate</label>
+                                            </div>
+                                            
+                                            <div class="checkbox-item">
+                                                <input type="checkbox" id="niacin" name="niacin">
+                                                <label for="niacin">Niacin</label>
+                                            </div>
+                                            
+                                            <div class="checkbox-item">
+                                                <input type="checkbox" id="omega3" name="omega3">
+                                                <label for="omega3">Omega-3 (EPA/DHA)</label>
+                                            </div>
+                                            
+                                            <div class="checkbox-item" id="omega3-type-container" style="display: none; margin-left: 25px;">
+                                                <select id="omega3-type" name="omega3-type">
+                                                    <option value="icosapent">Icosapent ethyl (Vascepa/Vazkepa)</option>
+                                                    <option value="omega3-mixed">Mixed omega-3 fatty acids</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="statin-intolerance" class="required">Statin Intolerance</label>
+                                        <select id="statin-intolerance" name="statin-intolerance" required aria-describedby="statin-intolerance-validation">
+                                            <option value="" selected disabled>Select</option>
+                                            <option value="none">None</option>
+                                            <option value="partial">Partial (tolerates low dose)</option>
+                                            <option value="complete">Complete (cannot tolerate any statin)</option>
+                                        </select>
+                                        <div id="statin-intolerance-validation" class="error-message" aria-live="polite"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header active" aria-expanded="true">
+                                    <h3>Risk Assessment</h3>
+                                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                                </div>
+                                <div class="card-body active">
+                                    <div class="form-row">
+                                        <div class="form-group" id="risk-score-container">
+                                            <label for="risk-score">CVD Risk Score (%)
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about risk score">i</div>
+                                                    <div class="tooltip-text" role="tooltip">10-year risk of cardiovascular events. For primary prevention, enter risk from FRS or QRISK3 calculator. Not required for secondary prevention.</div>
+                                                </div>
+                                            </label>
+                                            <div class="input-group">
+                                                <input type="number" id="risk-score" name="risk-score" min="0" max="100" step="0.1" placeholder="Enter risk score" aria-describedby="risk-score-validation">
+                                                <span class="unit-selector">%</span>
+                                            </div>
+                                            <div id="risk-score-validation" class="error-message" aria-live="polite"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="risk-import-buttons">
+                                        <button type="button" class="small-btn" id="import-frs-button" disabled>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7"></path></svg>
+                                            Import FRS Risk
+                                        </button>
+                                        <button type="button" class="small-btn" id="import-qrisk-button" disabled>
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"></path><circle cx="20" cy="10" r="2"></circle></svg>
+                                            Import QRISK3 Score
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="risk-category">Risk Category</label>
+                                            <select id="risk-category" name="risk-category">
+                                                <option value="" selected disabled>Select or will be determined</option>
+                                                <option value="very-high">Very High Risk</option>
+                                                <option value="high">High Risk</option>
+                                                <option value="intermediate">Intermediate Risk</option>
+                                                <option value="low">Low Risk</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="form-group">
+                                            <label for="risk-enhancers">Risk Enhancing Factors
+                                                <div class="tooltip-container">
+                                                    <div class="info-icon" tabindex="0" aria-label="Information about risk enhancing factors">i</div>
+                                                    <div class="tooltip-text" role="tooltip">Factors that may reclassify risk upward, especially in borderline or intermediate risk categories.</div>
+                                                </div>
+                                            </label>
+                                            <div class="checkbox-group">
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-family-history" name="enhancer-family-history">
+                                                    <label for="enhancer-family-history">Family history of premature ASCVD</label>
+                                                </div>
+                                                
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-ethnicity" name="enhancer-ethnicity">
+                                                    <label for="enhancer-ethnicity">Ethnicity (e.g., South Asian ancestry)</label>
+                                                </div>
+                                                
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-ckd" name="enhancer-ckd">
+                                                    <label for="enhancer-ckd">Chronic kidney disease</label>
+                                                </div>
+                                                
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-metabolic" name="enhancer-metabolic">
+                                                    <label for="enhancer-metabolic">Metabolic syndrome</label>
+                                                </div>
+                                                
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-inflammatory" name="enhancer-inflammatory">
+                                                    <label for="enhancer-inflammatory">Chronic inflammatory conditions</label>
+                                                </div>
+                                                
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-high-lpa" name="enhancer-high-lpa">
+                                                    <label for="enhancer-high-lpa">Elevated Lp(a) (≥50 mg/dL or ≥100 nmol/L)</label>
+                                                </div>
+                                                
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-high-apob" name="enhancer-high-apob">
+                                                    <label for="enhancer-high-apob">Elevated ApoB</label>
+                                                </div>
+                                                
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-high-trig" name="enhancer-high-trig">
+                                                    <label for="enhancer-high-trig">Persistently elevated triglycerides</label>
+                                                </div>
+                                                
+                                                <div class="checkbox-item">
+                                                    <input type="checkbox" id="enhancer-hsCRP" name="enhancer-hsCRP">
+                                                    <label for="enhancer-hsCRP">Elevated hsCRP</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="secondary-btn" id="reset-medication-button" data-reset-form="medication-form">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                                    Reset Form
+                                </button>
+                                <button type="button" class="primary-btn" id="evaluate-medication-button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+                                    Evaluate Therapy
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Compare Both Tab -->
+                    <div id="both-tab" class="tab-content" role="tabpanel" aria-labelledby="tab-both">
+                        <div class="form-header">
+                            <h2 class="section-title">Compare Risk Calculators</h2>
+                            <p class="section-description">View and compare results from both the Framingham Risk Score and QRISK3 calculators side by side.</p>
+                        </div>
+                        
+                        <div class="results-container">
+                            <div class="no-results-message" id="no-both-results">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+                                <h3>No Results to Compare</h3>
+                                <p>Please complete at least one risk calculator to view results here.</p>
+                                <div class="action-buttons">
+                                    <button type="button" class="secondary-btn" data-go-to-tab="frs-tab">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7"></path></svg>
+                                        Go to FRS Calculator
+                                    </button>
+                                    <button type="button" class="secondary-btn" data-go-to-tab="qrisk-tab">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"></path><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"></path><circle cx="20" cy="10" r="2"></circle></svg>
+                                        Go to QRISK3 Calculator
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div id="comparison-results" style="display: none;">
+                                <div class="comparison-grid">
+                                    <div class="comparison-header">
+                                        <div class="comparison-cell header-cell"></div>
+                                        <div class="comparison-cell header-cell frs-column">Framingham Risk Score</div>
+                                        <div class="comparison-cell header-cell qrisk-column">QRISK3</div>
+                                    </div>
+                                    
+                                    <div class="comparison-row">
+                                        <div class="comparison-cell label-cell">Base Risk Score</div>
+                                        <div class="comparison-cell data-cell frs-column" id="compare-frs-base"></div>
+                                        <div class="comparison-cell data-cell qrisk-column" id="compare-qrisk-base"></div>
+                                    </div>
+                                    
+                                    <div class="comparison-row">
+                                        <div class="comparison-cell label-cell">Risk Category</div>
+                                        <div class="comparison-cell data-cell frs-column" id="compare-frs-category"></div>
+                                        <div class="comparison-cell data-cell qrisk-column" id="compare-qrisk-category"></div>
+                                    </div>
+                                    
+                                    <div class="comparison-row">
+                                        <div class="comparison-cell label-cell">Lp(a) Enhanced Risk</div>
+                                        <div class="comparison-cell data-cell frs-column" id="compare-frs-adjusted"></div>
+                                        <div class="comparison-cell data-cell qrisk-column" id="compare-qrisk-adjusted"></div>
+                                    </div>
+                                    
+                                    <div class="comparison-row">
+                                        <div class="comparison-cell label-cell">Adjusted Risk Category</div>
+                                        <div class="comparison-cell data-cell frs-column" id="compare-frs-adjusted-category"></div>
+                                        <div class="comparison-cell data-cell qrisk-column" id="compare-qrisk-adjusted-category"></div>
+                                    </div>
+                                    
+                                    <div class="comparison-row">
+                                        <div class="comparison-cell label-cell">Relative Risk to Peers</div>
+                                        <div class="comparison-cell data-cell frs-column" id="compare-frs-relative"></div>
+                                        <div class="comparison-cell data-cell qrisk-column" id="compare-qrisk-relative"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="comparison-note">
+                                    <p><strong>Note:</strong> Risk calculators may produce different results due to different variables and populations studied. The clinical interpretation should consider both results along with individual patient characteristics.</p>
+                                </div>
+                                
+                                <div class="comparison-chart">
+                                    <h3>Risk Comparison Chart</h3>
+                                    <div id="comparison-chart-container" class="chart-container">
+                                        <!-- Chart will be rendered here -->
+                                    </div>
+                                </div>
+                                
+                                <div class="recommendation-section">
+                                    <h3>Medication Recommendations</h3>
+                                    <div id="comparison-recommendations">
+                                        <!-- Recommendations will be populated here -->
+                                    </div>
+                                    <button type="button" class="primary-btn" id="go-to-medication-tab">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+                                        Go to Medication Management
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Results Section -->
+                <div class="results-section" id="results-section" style="display: none;">
+                    <div class="results-header">
+                        <h2 class="results-title">Risk Assessment Results</h2>
+                        <div class="results-actions">
+                            <button type="button" class="secondary-btn" id="edit-inputs-button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z"></path></svg>
+                                Edit Inputs
+                            </button>
+                            <button type="button" class="secondary-btn" id="show-pdf-preview">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                                PDF Preview
+                            </button>
+                            <button type="button" class="secondary-btn" id="export-csv">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M8 16h8"></path><path d="M8 12h8"></path></svg>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- FRS Results -->
+                    <div class="results-card" id="frs-results" style="display: none;">
+                        <div class="card-header active" aria-expanded="true">
+                            <h3>Framingham Risk Score Results</h3>
+                            <span class="toggle-icon" aria-hidden="true">▼</span>
+                        </div>
+                        <div class="card-body active">
+                            <div class="results-grid">
+                                <div class="results-column">
+                                    <div class="gauge-container">
+                                        <div class="gauge" id="frs-gauge">
+                                            <!-- Gauge will be rendered here -->
+                                        </div>
+                                        <div class="gauge-value">
+                                            <span id="frs-risk-value">--</span>%
+                                        </div>
+                                        <div class="gauge-label">10-Year Risk</div>
+                                    </div>
+                                    
+                                    <div class="risk-category-container">
+                                        <div class="risk-category-label">Risk Category</div>
+                                        <div class="risk-category-value" id="frs-risk-category">--</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="results-column">
+                                    <div class="results-table">
+                                        <div class="results-table-row">
+                                            <div class="results-table-cell label">Base Risk:</div>
+                                            <div class="results-table-cell value" id="frs-base-risk">--</div>
+                                        </div>
+                                        <div class="results-table-row" id="frs-lpa-row" style="display: none;">
+                                            <div class="results-table-cell label">Lp(a) Modified Risk:</div>
+                                            <div class="results-table-cell value" id="frs-lpa-modified-risk">--</div>
+                                        </div>
+                                        <div class="results-table-row">
+                                            <div class="results-table-cell label">Relative Risk to Peers:</div>
+                                            <div class="results-table-cell value" id="frs-relative-risk">--</div>
+                                        </div>
+                                        <div class="results-table-row" id="frs-heart-age-row" style="display: none;">
+                                            <div class="results-table-cell label">Heart Age:</div>
+                                            <div class="results-table-cell value" id="frs-heart-age">--</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="ldl-target-container" id="frs-ldl-target-container" style="display: none;">
+                                        <div class="ldl-target-header">LDL-C Target</div>
+                                        <div class="ldl-target-value" id="frs-ldl-target">--</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="lpa-info" id="frs-lpa-info" style="display: none;">
+                                <div class="lpa-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                </div>
+                                <div class="lpa-text">
+                                    <strong>Elevated Lp(a) Detected:</strong> <span id="frs-lpa-value">--</span>. This increases cardiovascular risk by a factor of <span id="frs-lpa-factor">--</span> beyond what is captured in standard risk calculators.
+                                </div>
+                            </div>
+                            
+                            <div class="risk-chart">
+                                <div id="frs-chart-container" class="chart-container">
+                                    <!-- Chart will be rendered here -->
+                                </div>
+                            </div>
+                            
+                            <div class="interpretation-container">
+                                <h4>Clinical Interpretation</h4>
+                                <div id="frs-interpretation"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- QRISK3 Results -->
+                    <div class="results-card" id="qrisk-results" style="display: none;">
+                        <div class="card-header active" aria-expanded="true">
+                            <h3>QRISK3 Results</h3>
+                            <span class="toggle-icon" aria-hidden="true">▼</span>
+                        </div>
+                        <div class="card-body active">
+                            <div class="results-grid">
+                                <div class="results-column">
+                                    <div class="gauge-container">
+                                        <div class="gauge" id="qrisk-gauge">
+                                            <!-- Gauge will be rendered here -->
+                                        </div>
+                                        <div class="gauge-value">
+                                            <span id="qrisk-risk-value">--</span>%
+                                        </div>
+                                        <div class="gauge-label">10-Year Risk</div>
+                                    </div>
+                                    
+                                    <div class="risk-category-container">
+                                        <div class="risk-category-label">Risk Category</div>
+                                        <div class="risk-category-value" id="qrisk-risk-category">--</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="results-column">
+                                    <div class="results-table">
+                                        <div class="results-table-row">
+                                            <div class="results-table-cell label">Base Risk:</div>
+                                            <div class="results-table-cell value" id="qrisk-base-risk">--</div>
+                                        </div>
+                                        <div class="results-table-row" id="qrisk-lpa-row" style="display: none;">
+                                            <div class="results-table-cell label">Lp(a) Modified Risk:</div>
+                                            <div class="results-table-cell value" id="qrisk-lpa-modified-risk">--</div>
+                                        </div>
+                                        <div class="results-table-row">
+                                            <div class="results-table-cell label">Relative Risk:</div>
+                                            <div class="results-table-cell value" id="qrisk-relative-risk">--</div>
+                                        </div>
+                                        <div class="results-table-row">
+                                            <div class="results-table-cell label">Healthy Life Expectancy Impact:</div>
+                                            <div class="results-table-cell value" id="qrisk-life-impact">--</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="ldl-target-container" id="qrisk-ldl-target-container" style="display: none;">
+                                        <div class="ldl-target-header">LDL-C Target</div>
+                                        <div class="ldl-target-value" id="qrisk-ldl-target">--</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="lpa-info" id="qrisk-lpa-info" style="display: none;">
+                                <div class="lpa-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                </div>
+                                <div class="lpa-text">
+                                    <strong>Elevated Lp(a) Detected:</strong> <span id="qrisk-lpa-value">--</span>. This increases cardiovascular risk by a factor of <span id="qrisk-lpa-factor">--</span> beyond what is captured in standard risk calculators.
+                                </div>
+                            </div>
+                            
+                            <div class="risk-chart">
+                                <div id="qrisk-chart-container" class="chart-container">
+                                    <!-- Chart will be rendered here -->
+                                </div>
+                            </div>
+                            
+                            <div class="interpretation-container">
+                                <h4>Clinical Interpretation</h4>
+                                <div id="qrisk-interpretation"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Medication Recommendations -->
+                    <div class="results-card" id="medication-results" style="display: none;">
+                        <div class="card-header active" aria-expanded="true">
+                            <h3>Medication Recommendations</h3>
+                            <span class="toggle-icon" aria-hidden="true">▼</span>
+                        </div>
+                        <div class="card-body active">
+                            <div class="target-summary">
+                                <div class="target-item">
+                                    <div class="target-label">Risk Category:</div>
+                                    <div class="target-value" id="med-risk-category">--</div>
+                                </div>
+                                <div class="target-item">
+                                    <div class="target-label">LDL-C Target:</div>
+                                    <div class="target-value" id="med-ldl-target">--</div>
+                                </div>
+                                <div class="target-item">
+                                    <div class="target-label">Current LDL-C:</div>
+                                    <div class="target-value" id="med-current-ldl">--</div>
+                                </div>
+                                <div class="target-item">
+                                    <div class="target-label">Current Therapy Intensity:</div>
+                                    <div class="target-value" id="med-current-intensity">--</div>
+                                </div>
+                                <div class="target-item">
+                                    <div class="target-label">Target Reduction Needed:</div>
+                                    <div class="target-value" id="med-needed-reduction">--</div>
+                                </div>
+                            </div>
+                            
+                            <div class="recommendation-container">
+                                <h4>Therapy Recommendations</h4>
+                                <div id="therapy-recommendations">
+                                    <!-- Recommendations will be populated here -->
+                                </div>
+                            </div>
+                            
+                            <div class="medication-chart">
+                                <div id="medication-chart-container" class="chart-container">
+                                    <!-- Chart will be rendered here -->
+                                </div>
+                            </div>
+                            
+                            <div class="guidelines-container">
+                                <h4>Clinical Guidelines</h4>
+                                <div id="guideline-recommendations"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Export Section -->
+                <div class="export-section" id="export-section" style="display: none;">
+                    <h3>Export Options</h3>
+                    <div class="export-options">
+                        <button type="button" class="export-btn" id="download-pdf-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                            Download PDF Report
+                        </button>
+                        <button type="button" class="export-btn" id="download-csv-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M8 16h8"></path><path d="M8 12h8"></path></svg>
+                            Export as CSV
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Legal Disclaimer -->
+                <div class="legal-disclaimer">
+                    <p><strong>Disclaimer:</strong> This tool is intended for use by healthcare professionals only to support clinical decision-making. It does not replace clinical judgment. Risk calculations are estimates based on population data and may not precisely predict individual outcomes. Treatment decisions should be made in consultation with the patient, considering their unique medical history, preferences, and current clinical guidelines.</p>
+                    <p>© 2025 CVD Risk Toolkit Team. Last updated: May 04, 2025.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modals -->
+    
+    <!-- PDF Preview Modal -->
+    <div class="modal-overlay" id="pdf-preview-modal" role="dialog" aria-hidden="true" aria-labelledby="pdf-preview-title">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="pdf-preview-title">PDF Report Preview</h3>
+                <button type="button" class="close-modal" aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="pdf-preview-content" class="pdf-preview-container">
+                    <!-- PDF content will be generated here -->
+                </div>
+                <div class="pdf-options">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="pdf-include-logo" name="pdf-include-logo" checked>
+                        <label for="pdf-include-logo">Include Logo</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="pdf-include-disclaimer" name="pdf-include-disclaimer" checked>
+                        <label for="pdf-include-disclaimer">Include Disclaimer</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="secondary-btn" id="close-pdf-preview">Cancel</button>
+                <button type="button" class="primary-btn" id="generate-pdf-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div class="modal-overlay" id="help-modal" role="dialog" aria-hidden="true" aria-labelledby="help-modal-title">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="help-modal-title">CVD Risk Toolkit Help</h3>
+                <button type="button" class="close-modal" aria-label="Close modal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="help-content">
+                    <div class="help-section">
+                        <h4>About the CVD Risk Toolkit</h4>
+                        <p>This toolkit provides healthcare professionals with comprehensive cardiovascular disease risk assessment using established algorithms (Framingham Risk Score and QRISK3) with an additional Lipoprotein(a) modifier.</p>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>Risk Calculators</h4>
+                        <p><strong>Framingham Risk Score (FRS):</strong> Estimates 10-year risk of developing cardiovascular disease. Valid for ages 30-74.</p>
+                        <p><strong>QRISK3:</strong> UK-developed risk calculator that includes additional risk factors like ethnicity, rheumatoid arthritis, and other medical conditions. Valid for ages 25-84.</p>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>Lipoprotein(a) Modifier</h4>
+                        <p>Elevated Lp(a) is an independent risk factor not captured in traditional risk scores. This tool applies a modifier based on Lp(a) levels:</p>
+                        <ul>
+                            <li>&lt;30 mg/dL (60 nmol/L): No modifier (1.0×)</li>
+                            <li>30-50 mg/dL (60-100 nmol/L): 1.0-1.3× risk</li>
+                            <li>50-100 mg/dL (100-200 nmol/L): 1.3-1.6× risk</li>
+                            <li>100-200 mg/dL (200-400 nmol/L): 1.6-2.0× risk</li>
+                            <li>200-300 mg/dL (400-600 nmol/L): 2.0-3.0× risk</li>
+                            <li>&gt;300 mg/dL (600 nmol/L): 3.0× risk</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>Medication Management</h4>
+                        <p>The medication management tab evaluates current lipid-lowering therapy and provides recommendations based on risk category, current LDL levels, and clinical guidelines.</p>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>Data Privacy</h4>
+                        <p>All calculations are performed locally in your browser. No patient data is transmitted to external servers or stored beyond your browser session.</p>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>Offline Use</h4>
+                        <p>This application can work offline once loaded. To ensure offline capability, use a modern browser that supports Progressive Web Apps.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="primary-btn" id="close-help-modal">Close</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notification System -->
+    <div class="notification-container" id="notification-container" aria-live="polite"></div>
+    
+    <!-- Scripts -->
+    <!-- External libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chart.js/3.9.1/chart.min.js" integrity="sha512-ElRFoEQdI5Ht6kZvyzXhYG9NqjtkmlkfYk0wr6wHxU9JEHakS7UJZNeml5ALk+8IKlU6jDgMabC3vkumRokgJA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <!-- Application scripts -->
+    <script src="input-sanitizer.js"></script>
+    <script src="xss-protection.js"></script>
+    <script src="secure-storage.js"></script>
+    <script src="validator-extension.js"></script>
+    <script src="utils/physiological-validation.js"></script>
+    <script src="utils/loading-indicator.js"></script>
+    <script src="utils/enhanced-disclaimer.js"></script>
+    <script src="utils/encryption-wrapper.js"></script>
+    <script src="validation.js"></script>
+    <script src="calculations.js"></script>
+    <script src="qrisk3-algorithm.js"></script>
+    <script src="qrisk3-implementation.js"></script>
+    <script src="medication.js"></script>
+    <script src="form-handler.js"></script>
+    <script src="ui.js"></script>
+    <script src="combined.js"></script>
+    <script src="service-worker.js"></script>
+</body>
+</html>

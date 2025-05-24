@@ -155,7 +155,7 @@ try {
   indexHtml = fs.readFileSync(indexHtmlPath, 'utf8');
 } catch (error) {
   console.error('Error reading index.html:', error);
-  return;
+  // return;
 }
 
 if (!indexHtml.includes('loading-indicator.js')) {

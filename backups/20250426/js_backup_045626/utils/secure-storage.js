@@ -10,7 +10,7 @@ const secureStorage = (function() {
     encryptionKey = Array.from(array, byte => ('0' + byte.toString(16)).slice(-2)).join('');
     sessionStorage.setItem('encryptionKey', encryptionKey);
   }
-  
+
   /**
    * Store data securely
    * @param {string} key - Storage key
@@ -28,7 +28,7 @@ const secureStorage = (function() {
       return false;
     }
   }
-  
+
   /**
    * Retrieve securely stored data
    * @param {string} key - Storage key
@@ -37,8 +37,8 @@ const secureStorage = (function() {
   function getItem(key) {
     try {
       const encoded = localStorage.getItem('secure_' + key);
-      if (!encoded) return null;
-      
+      if (!encoded) {return null;}
+
       const dataStr = atob(encoded);
       try {
         return JSON.parse(dataStr);
@@ -50,7 +50,7 @@ const secureStorage = (function() {
       return null;
     }
   }
-  
+
   /**
    * Remove securely stored data
    * @param {string} key - Storage key to remove
@@ -62,7 +62,7 @@ const secureStorage = (function() {
       console.error('SecureStorage removeItem error:', error);
     }
   }
-  
+
   /**
    * Clear all securely stored data
    */
@@ -78,7 +78,7 @@ const secureStorage = (function() {
       console.error('SecureStorage clear error:', error);
     }
   }
-  
+
   // Return the public API
   return {
     setItem,

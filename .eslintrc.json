@@ -4,32 +4,36 @@
     "es6": true,
     "node": true
   },
-  "extends": [
-    "eslint:recommended",
-    "plugin:prettier/recommended"
-  ],
+  "extends": "eslint:recommended",
   "parserOptions": {
-    "ecmaVersion": 2020,
-    "sourceType": "module"
+    "ecmaVersion": 2018
   },
   "rules": {
-    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
-    "no-console": "off",
+    "no-unused-vars": "warn",
     "no-undef": "warn",
-    "prettier/prettier": "warn"
+    "no-console": "off",
+    "semi": ["warn", "always"],
+    "quotes": ["warn", "single", { "allowTemplateLiterals": true }],
+    "brace-style": ["warn", "1tbs", { "allowSingleLine": true }],
+    "no-mixed-spaces-and-tabs": "warn",
+    "indent": "off",
+    "no-trailing-spaces": "off",
+    "comma-dangle": "off",
+    "eol-last": "off"
   },
   "globals": {
-    "d3": "readonly",
-    "CryptoJS": "readonly",
-    "Sentry": "readonly",
-    "Plotly": "readonly",
-    "Chart": "readonly",
-    "THREE": "readonly",
-    "Tone": "readonly",
-    "mammoth": "readonly",
-    "tensorflow": "readonly",
-    "Papaparse": "readonly",
     "window": "readonly",
-    "document": "readonly"
+    "document": "readonly",
+    "console": "readonly",
+    "module": "writable",
+    "require": "readonly",
+    "process": "readonly",
+    "setTimeout": "readonly",
+    "clearTimeout": "readonly",
+    "sessionStorage": "readonly",
+    "localStorage": "readonly",
+    "$": "readonly",
+    "jQuery": "readonly",
+    "CryptoJS": "readonly"
   }
 }

@@ -1,4 +1,4 @@
-# Complete QRISK3 Code Patches
+ Complete QRISK3 Code Patches
 
 This document contains all the code patches required to update the CVD Risk Toolkit with a complete QRISK3 implementation. The patches are organized by file type and function.
 
@@ -443,188 +443,188 @@ function cvd_male_raw(
 
 ```html
 <!-- QRISK3 Tab -->
-<div id="qrisk-tab" class="tab-content">
-    <form id="qrisk-form" class="clinical-form">
-        <div class="form-header">
-            <h2 class="section-title">QRISK3 Calculator</h2>
-            <p class="section-description">QRISK3 estimates 10-year cardiovascular risk, accounting for multiple factors including ethnicity, medical conditions, and medications.</p>
+<div id='qrisk-tab' class='tab-content'>
+    <form id='qrisk-form' class='clinical-form'>
+        <div class='form-header'>
+            <h2 class='section-title'>QRISK3 Calculator</h2>
+            <p class='section-description'>QRISK3 estimates 10-year cardiovascular risk, accounting for multiple factors including ethnicity, medical conditions, and medications.</p>
         </div>
         
         <!-- Patient Demographics Card -->
-        <div class="card">
-            <div class="card-header active">
+        <div class='card'>
+            <div class='card-header active'>
                 <h3>Patient Demographics</h3>
-                <span class="toggle-icon">▼</span>
+                <span class='toggle-icon'>▼</span>
             </div>
-            <div class="card-body active">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="required">Age</label>
-                        <input type="number" id="qrisk-age" min="25" max="84" placeholder="25-84 years" required>
-                        <div class="error-message">Please enter a valid age between 25 and 84</div>
+            <div class='card-body active'>
+                <div class='form-row'>
+                    <div class='form-group'>
+                        <label class='required'>Age</label>
+                        <input type='number' id='qrisk-age' min='25' max='84' placeholder='25-84 years' required>
+                        <div class='error-message'>Please enter a valid age between 25 and 84</div>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="required">Sex</label>
-                        <select id="qrisk-sex" required>
-                            <option value="" selected disabled>Select</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
+                    <div class='form-group'>
+                        <label class='required'>Sex</label>
+                        <select id='qrisk-sex' required>
+                            <option value='' selected disabled>Select</option>
+                            <option value='male'>Male</option>
+                            <option value='female'>Female</option>
                         </select>
-                        <div class="error-message">Please select sex</div>
+                        <div class='error-message'>Please select sex</div>
                     </div>
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="required">Ethnicity</label>
-                        <select id="qrisk-ethnicity" required>
-                            <option value="" selected disabled>Select</option>
-                            <option value="white">White</option>
-                            <option value="indian">Indian</option>
-                            <option value="pakistani">Pakistani</option>
-                            <option value="bangladeshi">Bangladeshi</option>
-                            <option value="other_asian">Other Asian</option>
-                            <option value="black_caribbean">Black Caribbean</option>
-                            <option value="black_african">Black African</option>
-                            <option value="chinese">Chinese</option>
-                            <option value="other">Other</option>
+                <div class='form-row'>
+                    <div class='form-group'>
+                        <label class='required'>Ethnicity</label>
+                        <select id='qrisk-ethnicity' required>
+                            <option value='' selected disabled>Select</option>
+                            <option value='white'>White</option>
+                            <option value='indian'>Indian</option>
+                            <option value='pakistani'>Pakistani</option>
+                            <option value='bangladeshi'>Bangladeshi</option>
+                            <option value='other_asian'>Other Asian</option>
+                            <option value='black_caribbean'>Black Caribbean</option>
+                            <option value='black_african'>Black African</option>
+                            <option value='chinese'>Chinese</option>
+                            <option value='other'>Other</option>
                         </select>
-                        <div class="error-message">Please select ethnicity</div>
+                        <div class='error-message'>Please select ethnicity</div>
                     </div>
                     
-                    <div class="form-group">
+                    <div class='form-group'>
                         <label>Townsend Deprivation Score
-                            <div class="tooltip-container">
-                                <div class="info-icon">i</div>
-                                <div class="tooltip-text">A measure of material deprivation. UK average is 0. Higher scores indicate more deprived areas. If unknown, leave at default value of 0.</div>
+                            <div class='tooltip-container'>
+                                <div class='info-icon'>i</div>
+                                <div class='tooltip-text'>A measure of material deprivation. UK average is 0. Higher scores indicate more deprived areas. If unknown, leave at default value of 0.</div>
                             </div>
                         </label>
-                        <input type="number" id="qrisk-townsend" min="-6" max="10" placeholder="Default: 0" value="0" step="0.1">
+                        <input type='number' id='qrisk-townsend' min='-6' max='10' placeholder='Default: 0' value='0' step='0.1'>
                     </div>
                 </div>
             </div>
         </div>
         
         <!-- Physical Measurements Card -->
-        <div class="card">
-            <div class="card-header active">
+        <div class='card'>
+            <div class='card-header active'>
                 <h3>Physical Measurements</h3>
-                <span class="toggle-icon">▼</span>
+                <span class='toggle-icon'>▼</span>
             </div>
-            <div class="card-body active">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="required">Height</label>
-                        <div class="input-group">
-                            <input type="number" id="qrisk-height" min="100" max="250" placeholder="Enter value" required>
-                            <select id="qrisk-height-unit" class="unit-selector" onchange="toggleHeightInputs('qrisk')">
-                                <option value="cm">cm</option>
-                                <option value="ft/in">ft/in</option>
+            <div class='card-body active'>
+                <div class='form-row'>
+                    <div class='form-group'>
+                        <label class='required'>Height</label>
+                        <div class='input-group'>
+                            <input type='number' id='qrisk-height' min='100' max='250' placeholder='Enter value' required>
+                            <select id='qrisk-height-unit' class='unit-selector' onchange='toggleHeightInputs('qrisk')'>
+                                <option value='cm'>cm</option>
+                                <option value='ft/in'>ft/in</option>
                             </select>
                         </div>
-                        <div id="qrisk-height-ft-container" class="height-ft-container" style="display: none;">
-                            <input type="number" id="qrisk-height-feet" min="3" max="7" placeholder="Feet">
-                            <input type="number" id="qrisk-height-inches" min="0" max="11" placeholder="Inches">
+                        <div id='qrisk-height-ft-container' class='height-ft-container' style='display: none;'>
+                            <input type='number' id='qrisk-height-feet' min='3' max='7' placeholder='Feet'>
+                            <input type='number' id='qrisk-height-inches' min='0' max='11' placeholder='Inches'>
                         </div>
-                        <div class="error-message">Please enter a valid height</div>
+                        <div class='error-message'>Please enter a valid height</div>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="required">Weight</label>
-                        <div class="input-group">
-                            <input type="number" id="qrisk-weight" min="30" max="200" placeholder="Enter value" required>
-                            <select id="qrisk-weight-unit" class="unit-selector">
-                                <option value="kg">kg</option>
-                                <option value="lb">lb</option>
+                    <div class='form-group'>
+                        <label class='required'>Weight</label>
+                        <div class='input-group'>
+                            <input type='number' id='qrisk-weight' min='30' max='200' placeholder='Enter value' required>
+                            <select id='qrisk-weight-unit' class='unit-selector'>
+                                <option value='kg'>kg</option>
+                                <option value='lb'>lb</option>
                             </select>
                         </div>
-                        <div class="error-message">Please enter a valid weight between 30 and 200</div>
+                        <div class='error-message'>Please enter a valid weight between 30 and 200</div>
                     </div>
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group">
+                <div class='form-row'>
+                    <div class='form-group'>
                         <label>Body Mass Index (BMI)</label>
-                        <div class="input-group">
-                            <input type="text" id="qrisk-bmi-display" disabled placeholder="Auto-calculated">
-                            <span class="unit-selector">kg/m²</span>
+                        <div class='input-group'>
+                            <input type='text' id='qrisk-bmi-display' disabled placeholder='Auto-calculated'>
+                            <span class='unit-selector'>kg/m²</span>
                         </div>
                         <!-- Hidden field to store the actual numeric BMI value for calculations -->
-                        <input type="hidden" id="qrisk-bmi">
+                        <input type='hidden' id='qrisk-bmi'>
                     </div>
                 </div>
             </div>
         </div>
         
         <!-- Blood Pressure Card -->
-        <div class="card">
-            <div class="card-header active">
+        <div class='card'>
+            <div class='card-header active'>
                 <h3>Blood Pressure</h3>
-                <span class="toggle-icon">▼</span>
+                <span class='toggle-icon'>▼</span>
             </div>
-            <div class="card-body active">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="required">Systolic Blood Pressure</label>
-                        <div class="input-group">
-                            <input type="number" id="qrisk-sbp" min="70" max="210" placeholder="Enter value" required>
-                            <span class="unit-selector">mmHg</span>
+            <div class='card-body active'>
+                <div class='form-row'>
+                    <div class='form-group'>
+                        <label class='required'>Systolic Blood Pressure</label>
+                        <div class='input-group'>
+                            <input type='number' id='qrisk-sbp' min='70' max='210' placeholder='Enter value' required>
+                            <span class='unit-selector'>mmHg</span>
                         </div>
-                        <div class="error-message">Please enter a valid value between 70 and 210</div>
+                        <div class='error-message'>Please enter a valid value between 70 and 210</div>
                     </div>
                     
-                    <div class="form-group">
+                    <div class='form-group'>
                         <label>Standard Deviation of SBP</label>
-                        <div class="input-group">
-                            <input type="number" id="qrisk-sbp-sd" min="0" max="30" placeholder="Enter if known">
-                            <span class="unit-selector">mmHg</span>
+                        <div class='input-group'>
+                            <input type='number' id='qrisk-sbp-sd' min='0' max='30' placeholder='Enter if known'>
+                            <span class='unit-selector'>mmHg</span>
                         </div>
-                        <a class="toggle-link" id="qrisk-toggle-sbp-readings">Calculate from multiple readings</a>
+                        <a class='toggle-link' id='qrisk-toggle-sbp-readings'>Calculate from multiple readings</a>
                         
-                        <div id="qrisk-sbp-readings" style="display: none; margin-top: 10px;">
-                            <div class="sbp-readings-container">
-                                <div class="sbp-reading">
-                                    <label for="qrisk-sbp-reading-1">Reading 1</label>
-                                    <input type="number" id="qrisk-sbp-reading-1" min="70" max="210" placeholder="mmHg">
+                        <div id='qrisk-sbp-readings' style='display: none; margin-top: 10px;'>
+                            <div class='sbp-readings-container'>
+                                <div class='sbp-reading'>
+                                    <label for='qrisk-sbp-reading-1'>Reading 1</label>
+                                    <input type='number' id='qrisk-sbp-reading-1' min='70' max='210' placeholder='mmHg'>
                                 </div>
-                                <div class="sbp-reading">
-                                    <label for="qrisk-sbp-reading-2">Reading 2</label>
-                                    <input type="number" id="qrisk-sbp-reading-2" min="70" max="210" placeholder="mmHg">
+                                <div class='sbp-reading'>
+                                    <label for='qrisk-sbp-reading-2'>Reading 2</label>
+                                    <input type='number' id='qrisk-sbp-reading-2' min='70' max='210' placeholder='mmHg'>
                                 </div>
-                                <div class="sbp-reading">
-                                    <label for="qrisk-sbp-reading-3">Reading 3</label>
-                                    <input type="number" id="qrisk-sbp-reading-3" min="70" max="210" placeholder="mmHg">
+                                <div class='sbp-reading'>
+                                    <label for='qrisk-sbp-reading-3'>Reading 3</label>
+                                    <input type='number' id='qrisk-sbp-reading-3' min='70' max='210' placeholder='mmHg'>
                                 </div>
-                                <div class="sbp-reading">
-                                    <label for="qrisk-sbp-reading-4">Reading 4</label>
-                                    <input type="number" id="qrisk-sbp-reading-4" min="70" max="210" placeholder="mmHg">
+                                <div class='sbp-reading'>
+                                    <label for='qrisk-sbp-reading-4'>Reading 4</label>
+                                    <input type='number' id='qrisk-sbp-reading-4' min='70' max='210' placeholder='mmHg'>
                                 </div>
-                                <div class="sbp-reading">
-                                    <label for="qrisk-sbp-reading-5">Reading 5</label>
-                                    <input type="number" id="qrisk-sbp-reading-5" min="70" max="210" placeholder="mmHg">
+                                <div class='sbp-reading'>
+                                    <label for='qrisk-sbp-reading-5'>Reading 5</label>
+                                    <input type='number' id='qrisk-sbp-reading-5' min='70' max='210' placeholder='mmHg'>
                                 </div>
-                                <div class="sbp-reading">
-                                    <label for="qrisk-sbp-reading-6">Reading 6</label>
-                                    <input type="number" id="qrisk-sbp-reading-6" min="70" max="210" placeholder="mmHg">
+                                <div class='sbp-reading'>
+                                    <label for='qrisk-sbp-reading-6'>Reading 6</label>
+                                    <input type='number' id='qrisk-sbp-reading-6' min='70' max='210' placeholder='mmHg'>
                                 </div>
                             </div>
-                            <div class="checkbox-item" style="margin-top: 10px;">
-                                <input type="checkbox" id="qrisk-single-sbp-reading">
-                                <label for="qrisk-single-sbp-reading">I only have 1 systolic reading</label>
+                            <div class='checkbox-item' style='margin-top: 10px;'>
+                                <input type='checkbox' id='qrisk-single-sbp-reading'>
+                                <label for='qrisk-single-sbp-reading'>I only have 1 systolic reading</label>
                             </div>
-                            <button type="button" class="sbp-calc-btn" onclick="calculateSBPStandardDeviation('qrisk')">Calculate SD</button>
-                            <div id="qrisk-sbp-sd-result" class="sbp-result"></div>
+                            <button type='button' class='sbp-calc-btn' onclick='calculateSBPStandardDeviation('qrisk')'>Calculate SD</button>
+                            <div id='qrisk-sbp-sd-result' class='sbp-result'></div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group">
+                <div class='form-row'>
+                    <div class='form-group'>
                         <label>On Blood Pressure Treatment</label>
-                        <select id="qrisk-bp-treatment">
-                            <option value="no" selected>No</option>
-                            <option value="yes">Yes</option>
+                        <select id='qrisk-bp-treatment'>
+                            <option value='no' selected>No</option>
+                            <option value='yes'>Yes</option>
                         </select>
                     </div>
                 </div>
@@ -632,223 +632,223 @@ function cvd_male_raw(
         </div>
         
         <!-- Lipid Profile Card -->
-        <div class="card">
-            <div class="card-header active">
+        <div class='card'>
+            <div class='card-header active'>
                 <h3>Lipid Profile</h3>
-                <span class="toggle-icon">▼</span>
+                <span class='toggle-icon'>▼</span>
             </div>
-            <div class="card-body active">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="required">Total Cholesterol</label>
-                        <div class="input-group">
-                            <input type="number" id="qrisk-total-chol" min="1" max="15" placeholder="Enter value" required step="0.1">
-                            <select id="qrisk-total-chol-unit" class="unit-selector">
-                                <option value="mmol/L">mmol/L</option>
-                                <option value="mg/dL">mg/dL</option>
+            <div class='card-body active'>
+                <div class='form-row'>
+                    <div class='form-group'>
+                        <label class='required'>Total Cholesterol</label>
+                        <div class='input-group'>
+                            <input type='number' id='qrisk-total-chol' min='1' max='15' placeholder='Enter value' required step='0.1'>
+                            <select id='qrisk-total-chol-unit' class='unit-selector'>
+                                <option value='mmol/L'>mmol/L</option>
+                                <option value='mg/dL'>mg/dL</option>
                             </select>
                         </div>
-                        <div class="error-message">Please enter a valid value between 1 and 15</div>
+                        <div class='error-message'>Please enter a valid value between 1 and 15</div>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="required">HDL Cholesterol</label>
-                        <div class="input-group">
-                            <input type="number" id="qrisk-hdl" min="0.5" max="3" placeholder="Enter value" required step="0.1">
-                            <select id="qrisk-hdl-unit" class="unit-selector">
-                                <option value="mmol/L">mmol/L</option>
-                                <option value="mg/dL">mg/dL</option>
+                    <div class='form-group'>
+                        <label class='required'>HDL Cholesterol</label>
+                        <div class='input-group'>
+                            <input type='number' id='qrisk-hdl' min='0.5' max='3' placeholder='Enter value' required step='0.1'>
+                            <select id='qrisk-hdl-unit' class='unit-selector'>
+                                <option value='mmol/L'>mmol/L</option>
+                                <option value='mg/dL'>mg/dL</option>
                             </select>
                         </div>
-                        <div class="error-message">Please enter a valid value between 0.5 and 3</div>
+                        <div class='error-message'>Please enter a valid value between 0.5 and 3</div>
                     </div>
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group">
+                <div class='form-row'>
+                    <div class='form-group'>
                         <label>LDL Cholesterol
-                            <div class="tooltip-container">
-                                <div class="info-icon">i</div>
-                                <div class="tooltip-text">LDL cholesterol level is used to determine specific treatment recommendations according to clinical guidelines.</div>
+                            <div class='tooltip-container'>
+                                <div class='info-icon'>i</div>
+                                <div class='tooltip-text'>LDL cholesterol level is used to determine specific treatment recommendations according to clinical guidelines.</div>
                             </div>
                         </label>
-                        <div class="input-group">
-                            <input type="number" id="qrisk-ldl" min="0.5" max="10" placeholder="Enter value (optional)" step="0.1">
-                            <select id="qrisk-ldl-unit" class="unit-selector">
-                                <option value="mmol/L">mmol/L</option>
-                                <option value="mg/dL">mg/dL</option>
+                        <div class='input-group'>
+                            <input type='number' id='qrisk-ldl' min='0.5' max='10' placeholder='Enter value (optional)' step='0.1'>
+                            <select id='qrisk-ldl-unit' class='unit-selector'>
+                                <option value='mmol/L'>mmol/L</option>
+                                <option value='mg/dL'>mg/dL</option>
                             </select>
                         </div>
-                        <div class="error-message">Please enter a valid value between 0.5 and 10</div>
+                        <div class='error-message'>Please enter a valid value between 0.5 and 10</div>
                     </div>
                     
-                    <div class="form-group">
+                    <div class='form-group'>
                         <label>Total Cholesterol:HDL Ratio</label>
-                        <div class="input-group">
-                            <input type="text" id="qrisk-ratio-display" disabled placeholder="Auto-calculated">
-                            <span class="unit-selector">ratio</span>
+                        <div class='input-group'>
+                            <input type='text' id='qrisk-ratio-display' disabled placeholder='Auto-calculated'>
+                            <span class='unit-selector'>ratio</span>
                         </div>
                         <!-- Hidden field to store the actual numeric ratio value for calculations -->
-                        <input type="hidden" id="qrisk-chol-ratio">
+                        <input type='hidden' id='qrisk-chol-ratio'>
                     </div>
                 </div>
             </div>
         </div>
         
         <!-- Risk Factors Card -->
-        <div class="card">
-            <div class="card-header active">
+        <div class='card'>
+            <div class='card-header active'>
                 <h3>Risk Factors</h3>
-                <span class="toggle-icon">▼</span>
+                <span class='toggle-icon'>▼</span>
             </div>
-            <div class="card-body active">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="required">Smoker Status</label>
-                        <select id="qrisk-smoker" required>
-                            <option value="" selected disabled>Select</option>
-                            <option value="non">Non-smoker</option>
-                            <option value="ex">Ex-smoker</option>
-                            <option value="light">Light smoker (< 10/day)</option>
-                            <option value="moderate">Moderate smoker (10-19/day)</option>
-                            <option value="heavy">Heavy smoker (20+/day)</option>
+            <div class='card-body active'>
+                <div class='form-row'>
+                    <div class='form-group'>
+                        <label class='required'>Smoker Status</label>
+                        <select id='qrisk-smoker' required>
+                            <option value='' selected disabled>Select</option>
+                            <option value='non'>Non-smoker</option>
+                            <option value='ex'>Ex-smoker</option>
+                            <option value='light'>Light smoker (< 10/day)</option>
+                            <option value='moderate'>Moderate smoker (10-19/day)</option>
+                            <option value='heavy'>Heavy smoker (20+/day)</option>
                         </select>
-                        <div class="error-message">Please select smoker status</div>
+                        <div class='error-message'>Please select smoker status</div>
                     </div>
                     
-                    <div class="form-group">
-                        <label class="required">Diabetes Status</label>
-                        <select id="qrisk-diabetes" required>
-                            <option value="" selected disabled>Select</option>
-                            <option value="none">None</option>
-                            <option value="type1">Type 1</option>
-                            <option value="type2">Type 2</option>
+                    <div class='form-group'>
+                        <label class='required'>Diabetes Status</label>
+                        <select id='qrisk-diabetes' required>
+                            <option value='' selected disabled>Select</option>
+                            <option value='none'>None</option>
+                            <option value='type1'>Type 1</option>
+                            <option value='type2'>Type 2</option>
                         </select>
-                        <div class="error-message">Please select diabetes status</div>
+                        <div class='error-message'>Please select diabetes status</div>
                     </div>
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="required">Family History of CVD</label>
-                        <select id="qrisk-family-history" required>
-                            <option value="" selected disabled>Select</option>
-                            <option value="yes">Yes</option>
-                            <option value="no">No</option>
+                <div class='form-row'>
+                    <div class='form-group'>
+                        <label class='required'>Family History of CVD</label>
+                        <select id='qrisk-family-history' required>
+                            <option value='' selected disabled>Select</option>
+                            <option value='yes'>Yes</option>
+                            <option value='no'>No</option>
                         </select>
-                        <div class="error-message">Please select an option</div>
+                        <div class='error-message'>Please select an option</div>
                     </div>
                 </div>
             </div>
         </div>
         
         <!-- Medical Conditions Card -->
-        <div class="card">
-            <div class="card-header active">
+        <div class='card'>
+            <div class='card-header active'>
                 <h3>Medical Conditions</h3>
-                <span class="toggle-icon">▼</span>
+                <span class='toggle-icon'>▼</span>
             </div>
-            <div class="card-body active">
-                <div class="checkbox-group">
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="qrisk-af">
-                        <label for="qrisk-af">Atrial Fibrillation</label>
+            <div class='card-body active'>
+                <div class='checkbox-group'>
+                    <div class='checkbox-item'>
+                        <input type='checkbox' id='qrisk-af'>
+                        <label for='qrisk-af'>Atrial Fibrillation</label>
                     </div>
                     
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="qrisk-ra">
-                        <label for="qrisk-ra">Rheumatoid Arthritis</label>
+                    <div class='checkbox-item'>
+                        <input type='checkbox' id='qrisk-ra'>
+                        <label for='qrisk-ra'>Rheumatoid Arthritis</label>
                     </div>
                     
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="qrisk-ckd">
-                        <label for="qrisk-ckd">Chronic Kidney Disease (Stage 3, 4, or 5)</label>
+                    <div class='checkbox-item'>
+                        <input type='checkbox' id='qrisk-ckd'>
+                        <label for='qrisk-ckd'>Chronic Kidney Disease (Stage 3, 4, or 5)</label>
                     </div>
                     
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="qrisk-migraine">
-                        <label for="qrisk-migraine">Migraine</label>
+                    <div class='checkbox-item'>
+                        <input type='checkbox' id='qrisk-migraine'>
+                        <label for='qrisk-migraine'>Migraine</label>
                     </div>
                     
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="qrisk-sle">
-                        <label for="qrisk-sle">Systemic Lupus Erythematosus (SLE)</label>
+                    <div class='checkbox-item'>
+                        <input type='checkbox' id='qrisk-sle'>
+                        <label for='qrisk-sle'>Systemic Lupus Erythematosus (SLE)</label>
                     </div>
                     
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="qrisk-semi">
-                        <label for="qrisk-semi">Severe Mental Illness</label>
+                    <div class='checkbox-item'>
+                        <input type='checkbox' id='qrisk-semi'>
+                        <label for='qrisk-semi'>Severe Mental Illness</label>
                     </div>
                     
-                    <div class="checkbox-item" id="qrisk-ed-container" style="display: none;">
-                        <input type="checkbox" id="qrisk-ed">
-                        <label for="qrisk-ed">Erectile Dysfunction/Impotence</label>
+                    <div class='checkbox-item' id='qrisk-ed-container' style='display: none;'>
+                        <input type='checkbox' id='qrisk-ed'>
+                        <label for='qrisk-ed'>Erectile Dysfunction/Impotence</label>
                     </div>
                 </div>
             </div>
         </div>
         
         <!-- Medications Card -->
-        <div class="card">
-            <div class="card-header active">
+        <div class='card'>
+            <div class='card-header active'>
                 <h3>Medications</h3>
-                <span class="toggle-icon">▼</span>
+                <span class='toggle-icon'>▼</span>
             </div>
-            <div class="card-body active">
-                <div class="checkbox-group">
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="qrisk-atypical-antipsychotics">
-                        <label for="qrisk-atypical-antipsychotics">On Atypical Antipsychotics</label>
+            <div class='card-body active'>
+                <div class='checkbox-group'>
+                    <div class='checkbox-item'>
+                        <input type='checkbox' id='qrisk-atypical-antipsychotics'>
+                        <label for='qrisk-atypical-antipsychotics'>On Atypical Antipsychotics</label>
                     </div>
                     
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="qrisk-corticosteroids">
-                        <label for="qrisk-corticosteroids">On Regular Corticosteroids</label>
+                    <div class='checkbox-item'>
+                        <input type='checkbox' id='qrisk-corticosteroids'>
+                        <label for='qrisk-corticosteroids'>On Regular Corticosteroids</label>
                     </div>
                 </div>
             </div>
         </div>
         
         <!-- Lipoprotein(a) Modifier Card -->
-        <div class="card">
-            <div class="card-header">
+        <div class='card'>
+            <div class='card-header'>
                 <h3>Lipoprotein(a) Modifier</h3>
-                <span class="toggle-icon">▼</span>
+                <span class='toggle-icon'>▼</span>
             </div>
-            <div class="card-body">
+            <div class='card-body'>
                 <!-- Area for Lp(a) research update notices (empty by default) -->
-                <div id="qrisk-lpa-research-updates" class="research-update-container" style="display: none;">
+                <div id='qrisk-lpa-research-updates' class='research-update-container' style='display: none;'>
                     <!-- Dynamically updated with new research -->
                 </div>
                 
-                <div class="form-row">
-                    <div class="form-group">
+                <div class='form-row'>
+                    <div class='form-group'>
                         <label>Lp(a) Level
-                            <div class="tooltip-container">
-                                <div class="info-icon">i</div>
-                                <div class="tooltip-text" id="qrisk-lpa-tooltip">Elevated Lp(a) (≥50 mg/dL or ≥100 nmol/L) is an independent risk factor that increases cardiovascular risk.</div>
+                            <div class='tooltip-container'>
+                                <div class='info-icon'>i</div>
+                                <div class='tooltip-text' id='qrisk-lpa-tooltip'>Elevated Lp(a) (≥50 mg/dL or ≥100 nmol/L) is an independent risk factor that increases cardiovascular risk.</div>
                             </div>
                         </label>
-                        <div class="input-group">
-                            <input type="number" id="qrisk-lpa" min="0" max="500" placeholder="Enter value (optional)" step="1">
-                            <select id="qrisk-lpa-unit" class="unit-selector">
-                                <option value="mg/dL">mg/dL</option>
-                                <option value="nmol/L">nmol/L</option>
+                        <div class='input-group'>
+                            <input type='number' id='qrisk-lpa' min='0' max='500' placeholder='Enter value (optional)' step='1'>
+                            <select id='qrisk-lpa-unit' class='unit-selector'>
+                                <option value='mg/dL'>mg/dL</option>
+                                <option value='nmol/L'>nmol/L</option>
                             </select>
                         </div>
-                        <div class="error-message">Please enter a valid value between 0 and 500</div>
+                        <div class='error-message'>Please enter a valid value between 0 and 500</div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="form-actions">
-            <button type="button" class="secondary-btn" onclick="resetForm('qrisk-form')">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+        <div class='form-actions'>
+            <button type='button' class='secondary-btn' onclick='resetForm('qrisk-form')'>
+                <svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8'></path><path d='M3 3v5h5'></path></svg>
                 Reset Form
             </button>
-            <button type="button" class="primary-btn" onclick="calculateQRISK()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m19 9-5 5-4-4-3 3"></path></svg>
+            <button type='button' class='primary-btn' onclick='calculateQRISK()'>
+                <svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M3 3v18h18'></path><path d='m19 9-5 5-4-4-3 3'></path></svg>
                 Calculate QRISK3 Score
             </button>
         </div>
@@ -890,7 +890,7 @@ function setupQRISK3FormInteractions() {
     
     // SBP standard deviation checkbox handler
     document.getElementById('qrisk-single-sbp-reading').addEventListener('change', function() {
-        const readings = document.querySelectorAll('#qrisk-sbp-readings input[type="number"]');
+        const readings = document.querySelectorAll('#qrisk-sbp-readings input[type='number']');
         if (this.checked) {
             // If checkbox is checked, disable all inputs except the first one
             for (let i = 1; i < readings.length; i++) {
@@ -956,19 +956,19 @@ function calculateBMIForQRISK() {
         const bmiDisplay = document.getElementById('qrisk-bmi-display');
         
         // Add interpretation to the display
-        let bmiCategory = "";
+        let bmiCategory = '';
         if (bmi < 18.5) {
-            bmiCategory = " (Underweight)";
+            bmiCategory = ' (Underweight)';
         } else if (bmi < 25) {
-            bmiCategory = " (Normal weight)";
+            bmiCategory = ' (Normal weight)';
         } else if (bmi < 30) {
-            bmiCategory = " (Overweight)";
+            bmiCategory = ' (Overweight)';
         } else if (bmi < 35) {
-            bmiCategory = " (Obese Class I)";
+            bmiCategory = ' (Obese Class I)';
         } else if (bmi < 40) {
-            bmiCategory = " (Obese Class II)";
+            bmiCategory = ' (Obese Class II)';
         } else {
-            bmiCategory = " (Obese Class III)";
+            bmiCategory = ' (Obese Class III)';
         }
         
         bmiDisplay.value = bmi.toFixed(1) + ' kg/m²' + bmiCategory;
@@ -1013,13 +1013,13 @@ function calculateCholesterolRatio() {
         }
         
         // Format with interpretation
-        let ratioCategory = "";
+        let ratioCategory = '';
         if (ratio < 3.5) {
-            ratioCategory = " (Optimal)";
+            ratioCategory = ' (Optimal)';
         } else if (ratio < 5.0) {
-            ratioCategory = " (Moderate risk)";
+            ratioCategory = ' (Moderate risk)';
         } else {
-            ratioCategory = " (High risk)";
+            ratioCategory = ' (High risk)';
         }
         
         ratioDisplay.value = ratio.toFixed(2) + ratioCategory;
@@ -1068,7 +1068,7 @@ function calculateSBPStandardDeviation(prefix) {
         
         return;
     } else if (readings.length < 3) {
-        showModal('Please enter at least 3 systolic blood pressure readings to calculate standard deviation, or check the "I only have 1 systolic reading" box.');
+        showModal('Please enter at least 3 systolic blood pressure readings to calculate standard deviation, or check the 'I only have 1 systolic reading' box.');
         return;
     }
     

@@ -1,0 +1,61 @@
+// Enhanced module loading with code splitting
+async function loadAppModule(moduleName, options = {}) {
+    // Default options
+    const opts = {
+        critical: false, // Is this a critical module needed for app function?
+        retry: 2,        // Number of retry attempts
+        timeout: 10000,  // Timeout in milliseconds
+        fallback: true   // Use fallback if loading fails?
+        ...options
+    };
+    
+    // Determine module path
+    const modulePath = `js/${moduleName}.js`;
+    
+    // For critical modules, use eager loading
+    if (opts.critical) {
+        return importModule(modulePath);
+    }
+    
+    // For non-critical modules, use lazy loading
+    return new Promise((resolve, reject) => {
+        // Check if we're on a low-end device
+        const isLowEndDevice = document.body.classList.contains('low-end-device');
+        
+        // Only load enhanced features on capable devices
+        if (isLowEndDevice && !opts.critical) {
+            console.log(`Skipping non-critical module ${moduleName} on low-end device`);
+            resolve(_createFallbackModule(modulePath, new Error('Low-end device')));
+            return;
+        }
+        
+        // Use Intersection Observer to load when visible
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                // Element is visible, load the module
+                importModule(modulePath)
+                    .then(module => {
+                        resolve(module);
+                        observer.disconnect();
+                    })
+                    .catch(error => {
+                        console.error(`Error loading module ${moduleName}:`, error);
+                        
+                        if (opts.fallback) {
+                            resolve(_createFallbackModule(modulePath, error));
+                        } else {
+                            reject(error);
+                        }
+                        
+                        observer.disconnect();
+                    });
+            }
+        });
+        
+        // Find related DOM element or use body
+        const targetElement = document.querySelector(`[data-module="${moduleName}"]`) || 
+                             document.body;
+        
+        observer.observe(targetElement);
+    });
+}

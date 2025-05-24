@@ -8,7 +8,7 @@ javascript/**
  * @param {Object} data - Patient data from the form
  * @returns {Object} - Risk calculation results
  */
-function calculateQRISK3Score(data) {
+function qrisk3AlgorithmCalculator(data) {
     // Convert units if needed
     let standardizedData = standardizeUnitsForQRISK3(data);
     
@@ -48,7 +48,7 @@ function calculateQRISK3Score(data) {
  * @param {Object} data - Patient data from the form
  * @returns {Object} - Risk calculation results
  */
-function calculateQRISK3Score(data) {
+function qrisk3AlgorithmCalculator(data) {
     // Convert units if needed
     let standardizedData = standardizeUnitsForQRISK3(data);
     
@@ -223,14 +223,14 @@ function cvd_female_raw(
     b_ra, b_renal, b_semi, b_sle, b_treatedhyp, b_type1, b_type2, 
     bmi, ethrisk, fh_cvd, rati, sbp, sbps5, smoke_cat, surv, town
 ) {
-    const survivor = [
+    const survivor = [;
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0.988876402378082, // 10-year survival probability
         0, 0, 0, 0, 0
     ];
 
     // Conditional arrays for ethnicity and smoking
-    const Iethrisk = [
+    const Iethrisk = [;
         0,
         0,
         0.2804031433299542500000000,
@@ -243,7 +243,7 @@ function cvd_female_raw(
         -0.1712705688324178400000000
     ];
     
-    const Ismoke = [
+    const Ismoke = [;
         0,
         0.1338683378654626200000000,
         0.5620085801243853700000000,
@@ -351,14 +351,14 @@ function cvd_male_raw(
     b_migraine, b_ra, b_renal, b_semi, b_sle, b_treatedhyp, b_type1, 
     b_type2, bmi, ethrisk, fh_cvd, rati, sbp, sbps5, smoke_cat, surv, town
 ) {
-    const survivor = [
+    const survivor = [;
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         0.977268040180206, // 10-year survival probability
         0, 0, 0, 0, 0
     ];
 
     // Conditional arrays for ethnicity and smoking
-    const Iethrisk = [
+    const Iethrisk = [;
         0,
         0,
         0.2771924876030827900000000,
@@ -371,7 +371,7 @@ function cvd_male_raw(
         -0.2632134813474996700000000
     ];
     
-    const Ismoke = [
+    const Ismoke = [;
         0,
         0.1912822286338898300000000,
         0.5524158819264555200000000,

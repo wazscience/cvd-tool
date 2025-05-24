@@ -6,10 +6,10 @@ const encryptionWrapper = (function() {
   // Check for available encryption methods
   const hasCryptoJS = typeof CryptoJS !== 'undefined';
   const hasWebCrypto = typeof window.crypto !== 'undefined' && typeof window.crypto.subtle !== 'undefined';
-  
+
   // Default encryption method
   let defaultMethod = hasCryptoJS ? 'cryptojs' : (hasWebCrypto ? 'webcrypto' : 'base64');
-  
+
   /**
    * Generate a random encryption key
    * @param {number} length - Key length in bytes
@@ -29,7 +29,7 @@ const encryptionWrapper = (function() {
       return key;
     }
   }
-  
+
   /**
    * Encrypt data using CryptoJS AES
    * @param {string} data - Data to encrypt
@@ -37,10 +37,10 @@ const encryptionWrapper = (function() {
    * @returns {string} - Encrypted data
    */
   function encryptWithCryptoJS(data, key) {
-    if (!hasCryptoJS) throw new Error('CryptoJS not available');
+    if (!hasCryptoJS) {throw new Error('CryptoJS not available');}
     return CryptoJS.AES.encrypt(data, key).toString();
   }
-  
+
   /**
    * Decrypt data using CryptoJS AES
    * @param {string} encryptedData - Data to decrypt
@@ -48,24 +48,24 @@ const encryptionWrapper = (function() {
    * @returns {string} - Decrypted data
    */
   function decryptWithCryptoJS(encryptedData, key) {
-    if (!hasCryptoJS) throw new Error('CryptoJS not available');
+    if (!hasCryptoJS) {throw new Error('CryptoJS not available');}
     const bytes = CryptoJS.AES.decrypt(encryptedData, key);
     return bytes.toString(CryptoJS.enc.Utf8);
   }
-  
+
   /**
    * Basic base64 encoding (not true encryption, but obfuscation)
    * @param {string} data - Data to encode
    * @returns {string} - Encoded data
    */
   function encodeBase64(data) {
-    return btoa(encodeURIComponent(data).replace(/%([0-9A-F]{2})/g, 
+    return btoa(encodeURIComponent(data).replace(/%([0-9A-F]{2})/g,
       function(match, p1) {
         return String.fromCharCode('0x' + p1);
       }
     ));
   }
-  
+
   /**
    * Basic base64 decoding
    * @param {string} encodedData - Data to decode
@@ -76,7 +76,7 @@ const encryptionWrapper = (function() {
       return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
   }
-  
+
   /**
    * Encrypt data using the default method
    * @param {any} data - Data to encrypt
@@ -86,13 +86,13 @@ const encryptionWrapper = (function() {
   function encrypt(data, key = null) {
     // Convert data to string if necessary
     const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-    
+
     // Generate key if not provided
     const useKey = key || generateKey();
-    
+
     try {
       let encryptedData;
-      
+
       // Encrypt using selected method
       switch (defaultMethod) {
         case 'cryptojs':
@@ -101,8 +101,8 @@ const encryptionWrapper = (function() {
         case 'webcrypto':
           // WebCrypto API encryption would go here
           // For now, fall back to CryptoJS or base64
-          encryptedData = hasCryptoJS ? 
-            encryptWithCryptoJS(dataStr, useKey) : 
+          encryptedData = hasCryptoJS ?
+            encryptWithCryptoJS(dataStr, useKey) :
             encodeBase64(dataStr);
           break;
         case 'base64':
@@ -110,7 +110,7 @@ const encryptionWrapper = (function() {
           encryptedData = encodeBase64(dataStr);
           break;
       }
-      
+
       return {
         encryptedData,
         key: useKey,
@@ -118,7 +118,7 @@ const encryptionWrapper = (function() {
       };
     } catch (error) {
       console.error('Encryption failed:', error);
-      
+
       // Fall back to base64 encoding
       return {
         encryptedData: encodeBase64(dataStr),
@@ -127,7 +127,7 @@ const encryptionWrapper = (function() {
       };
     }
   }
-  
+
   /**
    * Decrypt data
    * @param {string} encryptedData - Data to decrypt
@@ -138,7 +138,7 @@ const encryptionWrapper = (function() {
   function decrypt(encryptedData, key, method = defaultMethod) {
     try {
       let decryptedData;
-      
+
       // Decrypt using specified method
       switch (method) {
         case 'cryptojs':
@@ -147,8 +147,8 @@ const encryptionWrapper = (function() {
         case 'webcrypto':
           // WebCrypto API decryption would go here
           // For now, fall back to CryptoJS or base64
-          decryptedData = hasCryptoJS ? 
-            decryptWithCryptoJS(encryptedData, key) : 
+          decryptedData = hasCryptoJS ?
+            decryptWithCryptoJS(encryptedData, key) :
             decodeBase64(encryptedData);
           break;
         case 'base64':
@@ -156,7 +156,7 @@ const encryptionWrapper = (function() {
           decryptedData = decodeBase64(encryptedData);
           break;
       }
-      
+
       // Try to parse as JSON
       try {
         return JSON.parse(decryptedData);
@@ -166,7 +166,7 @@ const encryptionWrapper = (function() {
       }
     } catch (error) {
       console.error('Decryption failed:', error);
-      
+
       // Try fallback methods
       try {
         if (method !== 'base64') {
@@ -175,11 +175,11 @@ const encryptionWrapper = (function() {
       } catch (e) {
         console.error('Fallback decryption failed:', e);
       }
-      
+
       return null;
     }
   }
-  
+
   /**
    * Hash data (one-way)
    * @param {string} data - Data to hash
@@ -187,11 +187,11 @@ const encryptionWrapper = (function() {
    * @returns {string} - Hashed data
    */
   function hash(data, algorithm = 'sha256') {
-    if (!data) return '';
-    
+    if (!data) {return '';}
+
     // Convert to string if necessary
     const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-    
+
     // Use CryptoJS if available
     if (hasCryptoJS) {
       switch (algorithm.toLowerCase()) {
@@ -205,11 +205,11 @@ const encryptionWrapper = (function() {
           return CryptoJS.SHA256(dataStr).toString();
       }
     }
-    
+
     // Fallback to simple string hashing
     return simpleHash(dataStr);
   }
-  
+
   /**
    * Simple string hashing function (not cryptographically secure)
    * @param {string} str - String to hash
@@ -224,7 +224,7 @@ const encryptionWrapper = (function() {
     }
     return Math.abs(hash).toString(16);
   }
-  
+
   /**
    * Set default encryption method
    * @param {string} method - Method to use ('cryptojs', 'webcrypto', 'base64')
@@ -235,16 +235,16 @@ const encryptionWrapper = (function() {
       defaultMethod = hasWebCrypto ? 'webcrypto' : 'base64';
       return;
     }
-    
+
     if (method === 'webcrypto' && !hasWebCrypto) {
       console.warn('WebCrypto API not available, using fallback method');
       defaultMethod = hasCryptoJS ? 'cryptojs' : 'base64';
       return;
     }
-    
+
     defaultMethod = method;
   }
-  
+
   /**
    * Get current encryption method
    * @returns {string} - Current encryption method
@@ -252,7 +252,7 @@ const encryptionWrapper = (function() {
   function getMethod() {
     return defaultMethod;
   }
-  
+
   /**
    * Check if secure encryption is available
    * @returns {boolean} - Whether secure encryption is available
@@ -260,7 +260,7 @@ const encryptionWrapper = (function() {
   function isSecureEncryptionAvailable() {
     return hasCryptoJS || hasWebCrypto;
   }
-  
+
   // Return public API
   return {
     encrypt,

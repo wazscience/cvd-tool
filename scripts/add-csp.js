@@ -19,23 +19,23 @@ if (html.includes('Content-Security-Policy')) {
 }
 
 // Define the CSP rules
-const cspRules = [
-  "default-src 'self'",
-  "script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'", // 'unsafe-inline' needed for certain functionality
-  "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
-  "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: /api/placeholder/",
-  "connect-src 'self'",
-  "frame-src 'none'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "upgrade-insecure-requests"
+const cspRules = [;
+  'default-src \'self\'',
+  'script-src \'self\' https://cdnjs.cloudflare.com \'unsafe-inline\'', // 'unsafe-inline' needed for certain functionality
+  'style-src \'self\' https://fonts.googleapis.com \'unsafe-inline\'',
+  'font-src \'self\' https://fonts.gstatic.com',
+  'img-src \'self\' data: /api/placeholder/',
+  'connect-src \'self\'',
+  'frame-src \'none\'',
+  'object-src \'none\'',
+  'base-uri \'self\'',
+  'form-action \'self\'',
+  'frame-ancestors \'none\'',
+  'upgrade-insecure-requests'
 ].join('; ');
 
 // Create CSP meta tag
-const cspMetaTag = `<meta http-equiv="Content-Security-Policy" content="${cspRules}">`;
+const cspMetaTag = `<meta http-equiv='Content-Security-Policy' content='${cspRules}'>`;
 
 // Insert CSP meta tag after the first meta tag
 html = html.replace(/<meta[^>]*>/, match => match + '\n    ' + cspMetaTag);
@@ -57,7 +57,7 @@ if (!fs.existsSync(path.dirname(cspReportHandlerPath))) {
 }
 
 // CSP Report Handler content
-const cspReportHandlerContent = `/**
+const cspReportHandlerContent = `/**;
  * CSP Report Handler
  * Handles Content Security Policy violation reports
  */

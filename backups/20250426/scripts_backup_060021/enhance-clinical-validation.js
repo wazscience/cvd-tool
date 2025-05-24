@@ -123,7 +123,7 @@ if (!calculationsJs) {
     return { baseRisk: 0, lpaModifier: 1, modifiedRisk: 0, riskCategory: 'low' };
   }
   `;
-  
+
   fs.writeFileSync(calculationsJsPath, calculationsJs, 'utf8');
   console.log('Created calculations.js with clinical validation functions');
 } else {
@@ -131,12 +131,12 @@ if (!calculationsJs) {
   if (!calculationsJs.includes('PHYSIOLOGICAL_RANGES')) {
     calculationsJs = physiologicalRanges + '\n\n' + calculationsJs;
   }
-  
+
   if (!calculationsJs.includes('checkPhysiologicalPlausibility')) {
-    calculationsJs = calculationsJs.replace(/\/\/ Risk calculation functions/m, 
+    calculationsJs = calculationsJs.replace(/\/\/ Risk calculation functions/m,
       basicValidationFunction + '\n\n// Risk calculation functions');
   }
-  
+
   fs.writeFileSync(calculationsJsPath, calculationsJs, 'utf8');
   console.log('Updated calculations.js with clinical validation functions');
 }
@@ -238,7 +238,7 @@ if (!validationJs) {
       };
   }
   `;
-  
+
   fs.writeFileSync(validationJsPath, validationJs, 'utf8');
   console.log('Created validation.js with validation functions');
 }

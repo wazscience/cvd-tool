@@ -7,7 +7,7 @@ const combinedJsPath = path.join(process.cwd(), 'combined.js');
 // Check if combined.js exists
 if (!fs.existsSync(combinedJsPath)) {
   console.log('combined.js does not exist, creating new file');
-  
+
   // Create basic structure if file doesn't exist
   const basicCombinedJs = `// CVD Risk Toolkit Combined JavaScript
 
@@ -130,15 +130,15 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 `;
-  
+
   fs.writeFileSync(combinedJsPath, basicCombinedJs);
   console.log('Created basic combined.js file');
 } else {
   console.log('combined.js exists, enhancing it');
-  
+
   // Read the existing file
   let combinedJs = fs.readFileSync(combinedJsPath, 'utf8');
-  
+
   // Check if the loading indicator is already implemented
   if (!combinedJs.includes('window.loadingIndicator')) {
     const loadingIndicatorCode = `
@@ -158,20 +158,20 @@ if (window.loadingIndicator) {
     });
   });
 }`;
-    
+
     // Find the DOMContentLoaded event listener
     const insertPosition = combinedJs.indexOf('document.addEventListener("DOMContentLoaded", function() {');
-    
+
     if (insertPosition !== -1) {
       // Find the end of the DOMContentLoaded function
       const closingBracePosition = combinedJs.indexOf('});', insertPosition);
-      
+
       if (closingBracePosition !== -1) {
         // Insert the loading indicator code before the closing braces
-        combinedJs = combinedJs.substring(0, closingBracePosition) + 
-                     loadingIndicatorCode + 
+        combinedJs = combinedJs.substring(0, closingBracePosition) +
+                     loadingIndicatorCode +
                      combinedJs.substring(closingBracePosition);
-        
+
         fs.writeFileSync(combinedJsPath, combinedJs);
         console.log('Enhanced combined.js with loading indicator support');
       } else {
@@ -183,14 +183,14 @@ if (window.loadingIndicator) {
 document.addEventListener("DOMContentLoaded", function() {
   ${loadingIndicatorCode}
 });\n`;
-      
+
       fs.writeFileSync(combinedJsPath, combinedJs);
       console.log('Added loading indicator support to combined.js');
     }
   } else {
     console.log('Loading indicator already implemented in combined.js');
   }
-  
+
   // Add physiological validation support if not already present
   if (!combinedJs.includes('physiologicalValidation')) {
     const validationCode = `
@@ -215,7 +215,7 @@ function validatePhysiologicalValues() {
 document.addEventListener('DOMContentLoaded', function() {
   validatePhysiologicalValues();
 });`;
-    
+
     combinedJs += validationCode;
     fs.writeFileSync(combinedJsPath, combinedJs);
     console.log('Added physiological validation support to combined.js');

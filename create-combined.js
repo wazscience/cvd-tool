@@ -17,7 +17,7 @@ function autoFixSyntax(code, filename) {
   code = code.replace(/\n\s*\n\s*\n/g, '\n\n');
   code = code.replace(/,\s*}/g, '}');
   code = code.replace(/function\s+(\w+)\s*\(\s*\)\s*{/g, 'function $1() {');
-  
+
   try {
     const result = babel.transformSync(code, {
       presets: ['@babel/preset-env'],
@@ -39,9 +39,9 @@ function validateJavaScript(code, filename) {
   } catch (error) {
     console.warn(`Syntax error in ${filename}: ${error.message}`);
     console.log(`Attempting to auto-fix syntax issues...`);
-    
+
     const fixedCode = autoFixSyntax(code, filename);
-    
+
     try {
       new Function(fixedCode);
       console.log(`Successfully fixed syntax issues in ${filename}`);
@@ -56,22 +56,22 @@ function validateJavaScript(code, filename) {
 function createCompleteCombinedJS() {
   const jsDir = path.join(process.cwd(), 'js');
   const combinedPath = path.join(process.cwd(), 'combined.js');
-  
+
   console.log('Starting combined.js creation...');
-  
+
   function readJSFile(filePath) {
     try {
       if (fs.existsSync(filePath)) {
-        let content = fs.readFileSync(filePath, 'utf8');
+        const content = fs.readFileSync(filePath, 'utf8');
         const filename = path.basename(filePath);
-        
+
         const { valid, code } = validateJavaScript(content, filename);
-        
+
         if (!valid) {
           console.warn(`Skipping ${filename} due to unfixable syntax errors`);
           return `// ${filename} skipped due to syntax errors\n`;
         }
-        
+
         console.log(`Successfully processed: ${filename}`);
         return `// === ${filename} ===\n${code}\n\n`;
       }
@@ -82,16 +82,16 @@ function createCompleteCombinedJS() {
       return `// Error reading ${path.basename(filePath)}: ${error.message}\n\n`;
     }
   }
-  
+
   // Define the correct order based on your file structure
-  const fileOrder = [
+  const fileOrder = [;
     // Core functionality files
     'validation.js',
     'calculations.js',
     'medication.js',
     'ui.js',
     'form-handler.js',
-    
+
     // Utility files
     'utils/secure-storage.js',
     'utils/loading-indicator.js',
@@ -100,13 +100,13 @@ function createCompleteCombinedJS() {
     'utils/validator-extension.js',
     'utils/enhanced-disclaimer.js',
     'utils/csp-report-handler.js',
-    
+
     // Implementation files from root
     '../qrisk3-implementation.js',
     '../juno-integration.js',
     '../enhanced-display.js'
   ];
-  
+
   // Read all JS files in order
   const jsFiles = {};
   fileOrder.forEach(file => {
@@ -118,13 +118,13 @@ function createCompleteCombinedJS() {
     } else {
       fullPath = path.join(jsDir, file);
     }
-    
+
     const key = file.replace(/[\/\\]/g, '_').replace('.js', '').replace('..', 'root');
     jsFiles[key] = readJSFile(fullPath);
   });
-  
+
   // Create comprehensive combined.js content
-  const combinedContent = `/**
+  const combinedContent = `/**;
    * CVD Risk Toolkit Combined JavaScript
    * Version: 3.0.0 - Last Updated: ${new Date().toISOString()}
    * This file combines all JavaScript functionality for the CVD Risk Toolkit
@@ -174,7 +174,7 @@ function createCompleteCombinedJS() {
   ${Object.values(jsFiles).join('\n')}
 
   // Enhanced Form functionality with comprehensive error handling
-  document.addEventListener("DOMContentLoaded", function() {
+  document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing CVD Risk Toolkit...');
     
     // Global error handler
@@ -196,7 +196,7 @@ function createCompleteCombinedJS() {
     
     try {
       // Initialize all modules
-      const initializationSteps = [
+      const initializationSteps = [;
         { name: 'loading indicators', fn: () => window.loadingIndicator?.initialize() },
         { name: 'physiological validation', fn: () => typeof validatePhysiologicalValues === 'function' && validatePhysiologicalValues() },
         { name: 'form handlers', fn: () => typeof initializeFormHandlers === 'function' && initializeFormHandlers() },
@@ -240,7 +240,7 @@ function createCompleteCombinedJS() {
     };
   }
   `;
-  
+
   // Write the file
   fs.writeFileSync(combinedPath, combinedContent, 'utf8');
   console.log('Successfully created comprehensive combined.js');

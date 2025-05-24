@@ -21,7 +21,7 @@ if (!fs.existsSync(utilsDir)) {
 // Create PDF export utility
 console.log('Creating PDF export utility...');
 
-const pdfExportContent = `/**
+var pdfExportContent = `/**`;
  * PDF Export Utility
  * Provides enhanced PDF export functionality with accurate preview
  */
